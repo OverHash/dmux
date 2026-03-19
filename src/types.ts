@@ -1,5 +1,7 @@
 import type { AgentName, PermissionMode } from './utils/agentLaunch.js';
 import type { NotificationSoundId } from './utils/notificationSounds.js';
+import type { VcsBackendSetting } from './vcs/types.js';
+import type { VcsBackendSetting } from './vcs/types.js';
 
 export type DmuxThemeName =
   | 'red'
@@ -130,6 +132,8 @@ export interface DmuxSettings {
   branchPrefix?: string;
   // Whether new pane popup should ask for base/branch overrides
   promptForGitOptionsOnCreate?: boolean;
+  // Which backend to use for workspace lifecycle operations.
+  vcsBackend?: VcsBackendSetting;
   // Preferred minimum content pane width in characters
   minPaneWidth?: number;
   // Preferred maximum content pane width in characters
