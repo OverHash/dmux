@@ -238,30 +238,6 @@ function getMainBranchForRepo(repoPath: string): string {
 }
 
 /**
- * Check if a directory is a git worktree (has .git file, not directory)
- */
-export function isGitWorktree(dirPath: string): boolean {
-  const gitPath = join(dirPath, '.git');
-  if (!existsSync(gitPath)) {
-    return false;
-  }
-  const stat = statSync(gitPath);
-  return stat.isFile();
-}
-
-/**
- * Check if a directory is a git repository root (has .git directory)
- */
-export function isGitRepository(dirPath: string): boolean {
-  const gitPath = join(dirPath, '.git');
-  if (!existsSync(gitPath)) {
-    return false;
-  }
-  const stat = statSync(gitPath);
-  return stat.isDirectory();
-}
-
-/**
  * Generate a display label for a worktree
  * Format: "repo-name (branch)" or "repo-name (branch) - relative/path"
  */
