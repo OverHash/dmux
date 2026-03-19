@@ -387,105 +387,124 @@ export async function createPane(
     || /\.dmux-hooks/i.test(prompt)
   );
 
-  // Create git worktree and cd into it
+  // Attach to an existing workspace or create a brand-new one.
+  //
+  // Existing-workspace path:
+  // - validate the expected workspace still exists for the selected backend
+  // - just `cd` into it from the newly created tmux pane
+  //
+  // New-workspace path:
+  // - create the workspace using backend-specific commands in the pane itself
+  // - wait for the workspace directory to appear on disk
+  // - then persist dmux metadata for reopen/close flows
   try {
     if (existingWorktree) {
-      if (!fs.existsSync(path.join(worktreePath, '.git'))) {
-        throw new Error(`Existing worktree not found at ${worktreePath}`);
+      if (!getVcsBackend(vcsBackend).isRepository(worktreePath)) {
+        throw new Error(`Existing ${vcsBackend} workspace not found at ${worktreePath}`);
       }
 
       await tmuxService.sendShellCommand(paneInfo, `cd "${worktreePath}"`);
       await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
       await new Promise((resolve) => setTimeout(resolve, 300));
     } else {
-      // IMPORTANT: Prune stale worktrees first to avoid conflicts
-      // This must run synchronously from dmux, not in the pane
-      try {
-        execSync('git worktree prune', {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          cwd: projectRoot,
-        });
-      } catch {
-        // Ignore prune errors, proceed anyway
-      }
-
-      // Validate and resolve base branch for new worktrees
-      const baseBranch = settings.baseBranch || '';
-      if (baseBranch && !isValidBranchName(baseBranch)) {
-        throw new Error(`Invalid base branch name: ${baseBranch}`);
-      }
-      const resolvedStartPoint = startPointBranch || baseBranch;
-      if (resolvedStartPoint && !isValidBranchName(resolvedStartPoint)) {
-        throw new Error(`Invalid worktree start-point branch name: ${resolvedStartPoint}`);
-      }
-      if (resolvedStartPoint) {
-        try {
-          execSync(`git rev-parse --verify --end-of-options "${resolvedStartPoint}"`, {
-            stdio: 'pipe',
-            cwd: projectRoot,
-          });
-        } catch {
-          if (startPointBranch) {
-            throw new Error(
-              `Worktree start-point branch "${resolvedStartPoint}" does not exist anymore. Reopen the parent worktree or recreate it before branching again.`
-            );
-          }
-
-          throw new Error(
-            `Base branch "${resolvedStartPoint}" does not exist. Update the baseBranch setting to a valid branch name.`
-          );
-        }
-      }
-
+      // Retry creation because tmux pane startup + VCS workspace setup can race
+      // briefly with our filesystem checks right after sending the command.
       const maxWorktreeAttempts = 3;
       const maxWaitTime = 5000; // 5 seconds max
-      const checkInterval = 100; // Check every 100ms
+      const checkInterval = 100; // check every 100ms
       let worktreeCreated = fs.existsSync(worktreePath);
 
-      for (let attempt = 1; attempt <= maxWorktreeAttempts && !worktreeCreated; attempt++) {
-        // Check if branch already exists (from a deleted worktree or a previous attempt)
-        let branchExists = false;
-        try {
-          execSync(`git show-ref --verify --quiet "refs/heads/${targetRef}"`, {
-            stdio: 'pipe',
-            cwd: projectRoot,
-          });
-          branchExists = true;
-        } catch {
-          // Branch doesn't exist yet
+      switch (vcsBackend) {
+        case 'git': {
+          // Git path:
+          // 1. prune stale worktree records
+          // 2. validate the configured start point
+          // 3. create or reuse the branch-backed worktree
+          try {
+            execSync('git worktree prune', {
+              encoding: 'utf-8',
+              stdio: 'pipe',
+              cwd: projectRoot,
+            });
+          } catch {
+            // Ignore prune errors, proceed anyway
+          }
+
+          const baseBranch = settings.baseBranch || '';
+          if (baseBranch && !isValidBranchName(baseBranch)) {
+            throw new Error(`Invalid base branch name: ${baseBranch}`);
+          }
+          const resolvedStartPoint = startPointBranch || baseBranch;
+          if (resolvedStartPoint && !isValidBranchName(resolvedStartPoint)) {
+            throw new Error(`Invalid worktree start-point branch name: ${resolvedStartPoint}`);
+          }
+          if (resolvedStartPoint) {
+            try {
+              execSync(`git rev-parse --verify --end-of-options "${resolvedStartPoint}"`, {
+                stdio: 'pipe',
+                cwd: projectRoot,
+              });
+            } catch {
+              if (startPointBranch) {
+                throw new Error(
+                  `Worktree start-point branch "${resolvedStartPoint}" does not exist anymore. Reopen the parent worktree or recreate it before branching again.`
+                );
+              }
+
+              throw new Error(
+                `Base branch "${resolvedStartPoint}" does not exist. Update the baseBranch setting to a valid branch name.`
+              );
+            }
+          }
+
+          for (let attempt = 1; attempt <= maxWorktreeAttempts && !worktreeCreated; attempt++) {
+            // If the branch already exists, attach to it directly. Otherwise create
+            // a new branch for the worktree, optionally from the requested base.
+            let branchExists = false;
+            try {
+              execSync(`git show-ref --verify --quiet "refs/heads/${targetRef}"`, {
+                stdio: 'pipe',
+                cwd: projectRoot,
+              });
+              branchExists = true;
+            } catch {
+              // Branch doesn't exist yet
+              branchExists = false;
+            }
+
+            // Build worktree command:
+            // - If branch exists, use it (don't create with -b)
+            // - If branch doesn't exist, create it with -b, optionally from a configured base branch
+            const startPoint = resolvedStartPoint ? ` "${resolvedStartPoint}"` : '';
+            const worktreeAddCmd = branchExists
+              ? `git worktree add "${worktreePath}" "${targetRef}"`
+              : `git worktree add "${worktreePath}" -b "${targetRef}"${startPoint}`;
+            const worktreeCmd = `cd "${projectRoot}" && ${worktreeAddCmd} && cd "${worktreePath}"`;
+
+            // Send the git worktree command (auto-quoted by sendShellCommand)
+            await tmuxService.sendShellCommand(paneInfo, worktreeCmd);
+            await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
+
+            const startTime = Date.now();
+            while (!fs.existsSync(worktreePath) && (Date.now() - startTime) < maxWaitTime) {
+              await new Promise((resolve) => setTimeout(resolve, checkInterval));
+            }
+
+            worktreeCreated = fs.existsSync(worktreePath);
+            if (!worktreeCreated && attempt < maxWorktreeAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+            }
+          }
+          break;
         }
-
-        // Build worktree command:
-        // - If branch exists, use it (don't create with -b)
-        // - If branch doesn't exist, create it with -b, optionally from a configured base branch
-        const startPoint = resolvedStartPoint ? ` "${resolvedStartPoint}"` : '';
-        const worktreeAddCmd = branchExists
-          ? `git worktree add "${worktreePath}" "${targetRef}"`
-          : `git worktree add "${worktreePath}" -b "${targetRef}"${startPoint}`;
-        const worktreeCmd = `cd "${projectRoot}" && ${worktreeAddCmd} && cd "${worktreePath}"`;
-
-        // Send the git worktree command (auto-quoted by sendShellCommand)
-        await tmuxService.sendShellCommand(paneInfo, worktreeCmd);
-        await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
-
-        const startTime = Date.now();
-        while (!fs.existsSync(worktreePath) && (Date.now() - startTime) < maxWaitTime) {
-          await new Promise((resolve) => setTimeout(resolve, checkInterval));
-        }
-
-        worktreeCreated = fs.existsSync(worktreePath);
-        if (!worktreeCreated && attempt < maxWorktreeAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
-        }
+        default:
+          throw new Error(`Unsupported VCS backend: ${String(vcsBackend)}`);
       }
 
-      // Verify worktree was created successfully
       if (!worktreeCreated) {
-        throw new Error(`Worktree directory not created at ${worktreePath} after ${maxWorktreeAttempts} attempts`);
+        throw new Error(`Workspace directory not created at ${worktreePath} after ${maxWorktreeAttempts} attempts`);
       }
 
-      // Give a bit more time for git to finish setting up the worktree
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
