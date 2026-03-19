@@ -1,4 +1,3 @@
-import { execSync } from 'child_process';
 import path from 'path';
 import { existsSync, statSync } from 'fs';
 import type {
@@ -6,14 +5,7 @@ import type {
   VcsBackendSetting,
   VcsDetectionResult,
 } from './types.js';
-
-function runCommand(command: string, cwd: string): string {
-  return execSync(command, {
-    cwd,
-    encoding: 'utf-8',
-    stdio: 'pipe',
-  }).trim();
-}
+import { getAutoDetectBackends, getVcsBackend } from './registry.js';
 
 function assertNever(value: never): never {
   throw new Error(`Unsupported VCS backend setting: ${String(value)}`);
@@ -23,56 +15,7 @@ function resolveProjectRootForBackend(
   workingDir: string,
   backend: SupportedVcsBackend
 ): string {
-  switch (backend) {
-    case 'jj':
-      return resolveJjProjectRoot(workingDir);
-    case 'git':
-      return resolveGitProjectRoot(workingDir);
-    default:
-      return assertNever(backend);
-  }
-}
-
-export function isGitRepository(workingDir: string): boolean {
-  try {
-    runCommand('git rev-parse --show-toplevel', workingDir);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function isJjRepository(workingDir: string): boolean {
-  try {
-    runCommand('jj workspace root', workingDir);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function resolveGitProjectRoot(workingDir: string): string {
-  try {
-    const gitCommonDir = runCommand(
-      'git rev-parse --path-format=absolute --git-common-dir',
-      workingDir
-    );
-    if (gitCommonDir && gitCommonDir !== '.git') {
-      return path.dirname(gitCommonDir);
-    }
-  } catch {
-    // Fall through to show-toplevel.
-  }
-
-  return runCommand('git rev-parse --show-toplevel', workingDir);
-}
-
-export function resolveJjProjectRoot(workingDir: string): string {
-  try {
-    return runCommand('jj workspace root --name default', workingDir);
-  } catch {
-    return runCommand('jj workspace root', workingDir);
-  }
+  return getVcsBackend(backend).resolveProjectRoot(workingDir);
 }
 
 /**
@@ -92,16 +35,15 @@ export function detectVcsBackend(
 ): SupportedVcsBackend | null {
   switch (preferredBackend) {
     case 'jj':
-      return isJjRepository(workingDir) ? 'jj' : null;
     case 'git':
-      return isGitRepository(workingDir) ? 'git' : null;
+      return getVcsBackend(preferredBackend).isRepository(workingDir)
+        ? preferredBackend
+        : null;
     case 'auto':
-      if (isJjRepository(workingDir)) {
-        return 'jj';
-      }
-
-      if (isGitRepository(workingDir)) {
-        return 'git';
+      for (const backend of getAutoDetectBackends()) {
+        if (backend.isRepository(workingDir)) {
+          return backend.id;
+        }
       }
 
 			// we were unable to detect any available vcs. this is not a good case!
@@ -139,7 +81,5 @@ export function getCurrentWorkspaceRoot(
   workingDir: string,
   backend: SupportedVcsBackend
 ): string {
-  return backend === 'jj'
-    ? runCommand('jj workspace root', workingDir)
-    : runCommand('git rev-parse --show-toplevel', workingDir);
+  return getVcsBackend(backend).getCurrentWorkspaceRoot(workingDir);
 }

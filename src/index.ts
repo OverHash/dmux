@@ -69,12 +69,9 @@ import {
   TMUX_PANE_TITLE_PREFIX_FORMAT,
 } from './utils/paneTitlePrefix.js';
 import type { DmuxConfig, DmuxPane } from './types.js';
-import {
-  getCurrentWorkspaceRoot,
-  isGitRepository,
-} from './vcs/detect.js';
 import type { SupportedVcsBackend } from './vcs/types.js';
 import { resolveProjectRootFromPath } from './utils/projectRoot.js';
+import { getVcsBackend } from './vcs/registry.js';
 
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json');
@@ -1050,7 +1047,7 @@ class Dmux {
   private isWorktree(): boolean {
     try {
       const cwd = process.cwd();
-      const workspaceRoot = getCurrentWorkspaceRoot(cwd, this.vcsBackend);
+      const workspaceRoot = getVcsBackend(this.vcsBackend).getCurrentWorkspaceRoot(cwd);
       return path.resolve(workspaceRoot) !== path.resolve(this.projectRoot);
     } catch {
       return false;
@@ -1082,7 +1079,7 @@ class Dmux {
 
     switch (this.vcsBackend) {
       case 'git': {
-        if (isGitRepository(this.projectRoot)) {
+        if (getVcsBackend('git').isRepository(this.projectRoot)) {
           const isIgnored = spawnSync('git', ['check-ignore', '--quiet', dmuxDir], {
             cwd: this.projectRoot
           }).status === 0;
