@@ -489,6 +489,31 @@ export async function createPane(
           }
           break;
         }
+        case 'jj': {
+          // jj path creates a named workspace and then assigns the dmux-managed
+          // bookmark (`targetRef`) to the new working-copy revision. For now we
+          // only honor explicit parent start points here; Git's baseBranch setting
+          // remains Git-only.
+          const revisionArg = startPointBranch ? ` --revision "${startPointBranch}"` : '';
+
+          for (let attempt = 1; attempt <= maxWorktreeAttempts && !worktreeCreated; attempt++) {
+            const workspaceCmd = `cd "${projectRoot}" && jj workspace add --name "${workspaceName || slug}"${revisionArg} "${worktreePath}" && cd "${worktreePath}" && jj bookmark set "${targetRef}" -r @`;
+
+            await tmuxService.sendShellCommand(paneInfo, workspaceCmd);
+            await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
+
+            const startTime = Date.now();
+            while (!fs.existsSync(worktreePath) && (Date.now() - startTime) < maxWaitTime) {
+              await new Promise((resolve) => setTimeout(resolve, checkInterval));
+            }
+
+            worktreeCreated = fs.existsSync(worktreePath);
+            if (!worktreeCreated && attempt < maxWorktreeAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+            }
+          }
+          break;
+        }
         default:
           throw new Error(`Unsupported VCS backend: ${String(vcsBackend)}`);
       }
