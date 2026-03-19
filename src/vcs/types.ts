@@ -8,10 +8,19 @@ export interface VcsDetectionResult {
 }
 
 export interface VcsCapabilities {
-	/**
-	 * Whether the VCS selected supports merging in dmux.
-	 * 
-	 * This is currently set to `false` for `jj`, and `true` for `git` vcs.
-	 */
+  /**
+   * Whether the VCS selected supports merging in dmux.
+   *
+   * This is currently `false` for `jj` and `true` for `git`.
+   */
   supportsMerge: boolean;
+}
+
+export interface VcsBackend {
+  id: SupportedVcsBackend;
+  displayName: string;
+  capabilities: VcsCapabilities;
+  isRepository(workingDir: string): boolean;
+  resolveProjectRoot(workingDir: string): string;
+  getCurrentWorkspaceRoot(workingDir: string): string;
 }

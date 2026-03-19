@@ -124,3 +124,16 @@ describe('project root VCS detection', () => {
     expect(resolved.projectRoot).toBe('/tmp/repo');
   });
 });
+
+describe('vcs backend registry', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('exposes backend capabilities', async () => {
+		const { getVcsBackend } = await import('../src/vcs/registry.js');
+
+    expect(getVcsBackend('git').capabilities.supportsMerge).toBe(true);
+    expect(getVcsBackend('jj').capabilities.supportsMerge).toBe(false);
+  });
+});
