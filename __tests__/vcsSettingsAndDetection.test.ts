@@ -1,0 +1,126 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+describe('vcsBackend settings validation', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('accepts valid vcsBackend values', async () => {
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+        readFileSync: vi.fn(() => '{}'),
+      };
+    });
+
+    const { SettingsManager } = await import('../src/utils/settingsManager.js');
+    const manager = new SettingsManager('/tmp/test-project');
+
+    expect(() => manager.updateSetting('vcsBackend', 'auto', 'global')).not.toThrow();
+    expect(() => manager.updateSetting('vcsBackend', 'git', 'project')).not.toThrow();
+    expect(() => manager.updateSetting('vcsBackend', 'jj', 'global')).not.toThrow();
+  });
+
+  it('rejects invalid vcsBackend values', async () => {
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+        readFileSync: vi.fn(() => '{}'),
+      };
+    });
+
+    const { SettingsManager } = await import('../src/utils/settingsManager.js');
+    const manager = new SettingsManager('/tmp/test-project');
+
+    expect(() => manager.updateSetting('vcsBackend', 'svn' as any, 'global')).toThrow('Invalid vcsBackend');
+  });
+});
+
+describe('project root VCS detection', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('auto-detects jj repositories', async () => {
+    const mockExecSync = vi.fn((command: string) => {
+      if (command === 'jj workspace root') {
+        return '/tmp/repo\n';
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    vi.doMock('child_process', () => ({
+      execSync: mockExecSync,
+    }));
+
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => target === '/tmp/repo'),
+        statSync: vi.fn(() => ({ isDirectory: () => true })),
+        readFileSync: vi.fn(() => '{}'),
+      };
+    });
+
+    const { resolveProjectRootFromPath } = await import('../src/utils/projectRoot.js');
+    const resolved = resolveProjectRootFromPath('/tmp/repo');
+
+    expect(resolved).toEqual({
+      projectRoot: '/tmp/repo',
+      projectName: 'repo',
+      requestedPath: '/tmp/repo',
+      vcsBackend: 'jj',
+    });
+  });
+
+  it('prefers project-configured git backend in colocated repos', async () => {
+    const mockExecSync = vi.fn((command: string) => {
+      if (command === 'jj workspace root') {
+        return '/tmp/repo\n';
+      }
+      if (command === 'git rev-parse --path-format=absolute --git-common-dir') {
+        return '/tmp/repo/.git\n';
+      }
+      if (command === 'git rev-parse --show-toplevel') {
+        return '/tmp/repo\n';
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    vi.doMock('child_process', () => ({
+      execSync: mockExecSync,
+    }));
+
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => (
+          target === '/tmp/repo'
+          || target === '/tmp/repo/.dmux/settings.json'
+        )),
+        statSync: vi.fn(() => ({ isDirectory: () => true })),
+        readFileSync: vi.fn((target: string) => (
+          target === '/tmp/repo/.dmux/settings.json'
+            ? JSON.stringify({ vcsBackend: 'git' })
+            : '{}'
+        )),
+      };
+    });
+
+    const { resolveProjectRootFromPath } = await import('../src/utils/projectRoot.js');
+    const resolved = resolveProjectRootFromPath('/tmp/repo');
+
+    expect(resolved.vcsBackend).toBe('git');
+    expect(resolved.projectRoot).toBe('/tmp/repo');
+  });
+});
