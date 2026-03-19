@@ -36,6 +36,9 @@ import {
   type PaneBootstrapConfig,
 } from './paneBootstrapConfig.js';
 import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
+import { detectVcsForPath } from '../vcs/detect.js';
+import { getVcsBackend } from '../vcs/registry.js';
+import { resolveProjectRootFromPath } from './projectRoot.js';
 
 export interface CreatePaneOptions {
   prompt: string;
@@ -61,6 +64,22 @@ export interface CreatePaneOptions {
 export interface CreatePaneResult {
   pane: DmuxPane;
   needsAgentChoice: boolean;
+}
+
+function getWorkspaceCreationFailureTip(options: {
+  vcsBackend: WorkspaceVcsState['vcsBackend'];
+  targetRef: string;
+  workspaceName?: string;
+}): string {
+  switch (options.vcsBackend) {
+    case 'jj':
+      return `Tip: Try running: jj workspace forget "${options.workspaceName || options.targetRef}"`;
+    case 'git':
+    case undefined:
+      return `Tip: Try running: git worktree prune && git branch -D ${options.targetRef}`;
+    default:
+      return `Tip: Review workspace state for ${options.targetRef}`;
+  }
 }
 
 async function waitForPaneReady(
