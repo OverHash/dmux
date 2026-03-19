@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { MergeTargetReference } from '../types.js';
+import type { MergeTargetReference, WorkspaceVcsState } from '../types.js';
 import {
   isAgentName,
   type AgentName,
@@ -8,12 +8,13 @@ import {
 } from './agentLaunch.js';
 import { atomicWriteJsonSync } from './atomicWrite.js';
 
-export interface WorktreeMetadata {
+type WorktreeMetadataBase = {
   agent?: AgentName;
   permissionMode?: PermissionMode;
-  branchName?: string;
   mergeTargetChain?: MergeTargetReference[];
-}
+};
+
+export type WorktreeMetadata = WorktreeMetadataBase & WorkspaceVcsState;
 
 const METADATA_DIR = '.dmux';
 const METADATA_FILE = 'worktree-metadata.json';
@@ -69,29 +70,56 @@ export function readWorktreeMetadata(worktreePath: string): WorktreeMetadata | n
     const metadataPath = getWorktreeMetadataPath(worktreePath);
     const parsed = JSON.parse(fs.readFileSync(metadataPath, 'utf-8')) as Record<string, unknown>;
 
-    const metadata: WorktreeMetadata = {};
+    const metadataBase: WorktreeMetadataBase = {};
 
     if (typeof parsed.agent === 'string' && isAgentName(parsed.agent)) {
-      metadata.agent = parsed.agent;
+      metadataBase.agent = parsed.agent;
     }
 
     if (
       typeof parsed.permissionMode === 'string'
       && PERMISSION_MODES.has(parsed.permissionMode as PermissionMode)
     ) {
-      metadata.permissionMode = parsed.permissionMode as PermissionMode;
-    }
-
-    if (typeof parsed.branchName === 'string' && parsed.branchName.length > 0) {
-      metadata.branchName = parsed.branchName;
+      metadataBase.permissionMode = parsed.permissionMode as PermissionMode;
     }
 
     const mergeTargetChain = normalizeMergeTargetChain(parsed.mergeTargetChain);
     if (mergeTargetChain) {
-      metadata.mergeTargetChain = mergeTargetChain;
+      metadataBase.mergeTargetChain = mergeTargetChain;
     }
 
-    return metadata;
+    const parsedTargetRef = typeof parsed.targetRef === 'string' && parsed.targetRef.length > 0
+      ? parsed.targetRef
+      : undefined;
+    const parsedBranchName = typeof parsed.branchName === 'string' && parsed.branchName.length > 0
+      ? parsed.branchName
+      : undefined;
+    const parsedWorkspaceName = typeof parsed.workspaceName === 'string' && parsed.workspaceName.length > 0
+      ? parsed.workspaceName
+      : undefined;
+
+    if (parsed.vcsBackend === 'jj') {
+      const targetRef = parsedTargetRef;
+      const workspaceName = parsedWorkspaceName || path.basename(worktreePath);
+
+      if (!targetRef) {
+        return null;
+      }
+
+      return {
+        ...metadataBase,
+        vcsBackend: 'jj',
+        targetRef,
+        workspaceName,
+      };
+    }
+
+    return {
+      ...metadataBase,
+      vcsBackend: 'git',
+      targetRef: parsedTargetRef || parsedBranchName,
+      branchName: parsedBranchName,
+    };
   } catch {
     return null;
   }

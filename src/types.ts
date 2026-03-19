@@ -27,10 +27,23 @@ export interface SidebarProject {
   projectName: string;
 }
 
-export interface DmuxPane {
+export type GitWorkspaceVcsState = {
+  vcsBackend?: 'git';
+  targetRef?: string; // dmux-managed workspace ref; branch name for git
+  branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
+};
+
+export type JjWorkspaceVcsState = {
+  vcsBackend: 'jj';
+  targetRef: string; // dmux-managed workspace ref; bookmark name for jj
+  workspaceName: string; // jj workspace name tracked by dmux
+};
+
+export type WorkspaceVcsState = GitWorkspaceVcsState | JjWorkspaceVcsState;
+
+interface DmuxPaneBase {
   id: string;
   slug: string;
-  branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
   prompt: string;
   paneId: string;
   hidden?: boolean; // Pane is detached from the active dmux window but still running
@@ -66,6 +79,8 @@ export interface DmuxPane {
   // Merge ancestry for sub-worktrees; first entry is the immediate parent target.
   mergeTargetChain?: MergeTargetReference[];
 }
+
+export type DmuxPane = DmuxPaneBase & WorkspaceVcsState;
 
 export interface PanePosition {
   paneId: string;

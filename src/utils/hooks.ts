@@ -10,6 +10,7 @@ import { existsSync, accessSync, constants, mkdirSync, readFileSync, writeFileSy
 import path from 'path';
 import os from 'os';
 import type { DmuxPane } from '../types.js';
+import { getTargetRef } from '../vcs/references.js';
 import { HOOKS_DOCUMENTATION, HOOKS_README, EXAMPLE_HOOKS } from './hooksDocs.js';
 import { LogService } from '../services/LogService.js';
 
@@ -116,7 +117,7 @@ export async function buildHookEnvironment(
 
     if (pane.worktreePath) {
       env.DMUX_WORKTREE_PATH = pane.worktreePath;
-      env.DMUX_BRANCH = pane.branchName || pane.slug; // Branch name (may differ from slug with prefix)
+      env.DMUX_BRANCH = getTargetRef(pane) || pane.slug;
     }
   }
 
