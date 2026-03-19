@@ -42,6 +42,9 @@ import { isValidBranchName } from './git.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
 import { writeWorktreeMetadata } from './worktreeMetadata.js';
 import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
+import { detectVcsForPath } from '../vcs/detect.js';
+import { getVcsBackend } from '../vcs/registry.js';
+import { resolveProjectRootFromPath } from './projectRoot.js';
 
 export interface CreatePaneOptions {
   prompt: string;
@@ -65,6 +68,22 @@ export interface CreatePaneOptions {
 export interface CreatePaneResult {
   pane: DmuxPane;
   needsAgentChoice: boolean;
+}
+
+function getWorkspaceCreationFailureTip(options: {
+  vcsBackend: WorkspaceVcsState['vcsBackend'];
+  targetRef: string;
+  workspaceName?: string;
+}): string {
+  switch (options.vcsBackend) {
+    case 'jj':
+      return `Tip: Try running: jj workspace forget "${options.workspaceName || options.targetRef}"`;
+    case 'git':
+    case undefined:
+      return `Tip: Try running: git worktree prune && git branch -D ${options.targetRef}`;
+    default:
+      return `Tip: Review workspace state for ${options.targetRef}`;
+  }
 }
 
 async function waitForPaneReady(
@@ -498,7 +517,11 @@ export async function createPane(
     await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
     await tmuxService.sendShellCommand(
       paneInfo,
-      `echo "Tip: Try running: git worktree prune && git branch -D ${targetRef}"`
+      `echo "${getWorkspaceCreationFailureTip({
+        vcsBackend,
+        targetRef,
+        workspaceName,
+      })}"`
     );
     await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
     await new Promise((resolve) => setTimeout(resolve, TMUX_LAYOUT_APPLY_DELAY));
