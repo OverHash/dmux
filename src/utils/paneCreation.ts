@@ -126,33 +126,20 @@ export async function createPane(
   // Load settings to check for default agent and autopilot
   const { SettingsManager } = await import('./settingsManager.js');
 
-  // Get project root (handle git worktrees correctly)
+  // Get project root (handle vcs worktrees correctly)
   let projectRoot: string;
+  let detectedProjectBackend: WorkspaceVcsState['vcsBackend'];
   if (optionsProjectRoot) {
     projectRoot = optionsProjectRoot;
+    detectedProjectBackend = undefined;
   } else {
     try {
-      // For git worktrees, we need to get the main repository root, not the worktree root
-      // git rev-parse --git-common-dir gives us the main .git directory
-      const gitCommonDir = execSync('git rev-parse --git-common-dir', {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      }).trim();
-
-      // If it's a worktree, gitCommonDir will be an absolute path to main .git
-      // If it's the main repo, it will be just '.git'
-      if (gitCommonDir === '.git') {
-        // We're in the main repo
-        projectRoot = execSync('git rev-parse --show-toplevel', {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-        }).trim();
-      } else {
-        // We're in a worktree, get the parent directory of the .git directory
-        projectRoot = path.dirname(gitCommonDir);
-      }
+      const resolved = resolveProjectRootFromPath(process.cwd(), process.cwd());
+      projectRoot = resolved.projectRoot;
+      detectedProjectBackend = resolved.vcsBackend;
     } catch {
       projectRoot = process.cwd();
+      detectedProjectBackend = undefined;
     }
   }
 
@@ -197,21 +184,21 @@ export async function createPane(
     throw new Error(`Invalid branch prefix: ${branchPrefix}`);
   }
 
-  // Generate slug (filesystem-safe directory name) and branch name (may include prefix).
+  const vcsBackend = existingWorktree?.vcsBackend
+    || detectVcsForPath(projectRoot, settings.vcsBackend ?? 'auto')?.backend
+    || detectedProjectBackend
+    || 'git';
+
+  // Generate slug (filesystem-safe directory name) and backend-specific ref name.
   const generatedSlug = existingWorktree
     ? existingWorktree.slug
     : (slugBase || await generateSlug(prompt));
   const slug = existingWorktree
     ? existingWorktree.slug
     : appendSlugSuffix(generatedSlug, slugSuffix);
-  // Phase 2 only makes pane metadata backend-aware. New pane creation still uses
-  // Git worktree commands until Phase 3 routes lifecycle operations through the
-  // selected VCS backend, so new panes default to Git unless reopening an
-  // existing workspace that already carries backend metadata.
-  const vcsBackend = existingWorktree?.vcsBackend ?? 'git';
   const targetRef = existingWorktree
     ? (getTargetRef(existingWorktree) || existingWorktree.slug)
-    : (branchPrefix ? `${branchPrefix}${slug}` : slug);
+    : (vcsBackend === 'git' && branchPrefix ? `${branchPrefix}${slug}` : slug);
   const workspaceName = vcsBackend === 'jj'
     ? ((existingWorktree?.vcsBackend === 'jj' ? getWorkspaceName(existingWorktree) : undefined)
       || slug)
@@ -224,6 +211,7 @@ export async function createPane(
       }
     : {
         vcsBackend,
+        targetRef,
         branchName: targetRef !== slug ? targetRef : undefined, // Only store if different from slug
       };
   const tmuxService = TmuxService.getInstance();
