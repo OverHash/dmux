@@ -27,6 +27,8 @@ import {
 } from './codexHooks.js';
 import { resolveProjectColorTheme } from './paneColors.js';
 import type { SidebarProject } from '../types.js';
+import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
+import type { WorkspaceVcsState } from '../types.js';
 
 export interface ReopenWorktreeOptions {
   agent?: AgentName;
@@ -213,14 +215,25 @@ export async function reopenWorktree(
 
   // Create the pane object
   const currentBranch = getCurrentBranch(worktreePath);
+  const targetRef = (metadata ? getTargetRef(metadata) : undefined) || currentBranch;
+  const workspaceName = metadata?.vcsBackend === 'jj' ? getWorkspaceName(metadata) : slug;
+  const workspaceVcsState: WorkspaceVcsState = metadata?.vcsBackend === 'jj'
+    ? {
+        vcsBackend: 'jj',
+        targetRef,
+        workspaceName: workspaceName || slug,
+      }
+    : {
+        vcsBackend: 'git',
+        targetRef,
+        branchName: targetRef !== slug ? targetRef : undefined,
+      };
 
   const newPane: DmuxPane = {
     id: dmuxPaneId,
     slug,
     displayName: metadata?.displayName,
-    branchName: (metadata?.branchName || currentBranch) !== slug
-      ? (metadata?.branchName || currentBranch)
-      : undefined,
+    ...workspaceVcsState,
     prompt: '(Reopened session)',
     paneId: paneInfo,
     projectRoot,

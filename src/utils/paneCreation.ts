@@ -1,7 +1,12 @@
 import path from 'path';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
-import type { DmuxPane, DmuxConfig, MergeTargetReference } from '../types.js';
+import type {
+  DmuxPane,
+  DmuxConfig,
+  MergeTargetReference,
+  WorkspaceVcsState,
+} from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
   ensurePaneBorderStatusForCurrentSession,
@@ -43,17 +48,17 @@ import {
 } from './codexHooks.js';
 import { resolveProjectColorTheme } from './paneColors.js';
 import type { SidebarProject } from '../types.js';
+import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
 
 export interface CreatePaneOptions {
   prompt: string;
   agent?: AgentName;
   slugSuffix?: string;
   slugBase?: string;
-  existingWorktree?: {
+  existingWorktree?: ({
     slug: string;
     worktreePath: string;
-    branchName: string;
-  };
+  } & WorkspaceVcsState);
   startPointBranch?: string;
   mergeTargetChain?: MergeTargetReference[];
   projectName: string;
@@ -190,9 +195,28 @@ export async function createPane(
   const slug = existingWorktree
     ? existingWorktree.slug
     : appendSlugSuffix(generatedSlug, slugSuffix);
-  const branchName = existingWorktree
-    ? existingWorktree.branchName
+  // Phase 2 only makes pane metadata backend-aware. New pane creation still uses
+  // Git worktree commands until Phase 3 routes lifecycle operations through the
+  // selected VCS backend, so new panes default to Git unless reopening an
+  // existing workspace that already carries backend metadata.
+  const vcsBackend = existingWorktree?.vcsBackend ?? 'git';
+  const targetRef = existingWorktree
+    ? (getTargetRef(existingWorktree) || existingWorktree.slug)
     : (branchPrefix ? `${branchPrefix}${slug}` : slug);
+  const workspaceName = vcsBackend === 'jj'
+    ? ((existingWorktree?.vcsBackend === 'jj' ? getWorkspaceName(existingWorktree) : undefined)
+      || slug)
+    : undefined;
+  const workspaceVcsState: WorkspaceVcsState = vcsBackend === 'jj'
+    ? {
+        vcsBackend,
+        targetRef,
+        workspaceName: workspaceName || slug,
+      }
+    : {
+        vcsBackend,
+        branchName: targetRef !== slug ? targetRef : undefined, // Only store if different from slug
+      };
   const tmuxService = TmuxService.getInstance();
 
   const worktreePath = existingWorktree?.worktreePath
@@ -416,7 +440,7 @@ export async function createPane(
         // Check if branch already exists (from a deleted worktree or a previous attempt)
         let branchExists = false;
         try {
-          execSync(`git show-ref --verify --quiet "refs/heads/${branchName}"`, {
+          execSync(`git show-ref --verify --quiet "refs/heads/${targetRef}"`, {
             stdio: 'pipe',
             cwd: projectRoot,
           });
@@ -430,8 +454,8 @@ export async function createPane(
         // - If branch doesn't exist, create it with -b, optionally from a configured base branch
         const startPoint = resolvedStartPoint ? ` "${resolvedStartPoint}"` : '';
         const worktreeAddCmd = branchExists
-          ? `git worktree add "${worktreePath}" "${branchName}"`
-          : `git worktree add "${worktreePath}" -b "${branchName}"${startPoint}`;
+          ? `git worktree add "${worktreePath}" "${targetRef}"`
+          : `git worktree add "${worktreePath}" -b "${targetRef}"${startPoint}`;
         const worktreeCmd = `cd "${projectRoot}" && ${worktreeAddCmd} && cd "${worktreePath}"`;
 
         // Send the git worktree command (auto-quoted by sendShellCommand)
@@ -463,7 +487,7 @@ export async function createPane(
         agent,
         permissionMode: settings.permissionMode,
         displayName: existingWorktreeMetadata?.displayName,
-        branchName: branchName !== slug ? branchName : undefined,
+        ...workspaceVcsState,
         mergeTargetChain,
       });
     } catch (metadataError) {
@@ -514,7 +538,7 @@ export async function createPane(
     id: `dmux-${Date.now()}`,
     slug,
     displayName: existingWorktreeMetadata?.displayName,
-    branchName: branchName !== slug ? branchName : undefined,
+    ...workspaceVcsState,
     prompt: prompt || 'No initial prompt',
     paneId: paneInfo,
     projectRoot,
