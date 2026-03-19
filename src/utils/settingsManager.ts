@@ -29,6 +29,7 @@ import {
   DMUX_THEME_NAMES,
   isDmuxThemeName,
 } from '../theme/themePalette.js';
+import type { VcsBackendSetting } from '../vcs/types.js';
 
 const GLOBAL_SETTINGS_PATH = join(homedir(), '.dmux.global.json');
 const TEAM_DEFAULTS_FILENAME = '.dmux.defaults.json';
@@ -143,8 +144,13 @@ function cloneSettingsArrays(settings: DmuxSettings): DmuxSettings {
   return cloned;
 }
 
+function isVcsBackendSetting(value: string): value is VcsBackendSetting {
+  return value === 'auto' || value === 'git' || value === 'jj';
+}
+
 const DEFAULT_SETTINGS: DmuxSettings = {
   // Most permissive defaults for new dmux setups.
+  vcsBackend: 'auto',
   permissionMode: 'bypassPermissions',
   enableAutopilotByDefault: true,
   promptForGitOptionsOnCreate: false,
@@ -227,15 +233,26 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     type: 'boolean',
   },
   {
+    key: 'vcsBackend',
+    label: 'VCS Backend',
+    description: 'Choose whether dmux should use git or jj workspaces for this project.',
+    type: 'select',
+    options: [
+      { value: 'auto', label: 'Auto detect (default)' },
+      { value: 'git', label: 'Git' },
+      { value: 'jj', label: 'jj' },
+    ],
+  },
+  {
     key: 'baseBranch',
     label: 'Base Branch',
-    description: 'Branch to create new worktrees from. Leave empty to use current HEAD.',
+    description: 'Git only. Branch to create new worktrees from. Leave empty to use current HEAD.',
     type: 'text',
   },
   {
     key: 'branchPrefix',
     label: 'Branch Name Prefix',
-    description: 'Prefix for new branch names (e.g. "feat/" produces branch "feat/fix-auth"). Leave empty for no prefix.',
+    description: 'Git only. Prefix for new branch names (e.g. "feat/" produces branch "feat/fix-auth"). Leave empty for no prefix.',
     type: 'select',
     options: [
       { value: '', label: 'No prefix (default)' },
@@ -429,6 +446,9 @@ export class SettingsManager {
         throw new Error(`Invalid enabledNotificationSounds: ${invalidSoundIds.join(', ')}`);
       }
     }
+		if (key === 'vcsBackend' && typeof value === 'string' && !isVcsBackendSetting(value)) {
+      throw new Error(`Invalid vcsBackend: "${value}"`);
+    }
     if (key === 'minPaneWidth' && !isValidMinPaneWidth(value)) {
       throw new Error(
         `Invalid minPaneWidth: expected an integer between ${MIN_MIN_PANE_WIDTH} and ${MAX_MIN_PANE_WIDTH}`
@@ -510,6 +530,9 @@ export class SettingsManager {
         throw new Error(`Invalid enabledNotificationSounds: ${invalidSoundIds.join(', ')}`);
       }
       settings.enabledNotificationSounds = settings.enabledNotificationSounds as NotificationSoundId[];
+    }
+	  if (typeof settings.vcsBackend === 'string' && !isVcsBackendSetting(settings.vcsBackend)) {
+      throw new Error(`Invalid vcsBackend: "${settings.vcsBackend}"`);
     }
     if (typeof settings.baseBranch === 'string' && settings.baseBranch !== '' && !isValidBranchName(settings.baseBranch)) {
       throw new Error('Invalid baseBranch: contains characters not allowed in git branch names');
