@@ -23,7 +23,10 @@ const fsMock = vi.hoisted(() => ({
   writeFileSync: vi.fn(),
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
+  statSync: vi.fn(() => ({ isDirectory: () => true })),
 }));
+
+const detectedVcsBackend = vi.hoisted(() => ({ current: 'git' as 'git' | 'jj' }));
 
 // Mock child_process
 const mockExecSync = createMockExecSync({});
@@ -95,6 +98,7 @@ describe('Pane Lifecycle Integration Tests', () => {
     tmuxSession = createMockTmuxSession('dmux-test', 1);
     gitRepo = createMockGitRepo('main');
     createdWorktreePaths = new Set<string>();
+    detectedVcsBackend.current = 'git';
 
     fsMock.existsSync.mockImplementation((target) => {
       const value = String(target);
@@ -105,7 +109,7 @@ describe('Pane Lifecycle Integration Tests', () => {
     });
 
     // Configure mock execSync with test data
-    mockExecSync.mockImplementation((command: string, options?: any) => {
+    mockExecSync.mockImplementation(((command: string, options?: any) => {
       const cmd = command.toString().trim();
       const encoding = options?.encoding;
 
@@ -144,6 +148,15 @@ describe('Pane Lifecycle Integration Tests', () => {
         return returnValue('');
       }
 
+      // jj workspace add
+      if (cmd.includes('jj workspace add')) {
+        const pathMatch = cmd.match(/jj workspace add --name "[^"]+"(?: --revision "[^"]+")? "([^"]+)"/);
+        const worktreePath = pathMatch?.[1] || '/test/.dmux/worktrees/test-slug';
+        createdWorktreePaths.add(worktreePath);
+        createdWorktreePaths.add(`${worktreePath}/.jj`);
+        return returnValue('');
+      }
+
       // Git worktree list
       if (cmd.includes('worktree list')) {
         return returnValue(
@@ -172,9 +185,23 @@ describe('Pane Lifecycle Integration Tests', () => {
         return returnValue('main');
       }
 
+      if (cmd.includes('jj workspace root --name default')) {
+        if (detectedVcsBackend.current !== 'jj') {
+          throw new Error('Not a jj repository');
+        }
+        return returnValue('/test');
+      }
+
+      if (cmd.includes('jj workspace root')) {
+        if (detectedVcsBackend.current !== 'jj') {
+          throw new Error('Not a jj repository');
+        }
+        return returnValue(options?.cwd?.includes('/.dmux/worktrees/') ? options.cwd : '/test');
+      }
+
       // Default
       return returnValue('');
-    });
+    }) as any);
 
     // Configure StateManager mock
     mockGetPanes.mockReturnValue([]);
@@ -228,6 +255,40 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
     });
 
+    it('should create jj workspace when project uses jj', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      detectedVcsBackend.current = 'jj';
+
+      const result = await createPane(
+        {
+          prompt: 'add user dashboard',
+          agent: 'claude',
+          projectName: 'test-project',
+          projectRoot: '/test',
+          slugBase: 'jj-dashboard',
+          existingPanes: [],
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj workspace add --name "jj-dashboard" "/test/.dmux/worktrees/jj-dashboard"'),
+        expect.any(Object)
+      );
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj bookmark set "jj-dashboard" -r @'),
+        expect.any(Object)
+      );
+
+      if ('pane' in result) {
+        expect(result.pane.vcsBackend).toBe('jj');
+        expect(result.pane.targetRef).toBe('jj-dashboard');
+        if (result.pane.vcsBackend === 'jj') {
+          expect(result.pane.workspaceName).toBe('jj-dashboard');
+        }
+      }
+    });
+
     it('should attach a fresh pane to an existing worktree without recreating it', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
       const existingWorktreePath = '/test/.dmux/worktrees/resume-me';
@@ -255,7 +316,9 @@ describe('Pane Lifecycle Integration Tests', () => {
 
       if ('pane' in result) {
         expect(result.pane.slug).toBe('resume-me');
-        expect(result.pane.branchName).toBe('feature/resume-me');
+        if (result.pane.vcsBackend !== 'jj') {
+          expect(result.pane.branchName).toBe('feature/resume-me');
+        }
         expect(result.pane.worktreePath).toBe(existingWorktreePath);
         expect(result.pane.prompt).toBe('No initial prompt');
       }
