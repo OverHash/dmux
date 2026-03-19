@@ -985,6 +985,8 @@ export async function resumeBranchWorkspace(
     writeWorktreeMetadata(worktreePath, {
       ...(agent && !state.relativePath ? { agent } : {}),
       permissionMode: state.relativePath ? undefined : settings.permissionMode,
+      vcsBackend: 'git',
+      targetRef: branchName,
       branchName: branchName !== slug ? branchName : undefined,
     });
   }

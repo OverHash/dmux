@@ -132,6 +132,8 @@ describe('reopenWorktree', () => {
     );
     expect(result.pane.agent).toBe('codex');
     expect(result.pane.permissionMode).toBe('bypassPermissions');
+    expect(result.pane.vcsBackend).toBe('git');
+    expect(result.pane.targetRef).toBe('feature/reopen-me');
   });
 
   it('destroys the welcome pane even when only shell panes already exist', async () => {

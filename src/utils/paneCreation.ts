@@ -2,7 +2,12 @@ import path from 'path';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import type { DmuxPane, DmuxConfig, MergeTargetReference } from '../types.js';
+import type {
+  DmuxPane,
+  DmuxConfig,
+  MergeTargetReference,
+  WorkspaceVcsState,
+} from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
   ensurePaneBorderStatusForCurrentSession,
@@ -30,6 +35,7 @@ import {
   DMUX_BOOTSTRAP_PANE_TITLE_PREFIX,
   type PaneBootstrapConfig,
 } from './paneBootstrapConfig.js';
+import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
 
 export interface CreatePaneOptions {
   prompt: string;
@@ -38,11 +44,10 @@ export interface CreatePaneOptions {
   slugBase?: string;
   baseBranchOverride?: string;
   branchNameOverride?: string;
-  existingWorktree?: {
+  existingWorktree?: ({
     slug: string;
     worktreePath: string;
-    branchName: string;
-  };
+  } & WorkspaceVcsState);
   startPointBranch?: string;
   mergeTargetChain?: MergeTargetReference[];
   projectName: string;
@@ -273,8 +278,20 @@ export async function createPane(
     branchNameOverride: overrideBranchName,
   });
   const slug = existingWorktree ? existingWorktree.slug : naming.slug;
-  const branchName = existingWorktree ? existingWorktree.branchName : naming.branchName;
+  const branchName = existingWorktree
+    ? (getTargetRef(existingWorktree) || existingWorktree.slug)
+    : naming.branchName;
   const effectiveBaseBranch = naming.baseBranch;
+  const workspaceVcsState: WorkspaceVcsState = existingWorktree?.vcsBackend === 'jj'
+    ? {
+        vcsBackend: 'jj',
+        targetRef: getTargetRef(existingWorktree) || existingWorktree.slug,
+        workspaceName: getWorkspaceName(existingWorktree) || existingWorktree.slug,
+      }
+    : {
+        vcsBackend: existingWorktree?.vcsBackend ?? 'git',
+        branchName: branchName !== slug ? branchName : undefined,
+      };
   const tmuxService = TmuxService.getInstance();
 
   const worktreePath = existingWorktree?.worktreePath
@@ -462,7 +479,7 @@ export async function createPane(
     id: `dmux-${Date.now()}`,
     slug,
     displayName: existingWorktreeMetadata?.displayName,
-    branchName: branchName !== slug ? branchName : undefined,
+    ...workspaceVcsState,
     prompt: prompt || 'No initial prompt',
     paneId: paneInfo,
     projectRoot,
@@ -499,7 +516,7 @@ export async function createPane(
       agent,
       permissionMode: settings.permissionMode,
       displayName: existingWorktreeMetadata?.displayName,
-      branchName: branchName !== slug ? branchName : undefined,
+      ...workspaceVcsState,
       mergeTargetChain,
     },
     hookExtraEnv,
