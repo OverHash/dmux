@@ -68,6 +68,12 @@ import {
   TMUX_PANE_TITLE_PREFIX_FORMAT,
 } from './utils/paneTitlePrefix.js';
 import type { DmuxConfig, DmuxPane } from './types.js';
+import {
+  getCurrentWorkspaceRoot,
+  isGitRepository,
+} from './vcs/detect.js';
+import type { SupportedVcsBackend } from './vcs/types.js';
+import { resolveProjectRootFromPath } from './utils/projectRoot.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -144,14 +150,23 @@ class Dmux {
   private projectName: string;
   private sessionName: string;
   private projectRoot: string;
+  private vcsBackend: SupportedVcsBackend;
   private autoUpdater: AutoUpdater;
   private stateManager: StateManager;
 
   constructor() {
-    // Get git root directory to determine project scope
+	// Get vcs root directory to determine project scope
     // NOTE: No caching - must be re-evaluated per instance to support multiple projects
-    this.projectRoot = this.getProjectRoot();
-    // Get project name from git root directory
+    try {
+      const resolved = resolveProjectRootFromPath(process.cwd(), process.cwd());
+      this.projectRoot = resolved.projectRoot;
+      this.vcsBackend = resolved.vcsBackend;
+    } catch {
+      this.projectRoot = process.cwd();
+      this.vcsBackend = 'git';
+    }
+
+	// Get project name from vcs root directory
     this.projectName = path.basename(this.projectRoot);
 
     // Create a stable, collision-safe session name for this project root
@@ -1040,52 +1055,11 @@ class Dmux {
 
   private isWorktree(): boolean {
     try {
-      // Check if current directory is different from project root
       const cwd = process.cwd();
-      if (cwd === this.projectRoot) {
-        return false;
-      }
-
-      // Check if we're in a git worktree by checking if .git is a file (not a directory)
-      const gitPath = path.join(cwd, '.git');
-      if (fsSync.existsSync(gitPath)) {
-        const stats = fsSync.statSync(gitPath);
-        // In a worktree, .git is a file, not a directory
-        return stats.isFile();
-      }
-
-      return false;
+      const workspaceRoot = getCurrentWorkspaceRoot(cwd, this.vcsBackend);
+      return path.resolve(workspaceRoot) !== path.resolve(this.projectRoot);
     } catch {
-      // Expected - errors during git/file checks
       return false;
-    }
-  }
-
-  private getProjectRoot(): string {
-    try {
-      // First, try to get the main worktree if we're in a git repository
-      // This ensures we always use the main repository root, even when run from a worktree
-      const worktreeList = execSync('git worktree list --porcelain', {
-        encoding: 'utf-8',
-        stdio: 'pipe'
-      }).trim();
-
-      // The first line contains the main worktree path
-      const mainWorktreeLine = worktreeList.split('\n')[0];
-      if (mainWorktreeLine && mainWorktreeLine.startsWith('worktree ')) {
-        const mainWorktreePath = mainWorktreeLine.substring(9).trim();
-        return mainWorktreePath;
-      }
-
-      // Fallback to git rev-parse if worktree list fails
-      const gitRoot = execSync('git rev-parse --show-toplevel', {
-        encoding: 'utf-8',
-        stdio: 'pipe'
-      }).trim();
-      return gitRoot;
-    } catch {
-      // Fallback to current directory if not in a git repo
-      return process.cwd();
     }
   }
 
@@ -1109,26 +1083,38 @@ class Dmux {
       await fs.mkdir(promptsDir, { recursive: true });
     }
 
-    // Check if .dmux is ignored by either this repo's .gitignore or global gitignore
-    const isIgnored = spawnSync('git', ['check-ignore', '--quiet', dmuxDir], {
-      cwd: this.projectRoot
-    }).status === 0;
-
-    if (isIgnored) {
-      return;
-    }
-
     // Auto-add .dmux to .gitignore if not already present
     const gitignorePath = path.join(this.projectRoot, '.gitignore');
+
+    switch (this.vcsBackend) {
+      case 'git': {
+        if (isGitRepository(this.projectRoot)) {
+          const isIgnored = spawnSync('git', ['check-ignore', '--quiet', dmuxDir], {
+            cwd: this.projectRoot
+          }).status === 0;
+
+          if (isIgnored) {
+            return;
+          }
+        }
+        break;
+      }
+      case 'jj': {
+        // jj respects .gitignore, but it doesn't have a non-mutating equivalent to
+        // `git check-ignore`, so we fall back to checking the local .gitignore file.
+        if (await this.hasDmuxGitignoreEntry(gitignorePath)) {
+          return;
+        }
+        break;
+      }
+      default:
+        throw new Error(`Unsupported VCS backend: ${String(this.vcsBackend)}`);
+    }
+
+	// Auto-add .dmux to .gitignore if not already present
     if (await this.fileExists(gitignorePath)) {
       const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-      const lines = gitignoreContent.split('\n');
-
-      // Check if .dmux is already in .gitignore (exact match or pattern match)
-      const hasDmuxEntry = lines.some(line => {
-        const trimmed = line.trim();
-        return trimmed === '.dmux/' || trimmed === '.dmux' || trimmed === '/.dmux/';
-      });
+      const hasDmuxEntry = await this.hasDmuxGitignoreEntry(gitignorePath);
 
       if (!hasDmuxEntry) {
         // Add .dmux/ to .gitignore
@@ -1143,6 +1129,23 @@ class Dmux {
       await fs.writeFile(gitignorePath, '.dmux/\n');
       LogService.getInstance().debug('Created .gitignore with .dmux/ entry', 'Setup');
     }
+  }
+
+  /**
+   * Check if .dmux is already in .gitignore (exact match or pattern match)
+   */
+  private async hasDmuxGitignoreEntry(gitignorePath: string): Promise<boolean> {
+    if (!await this.fileExists(gitignorePath)) {
+      return false;
+    }
+
+    const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
+    const lines = gitignoreContent.split('\n');
+
+    return lines.some(line => {
+      const trimmed = line.trim();
+      return trimmed === '.dmux/' || trimmed === '.dmux' || trimmed === '/.dmux/';
+    });
   }
 
 
