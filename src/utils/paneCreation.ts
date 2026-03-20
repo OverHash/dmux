@@ -204,7 +204,7 @@ export async function createPane(
   let detectedProjectBackend: WorkspaceVcsState['vcsBackend'];
   if (optionsProjectRoot) {
     projectRoot = optionsProjectRoot;
-    detectedProjectBackend = undefined;
+    detectedProjectBackend = 'git';
   } else {
     try {
       const resolved = resolveProjectRootFromPath(process.cwd(), process.cwd());
@@ -212,7 +212,7 @@ export async function createPane(
       detectedProjectBackend = resolved.vcsBackend;
     } catch {
       projectRoot = process.cwd();
-      detectedProjectBackend = undefined;
+      detectedProjectBackend = 'git';
     }
   }
 

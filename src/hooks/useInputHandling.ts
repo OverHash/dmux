@@ -377,6 +377,8 @@ export function useInputHandling(params: UseInputHandlingParams) {
       const browserPane: DmuxPane = {
         id: `dmux-${getNextDmuxId(panes)}`,
         slug,
+        vcsBackend: 'git',
+        targetRef: slug,
         prompt: "",
         paneId: newPaneId,
         projectRoot: targetProjectRoot,

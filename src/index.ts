@@ -72,6 +72,7 @@ import type { DmuxConfig, DmuxPane } from './types.js';
 import type { SupportedVcsBackend } from './vcs/types.js';
 import { resolveProjectRootFromPath } from './utils/projectRoot.js';
 import { getVcsBackend } from './vcs/registry.js';
+import { normalizePanes } from './utils/paneNormalization.js';
 
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json');
@@ -381,6 +382,8 @@ class Dmux {
       // Ensure panes array exists
       if (!config.panes) {
         config.panes = [];
+      } else {
+        config.panes = normalizePanes(config.panes);
       }
 
       const oldControlPaneId = config.controlPaneId;
@@ -989,10 +992,10 @@ class Dmux {
     try {
       const configRaw = await fs.readFile(context.sessionConfigPath, 'utf-8');
       const config: DmuxConfig = JSON.parse(configRaw);
-      const existingPanes = Array.isArray(config.panes) ? config.panes : [];
+      const existingPanes = normalizePanes(Array.isArray(config.panes) ? config.panes : []);
       const latestConfigRaw = await fs.readFile(context.sessionConfigPath, 'utf-8');
       const latestConfig: DmuxConfig = JSON.parse(latestConfigRaw);
-      const latestPanes = Array.isArray(latestConfig.panes) ? latestConfig.panes : [];
+      const latestPanes = normalizePanes(Array.isArray(latestConfig.panes) ? latestConfig.panes : []);
       const normalizedProjects = normalizeSidebarProjects(
         latestConfig.sidebarProjects,
         latestPanes,
