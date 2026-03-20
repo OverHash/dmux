@@ -7,6 +7,8 @@ const execSyncMock = vi.hoisted(() => vi.fn());
 const createPaneMock = vi.hoisted(() => vi.fn());
 const triggerHookMock = vi.hoisted(() => vi.fn(async () => {}));
 const writeWorktreeMetadataMock = vi.hoisted(() => vi.fn());
+const readWorktreeMetadataMock = vi.hoisted(() => vi.fn(() => null));
+const detectedVcsBackend = vi.hoisted(() => ({ current: 'git' as 'git' | 'jj' }));
 
 vi.mock('child_process', () => ({
   execSync: execSyncMock,
@@ -21,6 +23,7 @@ vi.mock('../src/utils/hooks.js', () => ({
 }));
 
 vi.mock('../src/utils/worktreeMetadata.js', () => ({
+  readWorktreeMetadata: readWorktreeMetadataMock,
   writeWorktreeMetadata: writeWorktreeMetadataMock,
 }));
 
@@ -38,6 +41,32 @@ function createTempRepoDir(prefix: string): string {
   return tempDir;
 }
 
+function withBackendDetection(
+  handler: (command: string, options?: { cwd?: string; encoding?: string }) => string | Buffer
+) {
+  return (command: string, options?: { cwd?: string; encoding?: string }) => {
+    const cwd = options?.cwd;
+    const encoding = options?.encoding;
+    const output = (value: string) => encoding ? value : Buffer.from(value);
+
+    if (command === 'jj workspace root') {
+      if (detectedVcsBackend.current !== 'jj') {
+        throw new Error('Not a jj repository');
+      }
+      return output(cwd || '');
+    }
+
+    if (command === 'jj workspace root --name default') {
+      if (detectedVcsBackend.current !== 'jj') {
+        throw new Error('Not a jj repository');
+      }
+      return output(cwd || '');
+    }
+
+    return handler(command, options);
+  };
+}
+
 describe('resumeBranches', () => {
   let rootRepo: string;
   let childRepo: string;
@@ -45,6 +74,8 @@ describe('resumeBranches', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    readWorktreeMetadataMock.mockReturnValue(null);
+    detectedVcsBackend.current = 'git';
 
     rootRepo = createTempRepoDir('dmux-resume-root-');
     childRepo = path.join(rootRepo, 'child-repo');
@@ -60,7 +91,7 @@ describe('resumeBranches', () => {
   });
 
   it('dedupes orphaned worktrees with local and remote branches across child repos', async () => {
-    execSyncMock.mockImplementation((command: string, options?: { cwd?: string; encoding?: string }) => {
+    execSyncMock.mockImplementation(withBackendDetection((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
       const output = (value: string) => encoding ? value : Buffer.from(value);
@@ -113,7 +144,7 @@ describe('resumeBranches', () => {
       }
 
       return output('');
-    });
+    }));
 
     const { getResumableBranches } = await import('../src/utils/resumeBranches.js');
 
@@ -157,7 +188,7 @@ describe('resumeBranches', () => {
   });
 
   it('skips remote branch scans until remote sources are requested', async () => {
-    execSyncMock.mockImplementation((command: string, options?: { cwd?: string; encoding?: string }) => {
+    execSyncMock.mockImplementation(withBackendDetection((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
       const output = (value: string) => encoding ? value : Buffer.from(value);
@@ -193,7 +224,7 @@ describe('resumeBranches', () => {
       }
 
       return output('');
-    });
+    }));
 
     const { getResumableBranches } = await import('../src/utils/resumeBranches.js');
 
@@ -221,6 +252,55 @@ describe('resumeBranches', () => {
     );
   });
 
+  it('lists orphaned jj workspaces from dmux metadata', async () => {
+    fs.writeFileSync(path.join(rootRepo, '.jj'), 'jj-root', 'utf-8');
+    detectedVcsBackend.current = 'jj';
+    const jjWorkspacePath = path.join(rootRepo, '.dmux', 'worktrees', 'jj-reopen-me');
+    fs.mkdirSync(jjWorkspacePath, { recursive: true });
+    fs.writeFileSync(path.join(jjWorkspacePath, '.jj'), 'jj-workspace', 'utf-8');
+
+    readWorktreeMetadataMock.mockImplementation(((worktreePath: string) => {
+      if (worktreePath === jjWorkspacePath) {
+        return {
+          vcsBackend: 'jj',
+          targetRef: 'feat/jj-reopen-me',
+          workspaceName: 'jj-reopen-me',
+        };
+      }
+
+      return null;
+    }) as any);
+
+    execSyncMock.mockImplementation(withBackendDetection((command: string, options?: { cwd?: string; encoding?: string }) => {
+      const cwd = options?.cwd;
+      const encoding = options?.encoding;
+      const output = (value: string) => encoding ? value : Buffer.from(value);
+
+      if (cwd === jjWorkspacePath && command === 'jj diff --summary -r @') {
+        return output('M file.ts');
+      }
+
+      throw new Error(`Unexpected command: ${command}`);
+    }));
+
+    const { getResumableBranches } = await import('../src/utils/resumeBranches.js');
+
+    const candidates = getResumableBranches(rootRepo, []);
+
+    expect(candidates).toEqual([
+      expect.objectContaining({
+        branchName: 'feat/jj-reopen-me',
+        slug: 'jj-reopen-me',
+        path: jjWorkspacePath,
+        hasUncommittedChanges: true,
+        hasWorktree: true,
+        hasLocalBranch: false,
+        hasRemoteBranch: false,
+        isRemote: false,
+      }),
+    ]);
+  });
+
   it('refreshes remote branches across workspace repos before creating worktrees', async () => {
     const createdPaths: string[] = [];
     let childRemoteFetched = false;
@@ -239,7 +319,7 @@ describe('resumeBranches', () => {
       needsAgentChoice: false,
     });
 
-    execSyncMock.mockImplementation((command: string, options?: { cwd?: string; encoding?: string }) => {
+    execSyncMock.mockImplementation(withBackendDetection((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
       const output = (value: string) => encoding ? value : Buffer.from(value);
@@ -307,7 +387,7 @@ describe('resumeBranches', () => {
       }
 
       return output('');
-    });
+    }));
 
     const { resumeBranchWorkspace } = await import('../src/utils/resumeBranches.js');
 
@@ -400,7 +480,7 @@ describe('resumeBranches', () => {
       needsAgentChoice: false,
     });
 
-    execSyncMock.mockImplementation((command: string, options?: { cwd?: string; encoding?: string }) => {
+    execSyncMock.mockImplementation(withBackendDetection((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
       const output = (value: string) => encoding ? value : Buffer.from(value);
@@ -453,7 +533,7 @@ describe('resumeBranches', () => {
       }
 
       return output('');
-    });
+    }));
 
     const { resumeBranchWorkspace } = await import('../src/utils/resumeBranches.js');
 
@@ -513,7 +593,7 @@ describe('resumeBranches', () => {
       needsAgentChoice: false,
     });
 
-    execSyncMock.mockImplementation((command: string, options?: { cwd?: string; encoding?: string }) => {
+    execSyncMock.mockImplementation(withBackendDetection((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
       const output = (value: string) => encoding ? value : Buffer.from(value);
@@ -575,7 +655,7 @@ describe('resumeBranches', () => {
       }
 
       return output('');
-    });
+    }));
 
     const { resumeBranchWorkspace } = await import('../src/utils/resumeBranches.js');
 
