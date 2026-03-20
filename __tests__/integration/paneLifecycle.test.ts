@@ -205,10 +205,16 @@ describe('Pane Lifecycle Integration Tests', () => {
 
       // Git rev-parse (current branch)
       if (cmd.includes('rev-parse --git-common-dir')) {
+        if (detectedVcsBackend.current === 'jj') {
+          throw new Error('Not a git repository');
+        }
         return returnValue('.git');
       }
 
       if (cmd.includes('rev-parse --show-toplevel')) {
+        if (detectedVcsBackend.current === 'jj') {
+          throw new Error('Not a git repository');
+        }
         return returnValue('/test');
       }
 

@@ -55,8 +55,8 @@ import {
 } from "./utils/agentLaunch.js"
 import { resolveNextDevSourcePath } from "./utils/devSource.js"
 import { buildDevWatchRespawnCommand } from "./utils/devWatchCommand.js"
+import { getChildWorkspacePrecheck } from './utils/childWorkspacePrecheck.js'
 import { getPaneBranchName } from "./utils/git.js"
-import { getGitStatus } from "./utils/mergeValidation.js"
 import { createMergeTargetChain } from "./utils/mergeTargets.js"
 import { claimProcessShutdown } from "./utils/processShutdown.js"
 import { getPaneDisplayName } from "./utils/paneTitle.js"
@@ -967,12 +967,28 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
       }
     }
 
-    const parentStatus = getGitStatus(parentPane.worktreePath)
-    if (!parentStatus.hasChanges) {
+    const childWorkspacePrecheck = getChildWorkspacePrecheck(parentPane)
+    if (childWorkspacePrecheck.kind === 'clean') {
       await actionSystem.executeCallback(createSubWorktree, {
         showProgress: false,
         projectRoot: targetProjectRoot,
       })
+      return
+    }
+
+    if (childWorkspacePrecheck.kind === 'jj_dirty') {
+      await actionSystem.executeCallback(
+        async () => ({
+          type: 'info',
+          title: 'Parent Workspace Has Uncommitted Changes',
+          message: `"${parentPane.slug}" has uncommitted jj changes. Create a jj commit before creating a child workspace.`,
+          dismissable: true,
+        }),
+        {
+          showProgress: false,
+          projectRoot: targetProjectRoot,
+        }
+      )
       return
     }
 
@@ -1007,7 +1023,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         kind: "merge_uncommitted",
         repoPath: parentPane.worktreePath,
         targetBranch: getPaneBranchName(parentPane),
-        files: parentStatus.files,
+        files: childWorkspacePrecheck.status.files,
         diffMode: "working-tree",
       },
       onSelect: async (optionId: string) => {
