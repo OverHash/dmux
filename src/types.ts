@@ -42,7 +42,7 @@ export interface SidebarProject {
 
 export type GitWorkspaceVcsState = {
   vcsBackend: 'git';
-  targetRef?: string; // dmux-managed workspace ref; branch name for git
+  targetRef: string; // dmux-managed workspace ref; branch name for git
   branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
 };
 
