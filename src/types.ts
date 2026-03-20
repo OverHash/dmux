@@ -129,10 +129,18 @@ export interface DmuxSettings {
   branchPrefix?: string;
   // Which backend to use for workspace lifecycle operations.
   vcsBackend?: VcsBackendSetting;
+  // Whether new pane popup should ask for base/branch overrides
+  promptForGitOptionsOnCreate?: boolean;
   // Preferred minimum content pane width in characters
   minPaneWidth?: number;
   // Preferred maximum content pane width in characters
   maxPaneWidth?: number;
+}
+
+export interface NewPaneInput {
+  prompt: string;
+  baseBranch?: string;
+  branchName?: string;
 }
 
 export type SettingsScope = 'global' | 'project';

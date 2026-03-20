@@ -21,7 +21,6 @@ import { TMUX_LAYOUT_APPLY_DELAY, TMUX_SPLIT_DELAY } from '../constants/timing.j
 import { atomicWriteJsonSync } from './atomicWrite.js';
 import { LogService } from '../services/LogService.js';
 import {
-  appendSlugSuffix,
   buildAgentCommand,
   buildInitialPromptCommand,
   getAgentProcessName,
@@ -40,6 +39,7 @@ import {
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { isValidBranchName } from './git.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
+import { resolvePaneNaming } from './paneNaming.js';
 import { writeWorktreeMetadata } from './worktreeMetadata.js';
 import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
 import { detectVcsForPath } from '../vcs/detect.js';
@@ -51,10 +51,12 @@ export interface CreatePaneOptions {
   agent?: AgentName;
   slugSuffix?: string;
   slugBase?: string;
-  existingWorktree?: ({
+  baseBranchOverride?: string;
+  branchNameOverride?: string;
+  existingWorktree?: {
     slug: string;
     worktreePath: string;
-  } & WorkspaceVcsState);
+  } & WorkspaceVcsState;
   startPointBranch?: string;
   mergeTargetChain?: MergeTargetReference[];
   projectName: string;
@@ -114,6 +116,8 @@ export async function createPane(
     existingPanes,
     slugSuffix,
     slugBase,
+    baseBranchOverride,
+    branchNameOverride,
     existingWorktree,
     startPointBranch,
     mergeTargetChain,
@@ -199,16 +203,34 @@ export async function createPane(
     return detectedBackend || detectedProjectBackend || 'git';
   })();
 
-  // Generate slug (filesystem-safe directory name) and backend-specific ref name.
+  const overrideBranchName = (branchNameOverride || '').trim();
+  if (overrideBranchName && !isValidBranchName(overrideBranchName)) {
+    throw new Error(`Invalid branch name override: ${overrideBranchName}`);
+  }
+
+  const overrideBaseBranch = (baseBranchOverride || '').trim();
+  if (overrideBaseBranch && !isValidBranchName(overrideBaseBranch)) {
+    throw new Error(`Invalid base branch override: ${overrideBaseBranch}`);
+  }
+
+  // Generate slug/worktree + ref names.
+  // For Git, explicit branch override takes precedence over branchPrefix.
   const generatedSlug = existingWorktree
     ? existingWorktree.slug
     : (slugBase || await generateSlug(prompt));
-  const slug = existingWorktree
-    ? existingWorktree.slug
-    : appendSlugSuffix(generatedSlug, slugSuffix);
+  const naming = resolvePaneNaming({
+    generatedSlug,
+    slugSuffix,
+    branchPrefix,
+    baseBranchSetting: settings.baseBranch,
+    baseBranchOverride: overrideBaseBranch,
+    branchNameOverride: overrideBranchName,
+  });
+  const slug = existingWorktree ? existingWorktree.slug : naming.slug;
+  const effectiveBaseBranch = naming.baseBranch;
   const targetRef = existingWorktree
     ? getTargetRef(existingWorktree)
-    : (vcsBackend === 'git' && branchPrefix ? `${branchPrefix}${slug}` : slug);
+    : (vcsBackend === 'git' ? naming.branchName : slug);
   const workspaceName = vcsBackend === 'jj'
     ? ((existingWorktree?.vcsBackend === 'jj' ? getWorkspaceName(existingWorktree) : undefined)
       || slug)
@@ -222,12 +244,17 @@ export async function createPane(
     : {
         vcsBackend,
         targetRef,
-        branchName: targetRef !== slug ? targetRef : undefined, // Only store if different from slug
+        branchName: targetRef !== slug ? targetRef : undefined,
       };
   const tmuxService = TmuxService.getInstance();
 
   const worktreePath = existingWorktree?.worktreePath
     || path.join(projectRoot, '.dmux', 'worktrees', slug);
+  if (!existingWorktree && fs.existsSync(worktreePath)) {
+    throw new Error(
+      `Worktree path already exists: ${worktreePath}. Choose a different branch/worktree name.`
+    );
+  }
   const originalPaneId = tmuxService.getCurrentPaneIdSync();
 
   // Load config to get control pane info
@@ -431,12 +458,9 @@ export async function createPane(
             // Ignore prune errors, proceed anyway
           }
 
-					// Validate and resolve base branch for new worktrees
-          const baseBranch = settings.baseBranch || '';
-          if (baseBranch && !isValidBranchName(baseBranch)) {
-            throw new Error(`Invalid base branch name: ${baseBranch}`);
-          }
-          const resolvedStartPoint = startPointBranch || baseBranch;
+					// Validate and resolve start point for new worktrees.
+          // Priority: explicit startPointBranch (child/reopen flows) > base branch override/setting.
+          const resolvedStartPoint = startPointBranch || effectiveBaseBranch;
           if (resolvedStartPoint && !isValidBranchName(resolvedStartPoint)) {
             throw new Error(`Invalid worktree start-point branch name: ${resolvedStartPoint}`);
           }
@@ -454,7 +478,7 @@ export async function createPane(
               }
 
               throw new Error(
-                `Base branch "${resolvedStartPoint}" does not exist. Update the baseBranch setting to a valid branch name.`
+                `Base branch "${resolvedStartPoint}" does not exist. Update baseBranch or the pane's override to a valid branch.`
               );
             }
           }
