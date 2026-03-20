@@ -366,6 +366,28 @@ describe('resumeBranches', () => {
     ]);
   });
 
+  it('rejects git-style branch resume in jj projects', async () => {
+    fs.writeFileSync(path.join(rootRepo, '.jj'), 'jj-root', 'utf-8');
+    detectedVcsBackend.current = 'jj';
+
+    execSyncMock.mockImplementation(withBackendDetection((command: string) => {
+      throw new Error(`Unexpected command: ${command}`);
+    }));
+
+    const { resumeBranchWorkspace } = await import('../src/utils/resumeBranches.js');
+
+    await expect(
+      resumeBranchWorkspace({
+        branchName: 'feat/jj-reopen-me',
+        agent: 'claude',
+        projectRoot: rootRepo,
+        existingPanes: [],
+        sessionConfigPath: path.join(rootRepo, '.dmux', 'dmux.config.json'),
+        sessionProjectRoot: rootRepo,
+      })
+    ).rejects.toThrow('Opening a new jj workspace from feat/jj-reopen-me is not supported yet. Reopen an existing dmux workspace instead.');
+  });
+
   it('refreshes remote branches across workspace repos before creating worktrees', async () => {
     const createdPaths: string[] = [];
     let childRemoteFetched = false;
