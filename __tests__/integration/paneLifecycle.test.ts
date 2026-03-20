@@ -388,6 +388,13 @@ describe('Pane Lifecycle Integration Tests', () => {
     it('should create jj workspace when project uses jj', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
       detectedVcsBackend.current = 'jj';
+      fsMock.readFileSync.mockImplementation(((target: string) => {
+        if (String(target).endsWith('.dmux.global.json')) {
+          return JSON.stringify({ vcsBackend: 'jj' });
+        }
+
+        return JSON.stringify({ controlPaneId: '%0' });
+      }) as any);
 
       const result = await createPane(
         {
@@ -417,6 +424,36 @@ describe('Pane Lifecycle Integration Tests', () => {
           expect(result.pane.workspaceName).toBe('jj-dashboard');
         }
       }
+    });
+
+    it('should pass jj start points through --revision', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      detectedVcsBackend.current = 'jj';
+      fsMock.readFileSync.mockImplementation(((target: string) => {
+        if (String(target).endsWith('.dmux.global.json')) {
+          return JSON.stringify({ vcsBackend: 'jj' });
+        }
+
+        return JSON.stringify({ controlPaneId: '%0' });
+      }) as any);
+
+      await createPane(
+        {
+          prompt: 'branch from parent workspace',
+          agent: 'claude',
+          projectName: 'test-project',
+          projectRoot: '/test',
+          slugBase: 'jj-child',
+          existingPanes: [],
+          startPointBranch: 'feat/parent-workspace',
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj workspace add --name "jj-child" --revision "feat/parent-workspace" "/test/.dmux/worktrees/jj-child"'),
+        expect.any(Object)
+      );
     });
 
     it('should attach a fresh pane to an existing worktree without recreating it', async () => {
@@ -454,6 +491,37 @@ describe('Pane Lifecycle Integration Tests', () => {
         expect(result.pane.worktreePath).toBe(existingWorktreePath);
         expect(result.pane.prompt).toBe('No initial prompt');
       }
+    });
+
+    it('should attach to an existing jj workspace without recreating it', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      const existingWorkspacePath = '/test/.dmux/worktrees/jj-reopen-me';
+      createdWorktreePaths.add(existingWorkspacePath);
+      createdWorktreePaths.add(`${existingWorkspacePath}/.jj`);
+
+      const result = await createPane(
+        {
+          prompt: '',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [],
+          existingWorktree: {
+            slug: 'jj-reopen-me',
+            worktreePath: existingWorkspacePath,
+            vcsBackend: 'jj',
+            targetRef: 'feat/jj-reopen-me',
+            workspaceName: 'jj-reopen-me',
+          },
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync.mock.calls.some(([cmd]) =>
+        typeof cmd === 'string' && cmd.includes('jj workspace add')
+      )).toBe(false);
+
+      expect(result.pane.vcsBackend).toBe('jj');
+      expect(result.pane.worktreePath).toBe(existingWorkspacePath);
     });
 
     it('should split tmux pane', async () => {

@@ -125,4 +125,36 @@ describe('WorktreeCleanupService', () => {
       expect.objectContaining({ slug: 'jj-pane' })
     );
   });
+
+  it('forgets jj workspaces without deleting bookmarks for kill_and_clean', async () => {
+    const { WorktreeCleanupService } = await import('../../src/services/WorktreeCleanupService.js');
+
+    const service = WorktreeCleanupService.getInstance();
+    await service.enqueueCleanup({
+      pane: {
+        id: 'dmux-3',
+        slug: 'jj-keep-bookmark',
+        vcsBackend: 'jj',
+        targetRef: 'feat/jj-keep-bookmark',
+        workspaceName: 'jj-keep-bookmark',
+        prompt: 'test',
+        paneId: '%3',
+        worktreePath: '/repo/.dmux/worktrees/jj-keep-bookmark',
+      },
+      paneProjectRoot: '/repo',
+      mainRepoPath: '/repo',
+      deleteBranch: false,
+    });
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      'jj',
+      ['workspace', 'forget', 'jj-keep-bookmark'],
+      expect.objectContaining({ cwd: '/repo' })
+    );
+    expect(spawnMock).not.toHaveBeenCalledWith(
+      'jj',
+      ['bookmark', 'delete', 'feat/jj-keep-bookmark'],
+      expect.anything()
+    );
+  });
 });
