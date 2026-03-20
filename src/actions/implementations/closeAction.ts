@@ -19,6 +19,41 @@ import { getPaneBranchName } from '../../utils/git.js';
 import { buildDevWatchRespawnCommand } from '../../utils/devWatchCommand.js';
 import { isActiveDevSourcePath } from '../../utils/devSource.js';
 
+function describeCloseOption(
+  pane: DmuxPane,
+  optionId: 'kill_only' | 'kill_and_clean' | 'kill_clean_branch'
+): string {
+  const backend = pane.vcsBackend;
+
+  switch (backend) {
+    case 'jj':
+      switch (optionId) {
+        case 'kill_only':
+          return 'Keep workspace and bookmark';
+        case 'kill_and_clean':
+          return 'Forget workspace but keep bookmark';
+        case 'kill_clean_branch':
+          return 'Forget workspace and delete bookmark';
+        default:
+          return optionId satisfies never;
+      }
+    case 'git':
+    case undefined:
+      switch (optionId) {
+        case 'kill_only':
+          return 'Keep worktree and branch';
+        case 'kill_and_clean':
+          return 'Delete worktree but keep branch';
+        case 'kill_clean_branch':
+          return 'Remove worktree and delete branch';
+        default:
+          return optionId satisfies never;
+      }
+    default:
+      return backend satisfies never;
+  }
+}
+
 /**
  * Close a pane - presents options for how to close
  */
@@ -62,7 +97,7 @@ export async function closePane(
         {
           id: 'kill_only',
           label: 'Just close pane',
-          description: 'Keep worktree and branch',
+          description: describeCloseOption(pane, 'kill_only'),
           default: true,
         },
       ],
@@ -78,19 +113,19 @@ export async function closePane(
     {
       id: 'kill_only',
       label: 'Just close pane',
-      description: 'Keep worktree and branch',
+      description: describeCloseOption(pane, 'kill_only'),
       default: true,
     },
     {
       id: 'kill_and_clean',
       label: 'Close and remove worktree',
-      description: 'Delete worktree but keep branch',
+      description: describeCloseOption(pane, 'kill_and_clean'),
       danger: true,
     },
     {
       id: 'kill_clean_branch',
       label: 'Close and delete everything',
-      description: 'Remove worktree and delete branch',
+      description: describeCloseOption(pane, 'kill_clean_branch'),
       danger: true,
     },
   ];
