@@ -159,7 +159,15 @@ class Dmux {
       const resolved = resolveProjectRootFromPath(process.cwd(), process.cwd());
       this.projectRoot = resolved.projectRoot;
       this.vcsBackend = resolved.vcsBackend;
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof Error
+        && error.message.startsWith('Configured ')
+        && error.message.includes(' vcsBackend "')
+      ) {
+        throw error;
+      }
+
       this.projectRoot = process.cwd();
       this.vcsBackend = 'git';
     }

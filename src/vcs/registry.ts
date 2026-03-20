@@ -11,6 +11,15 @@ export function getVcsBackend(id: SupportedVcsBackend): VcsBackend {
   return VCS_BACKEND_REGISTRY[id];
 }
 
-export function getAutoDetectBackends(): readonly VcsBackend[] {
-  return [jjVcsBackend, gitVcsBackend];
+export function getAutoDetectBackends(
+  preferredBackend: SupportedVcsBackend = 'git'
+): readonly VcsBackend[] {
+  switch (preferredBackend) {
+    case 'git':
+      return [gitVcsBackend, jjVcsBackend];
+    case 'jj':
+      return [jjVcsBackend, gitVcsBackend];
+    default:
+      return preferredBackend satisfies never;
+  }
 }

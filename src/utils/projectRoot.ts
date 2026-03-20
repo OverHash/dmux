@@ -69,6 +69,10 @@ function readPreferredVcsBackend(settingsPath: string): VcsBackendSetting {
   }
 }
 
+function getUnavailableBackendErrorMessage(scope: 'global' | 'project', backend: VcsBackendSetting, absolutePath: string): string {
+  return `Configured ${scope} vcsBackend "${backend}" is not available for ${absolutePath}`;
+}
+
 export function inspectProjectCreationTarget(
   rawPath: string,
   baseDir: string = process.cwd()
@@ -121,6 +125,10 @@ export function resolveProjectRootFromPath(
   );
 
   const initialDetection = detectVcsForPath(workingDir, globalPreferredBackend);
+  if (!initialDetection && globalPreferredBackend !== 'auto') {
+    throw new Error(getUnavailableBackendErrorMessage('global', globalPreferredBackend, absolutePath));
+  }
+
   const detected = initialDetection
     ? (() => {
         const projectPreferredBackend = readPreferredVcsBackend(
@@ -130,10 +138,12 @@ export function resolveProjectRootFromPath(
           return initialDetection;
         }
 
-				// Fallback to detected VCS backend if we cannot use the preferred one from settings
-				// .. this might happen if the user chooses to prefer jj, but they work in a project that is git-only
-				// .. for now, falling back seems more reasonable than throwing an error.
-        return detectVcsForPath(workingDir, projectPreferredBackend) || initialDetection;
+        const projectDetection = detectVcsForPath(workingDir, projectPreferredBackend);
+        if (!projectDetection) {
+          throw new Error(getUnavailableBackendErrorMessage('project', projectPreferredBackend, absolutePath));
+        }
+
+        return projectDetection;
       })()
     : initialDetection;
 

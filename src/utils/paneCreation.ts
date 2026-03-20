@@ -194,10 +194,20 @@ export async function createPane(
     throw new Error(`Invalid branch prefix: ${branchPrefix}`);
   }
 
-  const vcsBackend = existingWorktree?.vcsBackend
-    || detectVcsForPath(projectRoot, settings.vcsBackend ?? 'auto')?.backend
-    || detectedProjectBackend
-    || 'git';
+  const vcsBackend = (() => {
+    if (existingWorktree?.vcsBackend) {
+      return existingWorktree.vcsBackend;
+    }
+
+    const configuredBackend = settings.vcsBackend ?? 'auto';
+    const detectedBackend = detectVcsForPath(projectRoot, configuredBackend)?.backend;
+
+    if (configuredBackend !== 'auto' && !detectedBackend) {
+      throw new Error(`Configured vcsBackend "${configuredBackend}" is not available for ${projectRoot}`);
+    }
+
+    return detectedBackend || detectedProjectBackend || 'git';
+  })();
 
   // Generate slug (filesystem-safe directory name) and backend-specific ref name.
   const generatedSlug = existingWorktree
