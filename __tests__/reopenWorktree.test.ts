@@ -119,4 +119,31 @@ describe('reopenWorktree', () => {
     expect(result.pane.vcsBackend).toBe('git');
     expect(result.pane.targetRef).toBe('feature/reopen-me');
   });
+
+  it('reopens jj workspaces from stored metadata without relying on git branch state', async () => {
+    readWorktreeMetadataMock.mockReturnValue({
+      agent: 'codex',
+      permissionMode: 'bypassPermissions',
+      vcsBackend: 'jj',
+      targetRef: 'feat/jj-reopen-me',
+      workspaceName: 'jj-reopen-me',
+    } as any);
+
+    const { reopenWorktree } = await import('../src/utils/reopenWorktree.js');
+
+    const result = await reopenWorktree({
+      slug: 'jj-reopen-me',
+      worktreePath: '/repo/.dmux/worktrees/jj-reopen-me',
+      projectRoot: '/repo',
+      existingPanes: [],
+      sessionProjectRoot: '/repo',
+      sessionConfigPath: '/repo/.dmux/dmux.config.json',
+    });
+
+    expect(result.pane.vcsBackend).toBe('jj');
+    expect(result.pane.targetRef).toBe('feat/jj-reopen-me');
+    if (result.pane.vcsBackend === 'jj') {
+      expect(result.pane.workspaceName).toBe('jj-reopen-me');
+    }
+  });
 });
