@@ -16,6 +16,7 @@ import {
   installCodexPaneHooks,
 } from '../utils/codexHooks.js';
 import { getPaneTmuxTitle } from '../utils/paneTitle.js';
+import { normalizePanes } from '../utils/paneNormalization.js';
 import {
   getVisiblePanes,
   syncHiddenStateFromCurrentWindow,
@@ -137,11 +138,11 @@ export async function loadPanesFromFile(panesFile: string): Promise<DmuxPane[]> 
     const parsed: any = JSON.parse(content);
 
     if (Array.isArray(parsed)) {
-      return syncPaneColorThemes(parsed as DmuxPane[], [], fallbackProjectRoot);
+      return syncPaneColorThemes(normalizePanes(parsed as DmuxPane[]), [], fallbackProjectRoot);
     } else {
       const config = parsed as DmuxConfig;
       const projectRoot = config.projectRoot || fallbackProjectRoot;
-      const panes = Array.isArray(config.panes) ? config.panes : [];
+      const panes = Array.isArray(config.panes) ? normalizePanes(config.panes) : [];
       const sidebarProjects = Array.isArray(config.sidebarProjects) ? config.sidebarProjects : [];
       return syncPaneColorThemes(panes, sidebarProjects, projectRoot);
     }
@@ -166,9 +167,9 @@ export async function loadSidebarProjectsFromFile(
     const content = await fs.readFile(panesFile, 'utf-8');
     const parsed: any = JSON.parse(content);
     const config = Array.isArray(parsed)
-      ? { panes: parsed as DmuxPane[] }
+      ? { panes: normalizePanes(parsed as DmuxPane[]) }
       : parsed as DmuxConfig;
-    const configPanes = Array.isArray(config.panes) ? config.panes : [];
+    const configPanes = Array.isArray(config.panes) ? normalizePanes(config.panes) : [];
     const effectivePanes = panes || configPanes;
     const projectRoot = config.projectRoot || fallbackProjectRoot;
     const projectName = config.projectName || path.basename(projectRoot);

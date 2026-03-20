@@ -16,7 +16,6 @@ export function getTargetRef(ref: RefLike): string | undefined {
   const backend = ref.vcsBackend;
 
   switch (backend) {
-    case undefined:
     case 'git':
       return ref.targetRef || ref.branchName || ref.slug;
     case 'jj':
@@ -30,7 +29,6 @@ export function getWorkspaceName(ref: RefLike): string | undefined {
   const backend = ref.vcsBackend;
 
   switch (backend) {
-    case undefined:
     case 'git':
       return ref.slug;
     case 'jj':

@@ -103,8 +103,10 @@ describe('reopenWorktree', () => {
     readWorktreeMetadataMock.mockReturnValue({
       agent: 'codex',
       permissionMode: 'bypassPermissions',
+      vcsBackend: 'git',
+      targetRef: 'feature/reopen-me',
       branchName: 'feature/reopen-me',
-    });
+    } as any);
   });
 
   it('uses stored agent metadata and permission mode for resume', async () => {

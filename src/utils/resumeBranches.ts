@@ -1093,6 +1093,7 @@ export async function resumeBranchWorkspace(
       existingWorktree: {
         slug,
         worktreePath: rootWorktreePath,
+        vcsBackend: 'git',
         branchName,
       },
       projectName: path.basename(projectRoot),
