@@ -123,6 +123,119 @@ describe('project root VCS detection', () => {
     expect(resolved.vcsBackend).toBe('git');
     expect(resolved.projectRoot).toBe('/tmp/repo');
   });
+
+  it('defaults auto detection to git in colocated repos', async () => {
+    const mockExecSync = vi.fn((command: string) => {
+      if (command === 'jj workspace root') {
+        return '/tmp/repo\n';
+      }
+      if (command === 'git rev-parse --path-format=absolute --git-common-dir') {
+        return '/tmp/repo/.git\n';
+      }
+      if (command === 'git rev-parse --show-toplevel') {
+        return '/tmp/repo\n';
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    vi.doMock('child_process', () => ({
+      execSync: mockExecSync,
+    }));
+
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => target === '/tmp/repo'),
+        statSync: vi.fn(() => ({ isDirectory: () => true })),
+        readFileSync: vi.fn(() => '{}'),
+      };
+    });
+
+    const { resolveProjectRootFromPath } = await import('../src/utils/projectRoot.js');
+    const resolved = resolveProjectRootFromPath('/tmp/repo');
+
+    expect(resolved.vcsBackend).toBe('git');
+  });
+
+  it('honors global autoVcsPreference for colocated repos', async () => {
+    const mockExecSync = vi.fn((command: string) => {
+      if (command === 'jj workspace root') {
+        return '/tmp/repo\n';
+      }
+      if (command === 'jj workspace root --name default') {
+        return '/tmp/repo\n';
+      }
+      if (command === 'git rev-parse --path-format=absolute --git-common-dir') {
+        return '/tmp/repo/.git\n';
+      }
+      if (command === 'git rev-parse --show-toplevel') {
+        return '/tmp/repo\n';
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    vi.doMock('child_process', () => ({
+      execSync: mockExecSync,
+    }));
+
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => (
+          target === '/tmp/repo' || target.endsWith('.dmux.global.json')
+        )),
+        statSync: vi.fn(() => ({ isDirectory: () => true })),
+        readFileSync: vi.fn((target: string) => (
+          target.endsWith('.dmux.global.json')
+            ? JSON.stringify({ autoVcsPreference: 'jj' })
+            : '{}'
+        )),
+      };
+    });
+
+    const { resolveProjectRootFromPath } = await import('../src/utils/projectRoot.js');
+    const resolved = resolveProjectRootFromPath('/tmp/repo');
+
+    expect(resolved.vcsBackend).toBe('jj');
+  });
+
+  it('fails loudly when an explicit global backend is unavailable', async () => {
+    const mockExecSync = vi.fn((command: string) => {
+      if (command === 'git rev-parse --path-format=absolute --git-common-dir') {
+        return '/tmp/repo/.git\n';
+      }
+      if (command === 'git rev-parse --show-toplevel') {
+        return '/tmp/repo\n';
+      }
+      throw new Error(`Unexpected command: ${command}`);
+    });
+
+    vi.doMock('child_process', () => ({
+      execSync: mockExecSync,
+    }));
+
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => (
+          target === '/tmp/repo' || target.endsWith('.dmux.global.json')
+        )),
+        statSync: vi.fn(() => ({ isDirectory: () => true })),
+        readFileSync: vi.fn((target: string) => (
+          target.endsWith('.dmux.global.json')
+            ? JSON.stringify({ vcsBackend: 'jj' })
+            : '{}'
+        )),
+      };
+    });
+
+    const { resolveProjectRootFromPath } = await import('../src/utils/projectRoot.js');
+
+    expect(() => resolveProjectRootFromPath('/tmp/repo')).toThrow(/Configured global vcsBackend "jj"/);
+  });
 });
 
 describe('vcs backend registry', () => {

@@ -1,5 +1,6 @@
 import path from 'path';
-import { existsSync, statSync } from 'fs';
+import { existsSync, readFileSync, statSync } from 'fs';
+import { homedir } from 'os';
 import type {
   SupportedVcsBackend,
   VcsBackendSetting,
@@ -9,6 +10,33 @@ import { getAutoDetectBackends, getVcsBackend } from './registry.js';
 
 function assertNever(value: never): never {
   throw new Error(`Unsupported VCS backend setting: ${String(value)}`);
+}
+
+function getGlobalAutoDetectPreference(): SupportedVcsBackend {
+  try {
+    const globalSettingsPath = path.join(homedir(), '.dmux.global.json');
+    if (!existsSync(globalSettingsPath)) {
+			// Backwards compatibility:
+			// dmux used to not allow between vcs's, only using git.
+			// when we added `jj` support, we need `auto` to route to `git` to ensure
+			// that no workflows are broken
+      return 'git';
+    }
+
+    const parsed = JSON.parse(readFileSync(globalSettingsPath, 'utf-8')) as {
+      autoVcsPreference?: unknown;
+    };
+
+    switch (parsed.autoVcsPreference) {
+      case 'git':
+      case 'jj':
+        return parsed.autoVcsPreference;
+      default:
+        return 'git';
+    }
+  } catch {
+    return 'git';
+  }
 }
 
 function resolveProjectRootForBackend(
@@ -40,7 +68,7 @@ export function detectVcsBackend(
         ? preferredBackend
         : null;
     case 'auto':
-      for (const backend of getAutoDetectBackends()) {
+      for (const backend of getAutoDetectBackends(getGlobalAutoDetectPreference())) {
         if (backend.isRepository(workingDir)) {
           return backend.id;
         }
