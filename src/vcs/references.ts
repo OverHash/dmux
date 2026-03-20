@@ -12,12 +12,12 @@ function assertNever(value: never): never {
   throw new Error(`Unsupported VCS backend: ${String(value)}`);
 }
 
-export function getTargetRef(ref: RefLike): string | undefined {
+export function getTargetRef(ref: RefLike): string {
   const backend = ref.vcsBackend;
 
   switch (backend) {
     case 'git':
-      return ref.targetRef || ref.branchName || ref.slug;
+      return ref.targetRef;
     case 'jj':
       return ref.targetRef;
     default:

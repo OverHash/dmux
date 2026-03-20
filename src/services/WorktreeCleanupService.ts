@@ -226,9 +226,6 @@ export class WorktreeCleanupService {
 
     if (deleteBranch) {
       const targetRef = getTargetRef(pane);
-      if (!targetRef) {
-        return;
-      }
 
       const deleteBookmarkResult = await this.runJjCommand(
         ['bookmark', 'delete', targetRef],

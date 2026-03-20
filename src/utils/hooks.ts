@@ -122,7 +122,7 @@ export async function buildHookEnvironment(
 
     if (pane.worktreePath) {
       env.DMUX_WORKTREE_PATH = pane.worktreePath;
-      env.DMUX_BRANCH = getTargetRef(pane) || pane.slug;
+      env.DMUX_BRANCH = getTargetRef(pane);
     }
   }
 

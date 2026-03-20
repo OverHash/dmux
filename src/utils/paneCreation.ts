@@ -289,7 +289,7 @@ export async function createPane(
   });
   const slug = existingWorktree ? existingWorktree.slug : naming.slug;
   const targetRef = existingWorktree
-    ? (getTargetRef(existingWorktree) || existingWorktree.slug)
+    ? getTargetRef(existingWorktree)
     : naming.branchName;
   const effectiveBaseBranch = naming.baseBranch;
   const workspaceName = vcsBackend === 'jj'

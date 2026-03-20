@@ -17,7 +17,7 @@ const HAS_DOT_DOT = /\.\./;
  * Returns branchName if set (prefix-based), otherwise falls back to slug.
  */
 export function getPaneBranchName(pane: DmuxPane): string {
-  return getTargetRef(pane) || pane.slug;
+  return getTargetRef(pane);
 }
 
 /**
