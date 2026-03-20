@@ -254,10 +254,20 @@ export async function createPane(
     DMUX_AGENT: agent || 'unknown',
   });
 
-  const vcsBackend = existingWorktree?.vcsBackend
-    || detectVcsForPath(projectRoot, settings.vcsBackend ?? 'auto')?.backend
-    || detectedProjectBackend
-    || 'git';
+  const vcsBackend = (() => {
+    if (existingWorktree?.vcsBackend) {
+      return existingWorktree.vcsBackend;
+    }
+
+    const configuredBackend = settings.vcsBackend ?? 'auto';
+    const detectedBackend = detectVcsForPath(projectRoot, configuredBackend)?.backend;
+
+    if (configuredBackend !== 'auto' && !detectedBackend) {
+      throw new Error(`Configured vcsBackend "${configuredBackend}" is not available for ${projectRoot}`);
+    }
+
+    return detectedBackend || detectedProjectBackend || 'git';
+  })();
 
   // Validate branchPrefix before use.
   const branchPrefix = settings.branchPrefix || '';
