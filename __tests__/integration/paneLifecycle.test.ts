@@ -18,6 +18,16 @@ import {
 } from '../fixtures/integration/gitRepo.js';
 import { createMockExecSync, createMockOpenRouterAPI } from '../helpers/integration/mockCommands.js';
 
+const fsMock = vi.hoisted(() => ({
+  readFileSync: vi.fn(() => JSON.stringify({ controlPaneId: '%0' })),
+  writeFileSync: vi.fn(),
+  existsSync: vi.fn(),
+  mkdirSync: vi.fn(),
+  statSync: vi.fn(() => ({ isDirectory: () => true })),
+}));
+
+const detectedVcsBackend = vi.hoisted(() => ({ current: 'git' as 'git' | 'jj' }));
+
 // Mock child_process
 const mockExecSync = createMockExecSync({});
 vi.mock('child_process', () => ({
@@ -70,19 +80,14 @@ vi.mock('../../src/services/WorktreeCleanupService.js', () => ({
 
 // Mock fs for reading config
 vi.mock('fs', () => ({
-  default: {
-    readFileSync: vi.fn(() => JSON.stringify({ controlPaneId: '%0' })),
-    writeFileSync: vi.fn(),
-    existsSync: vi.fn(() => true),
-  },
-  readFileSync: vi.fn(() => JSON.stringify({ controlPaneId: '%0' })),
-  writeFileSync: vi.fn(),
-  existsSync: vi.fn(() => true),
+  default: fsMock,
+  ...fsMock,
 }));
 
 describe('Pane Lifecycle Integration Tests', () => {
   let tmuxSession: MockTmuxSession;
   let gitRepo: MockGitRepo;
+  let createdWorktreePaths: Set<string>;
 
   beforeEach(() => {
     // Reset all mocks
@@ -92,9 +97,19 @@ describe('Pane Lifecycle Integration Tests', () => {
     // Create fresh test environment
     tmuxSession = createMockTmuxSession('dmux-test', 1);
     gitRepo = createMockGitRepo('main');
+    createdWorktreePaths = new Set<string>();
+    detectedVcsBackend.current = 'git';
+
+    fsMock.existsSync.mockImplementation((target) => {
+      const value = String(target);
+      if (value.includes('/.dmux/worktrees/')) {
+        return createdWorktreePaths.has(value);
+      }
+      return true;
+    });
 
     // Configure mock execSync with test data
-    mockExecSync.mockImplementation((command: string, options?: any) => {
+    mockExecSync.mockImplementation(((command: string, options?: any) => {
       const cmd = command.toString().trim();
       const encoding = options?.encoding;
 
@@ -123,13 +138,33 @@ describe('Pane Lifecycle Integration Tests', () => {
 
       // Git worktree add
       if (cmd.includes('worktree add')) {
-        gitRepo = addWorktree(gitRepo, '/test/.dmux/worktrees/test-slug', 'test-slug');
+        const pathMatch = cmd.match(/git worktree add "([^"]+)"/);
+        const branchMatch = cmd.match(/-b "([^"]+)"/) || cmd.match(/git worktree add "[^"]+" "([^"]+)"/);
+        const worktreePath = pathMatch?.[1] || '/test/.dmux/worktrees/test-slug';
+        const branchName = branchMatch?.[1] || 'test-slug';
+        createdWorktreePaths.add(worktreePath);
+        createdWorktreePaths.add(`${worktreePath}/.git`);
+        gitRepo = addWorktree(gitRepo, worktreePath, branchName);
+        return returnValue('');
+      }
+
+      // jj workspace add
+      if (cmd.includes('jj workspace add')) {
+        const pathMatch = cmd.match(/jj workspace add --name "[^"]+"(?: --revision "[^"]+")? "([^"]+)"/);
+        const worktreePath = pathMatch?.[1] || '/test/.dmux/worktrees/test-slug';
+        createdWorktreePaths.add(worktreePath);
+        createdWorktreePaths.add(`${worktreePath}/.jj`);
         return returnValue('');
       }
 
       // Git worktree list
       if (cmd.includes('worktree list')) {
-        return returnValue('/test/.dmux/worktrees/test-slug abc123 [test-slug]');
+        return returnValue(
+          Array.from(createdWorktreePaths)
+            .filter((worktreePath) => !worktreePath.endsWith('/.git'))
+            .map((worktreePath) => `${worktreePath} abc123 [${worktreePath.split('/').pop()}]`)
+            .join('\n')
+        );
       }
 
       // Git symbolic-ref (main branch)
@@ -138,13 +173,41 @@ describe('Pane Lifecycle Integration Tests', () => {
       }
 
       // Git rev-parse (current branch)
+      if (cmd.includes('rev-parse --git-common-dir')) {
+        if (detectedVcsBackend.current === 'jj') {
+          throw new Error('Not a git repository');
+        }
+        return returnValue('.git');
+      }
+
+      if (cmd.includes('rev-parse --show-toplevel')) {
+        if (detectedVcsBackend.current === 'jj') {
+          throw new Error('Not a git repository');
+        }
+        return returnValue('/test');
+      }
+
       if (cmd.includes('rev-parse')) {
         return returnValue('main');
       }
 
+      if (cmd.includes('jj workspace root --name default')) {
+        if (detectedVcsBackend.current !== 'jj') {
+          throw new Error('Not a jj repository');
+        }
+        return returnValue('/test');
+      }
+
+      if (cmd.includes('jj workspace root')) {
+        if (detectedVcsBackend.current !== 'jj') {
+          throw new Error('Not a jj repository');
+        }
+        return returnValue(options?.cwd?.includes('/.dmux/worktrees/') ? options.cwd : '/test');
+      }
+
       // Default
       return returnValue('');
-    });
+    }) as any);
 
     // Configure StateManager mock
     mockGetPanes.mockReturnValue([]);
@@ -198,6 +261,145 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
     });
 
+    it('should create jj workspace when project uses jj', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      detectedVcsBackend.current = 'jj';
+      fsMock.readFileSync.mockImplementation(((target: string) => {
+        if (String(target).endsWith('.dmux.global.json')) {
+          return JSON.stringify({ vcsBackend: 'jj' });
+        }
+
+        return JSON.stringify({ controlPaneId: '%0' });
+      }) as any);
+
+      const result = await createPane(
+        {
+          prompt: 'add user dashboard',
+          agent: 'claude',
+          projectName: 'test-project',
+          projectRoot: '/test',
+          slugBase: 'jj-dashboard',
+          existingPanes: [],
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj workspace add --name "jj-dashboard" "/test/.dmux/worktrees/jj-dashboard"'),
+        expect.any(Object)
+      );
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj bookmark set "jj-dashboard" -r @'),
+        expect.any(Object)
+      );
+
+      if ('pane' in result) {
+        expect(result.pane.vcsBackend).toBe('jj');
+        expect(result.pane.targetRef).toBe('jj-dashboard');
+        if (result.pane.vcsBackend === 'jj') {
+          expect(result.pane.workspaceName).toBe('jj-dashboard');
+        }
+      }
+    });
+
+    it('should pass jj start points through --revision', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      detectedVcsBackend.current = 'jj';
+      fsMock.readFileSync.mockImplementation(((target: string) => {
+        if (String(target).endsWith('.dmux.global.json')) {
+          return JSON.stringify({ vcsBackend: 'jj' });
+        }
+
+        return JSON.stringify({ controlPaneId: '%0' });
+      }) as any);
+
+      await createPane(
+        {
+          prompt: 'branch from parent workspace',
+          agent: 'claude',
+          projectName: 'test-project',
+          projectRoot: '/test',
+          slugBase: 'jj-child',
+          existingPanes: [],
+          startPointBranch: 'feat/parent-workspace',
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj workspace add --name "jj-child" --revision "feat/parent-workspace" "/test/.dmux/worktrees/jj-child"'),
+        expect.any(Object)
+      );
+    });
+
+    it('should attach a fresh pane to an existing worktree without recreating it', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      const existingWorktreePath = '/test/.dmux/worktrees/resume-me';
+      createdWorktreePaths.add(existingWorktreePath);
+      createdWorktreePaths.add(`${existingWorktreePath}/.git`);
+
+      const result = await createPane(
+        {
+          prompt: '',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [],
+          existingWorktree: {
+            slug: 'resume-me',
+            worktreePath: existingWorktreePath,
+            vcsBackend: 'git',
+            targetRef: 'feature/resume-me',
+            branchName: 'feature/resume-me',
+          },
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync.mock.calls.some(([cmd]) =>
+        typeof cmd === 'string' && cmd.includes(`git worktree add "${existingWorktreePath}"`)
+      )).toBe(false);
+
+      if ('pane' in result) {
+        expect(result.pane.slug).toBe('resume-me');
+        if (result.pane.vcsBackend !== 'jj') {
+          expect(result.pane.branchName).toBe('feature/resume-me');
+        }
+        expect(result.pane.worktreePath).toBe(existingWorktreePath);
+        expect(result.pane.prompt).toBe('No initial prompt');
+      }
+    });
+
+    it('should attach to an existing jj workspace without recreating it', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      const existingWorkspacePath = '/test/.dmux/worktrees/jj-reopen-me';
+      createdWorktreePaths.add(existingWorkspacePath);
+      createdWorktreePaths.add(`${existingWorkspacePath}/.jj`);
+
+      const result = await createPane(
+        {
+          prompt: '',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [],
+          existingWorktree: {
+            slug: 'jj-reopen-me',
+            worktreePath: existingWorkspacePath,
+            vcsBackend: 'jj',
+            targetRef: 'feat/jj-reopen-me',
+            workspaceName: 'jj-reopen-me',
+          },
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync.mock.calls.some(([cmd]) =>
+        typeof cmd === 'string' && cmd.includes('jj workspace add')
+      )).toBe(false);
+
+      expect(result.pane.vcsBackend).toBe('jj');
+      expect(result.pane.worktreePath).toBe(existingWorkspacePath);
+    });
+
     it('should split tmux pane', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
 
@@ -235,6 +437,8 @@ describe('Pane Lifecycle Integration Tests', () => {
             {
               id: 'dmux-1',
               slug: 'existing',
+              vcsBackend: 'git',
+              targetRef: 'existing',
               prompt: 'existing pane',
               paneId: '%5',
               projectRoot: '/primary/repo',
@@ -278,9 +482,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
 
       // Should fallback to timestamp-based slug
-      if ('pane' in result) {
-        expect(result.pane.slug).toMatch(/dmux-\d+/);
-      }
+      expect(result.pane.slug).toMatch(/dmux-\d+/);
     });
 
     it('should return needsAgentChoice when agent not specified', async () => {
@@ -326,12 +528,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -357,12 +562,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -390,12 +598,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -427,12 +638,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -458,12 +672,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -527,6 +744,8 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'existing-branch',
+        vcsBackend: 'git',
+        targetRef: 'existing-branch',
         prompt: 'original prompt',
         paneId: '%1', // Old, dead pane
         worktreePath: '/test/.dmux/worktrees/existing-branch',

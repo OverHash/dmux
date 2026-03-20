@@ -19,6 +19,15 @@ export function render() {
 
     <h2>Available Settings</h2>
 
+    <h3><code>vcsBackend</code></h3>
+    <table>
+      <tbody>
+        <tr><td><strong>Type</strong></td><td><code>'auto' | 'git' | 'jj'</code></td></tr>
+        <tr><td><strong>Default</strong></td><td><code>'auto'</code></td></tr>
+        <tr><td><strong>Description</strong></td><td>Selects which VCS backend dmux should use for pane workspaces. <code>auto</code> detects the available backend, defaults to Git when both Git and jj are available, and can be influenced by the global <code>autoVcsPreference</code> setting described below.</td></tr>
+      </tbody>
+    </table>
+
     <h3><code>enableAutopilotByDefault</code></h3>
     <table>
       <tbody>
@@ -40,9 +49,27 @@ export function render() {
     <h3><code>defaultAgent</code></h3>
     <table>
       <tbody>
-        <tr><td><strong>Type</strong></td><td><code>'claude' | 'opencode' | 'codex' | ''</code></td></tr>
+        <tr><td><strong>Type</strong></td><td><code>AgentName | ''</code></td></tr>
         <tr><td><strong>Default</strong></td><td><code>''</code> (ask each time)</td></tr>
-        <tr><td><strong>Description</strong></td><td>Skip the agent selection dialog and always use this agent for new panes. Set to an empty string to be prompted each time.</td></tr>
+        <tr><td><strong>Description</strong></td><td>Skip the agent selection dialog and always use this agent for new panes. Set it to any supported agent ID such as <code>claude</code>, <code>codex</code>, or <code>gemini</code>. Use an empty string to be prompted each time.</td></tr>
+      </tbody>
+    </table>
+
+    <h3><code>enabledAgents</code></h3>
+    <table>
+      <tbody>
+        <tr><td><strong>Type</strong></td><td><code>AgentName[]</code></td></tr>
+        <tr><td><strong>Default</strong></td><td><code>default-enabled registry entries</code></td></tr>
+        <tr><td><strong>Description</strong></td><td>Controls which agents appear in the new-pane selection popup. Use the settings UI to enable or disable agents per scope.</td></tr>
+      </tbody>
+    </table>
+
+    <h3><code>enabledNotificationSounds</code></h3>
+    <table>
+      <tbody>
+        <tr><td><strong>Type</strong></td><td><code>NotificationSoundId[]</code></td></tr>
+        <tr><td><strong>Default</strong></td><td><code>['default-system-sound']</code></td></tr>
+        <tr><td><strong>Description</strong></td><td>Select which macOS helper sounds dmux randomizes between for background attention notifications. If the list is empty or invalid, dmux falls back to the default system sound.</td></tr>
       </tbody>
     </table>
 
@@ -60,7 +87,7 @@ export function render() {
       <tbody>
         <tr><td><strong>Type</strong></td><td><code>string</code></td></tr>
         <tr><td><strong>Default</strong></td><td><code>''</code> (current HEAD)</td></tr>
-        <tr><td><strong>Description</strong></td><td>Branch to create new worktrees from. Leave empty to use the current HEAD. The branch must exist in the repository.</td></tr>
+        <tr><td><strong>Description</strong></td><td>Git only. Branch to create new worktrees from. Leave empty to use the current HEAD. The branch must exist in the repository.</td></tr>
       </tbody>
     </table>
 
@@ -69,7 +96,7 @@ export function render() {
       <tbody>
         <tr><td><strong>Type</strong></td><td><code>string</code></td></tr>
         <tr><td><strong>Default</strong></td><td><code>''</code> (no prefix)</td></tr>
-        <tr><td><strong>Description</strong></td><td>Prefix for new branch names. For example, setting this to <code>feat/</code> will create branches like <code>feat/fix-auth</code>. The worktree directory name stays flat (just the slug).</td></tr>
+        <tr><td><strong>Description</strong></td><td>Git only. Prefix for new branch names. For example, setting this to <code>feat/</code> will create branches like <code>feat/fix-auth</code>. The worktree directory name stays flat (just the slug).</td></tr>
       </tbody>
     </table>
 
@@ -94,20 +121,39 @@ export function render() {
     <h2>Accessing Settings</h2>
 
     <h3>TUI</h3>
-    <p>Press <kbd>s</kbd> to open the settings dialog. You can switch between global and project scope, and toggle each setting.</p>
+    <p>Press <kbd>s</kbd> to open the settings dialog. You can switch between global and project scope, toggle each setting, choose enabled agents, and configure macOS attention notification sounds.</p>
 
     <h3>Manual Editing</h3>
     <p>You can edit the JSON files directly:</p>
     <pre><code data-lang="json">{
+  "vcsBackend": "auto",
   "enableAutopilotByDefault": true,
   "permissionMode": "bypassPermissions",
   "defaultAgent": "claude",
+  "enabledAgents": ["claude", "codex", "gemini"],
+  "enabledNotificationSounds": ["default-system-sound", "harp"],
   "useTmuxHooks": false,
   "baseBranch": "develop",
   "branchPrefix": "feat/",
   "minPaneWidth": 50,
   "maxPaneWidth": 80
 }</code></pre>
+
+    <h3>Global auto-detection preference</h3>
+    <p>If you keep <code>vcsBackend</code> set to <code>auto</code>, dmux defaults to Git when both Git and jj are available in the same project. You can change that global default by adding <code>autoVcsPreference</code> to <code>~/.dmux.global.json</code>:</p>
+    <pre><code data-lang="json">{
+  "vcsBackend": "auto",
+  "autoVcsPreference": "jj"
+}</code></pre>
+    <p>This setting is intentionally global-only. It does not force jj everywhere; it only changes which backend <code>auto</code> prefers when both backends are available.</p>
+
+    <h2>macOS Attention Notifications</h2>
+    <p>On macOS, dmux ships with a native helper that can send attention notifications for background panes. This is progressive enhancement only: dmux continues working on Linux and Windows without it.</p>
+    <ul>
+      <li>Notifications are only sent for panes that are not currently fully focused</li>
+      <li><code>enabledNotificationSounds</code> controls which helper sounds are eligible for random selection</li>
+      <li>The sidebar and pane borders still show attention state even when native notifications are unavailable</li>
+    </ul>
 
     <h2>Setting Precedence</h2>
     <p>When both global and project settings define the same key, the <strong>project setting wins</strong>:</p>

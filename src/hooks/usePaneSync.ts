@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import path from 'path';
 import type { DmuxPane } from '../types.js';
 import { rebindPaneByTitle } from '../utils/paneRebinding.js';
 import { LogService } from '../services/LogService.js';
@@ -9,6 +10,8 @@ import type { DmuxConfig } from './usePaneLoading.js';
 import { atomicWriteJson } from '../utils/atomicWrite.js';
 import { getPaneTmuxTitle } from '../utils/paneTitle.js';
 import { StateManager } from '../shared/StateManager.js';
+import { normalizeSidebarProjects } from '../utils/sidebarProjects.js';
+import { normalizePanes } from '../utils/paneNormalization.js';
 
 /**
  * Enforces that pane titles in tmux match the slugs in the config
@@ -24,7 +27,7 @@ export async function enforcePaneTitles(
   const titleByPaneId = new Map<string, string>();
 
   try {
-    const paneInfo = await tmuxService.getAllPaneInfo();
+    const paneInfo = await tmuxService.getAllPaneInfo('session');
     for (const pane of paneInfo) {
       titleByPaneId.set(pane.paneId, pane.title);
     }
@@ -83,13 +86,13 @@ export async function savePanesToFile(
   withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>
 ): Promise<DmuxPane[]> {
   return withWriteLock(async () => {
-    let activePanes = panes;
+    let activePanes = normalizePanes(panes);
 
     // Try to update pane IDs if they've changed (rebinding)
     try {
       const tmuxService = TmuxService.getInstance();
       const titleToId = new Map<string, string>();
-      const paneInfo = await tmuxService.getAllPaneInfo();
+      const paneInfo = await tmuxService.getAllPaneInfo('session');
 
       for (const pane of paneInfo) {
         if (
@@ -113,7 +116,7 @@ export async function savePanesToFile(
         `Failed to fetch tmux panes for rebinding: ${error instanceof Error ? error.message : String(error)}`,
         'usePaneSync'
       );
-      activePanes = panes;
+      activePanes = normalizePanes(panes);
     }
 
     // Read existing config to preserve other fields
@@ -128,6 +131,14 @@ export async function savePanesToFile(
 
     // Save in config format (use atomic write to prevent race conditions)
     config.panes = activePanes;
+    const projectRoot = config.projectRoot || path.dirname(path.dirname(panesFile));
+    const projectName = config.projectName || path.basename(projectRoot);
+    config.sidebarProjects = normalizeSidebarProjects(
+      config.sidebarProjects,
+      activePanes,
+      projectRoot,
+      projectName
+    );
     config.lastUpdated = new Date().toISOString();
     await atomicWriteJson(panesFile, config);
 
@@ -261,6 +272,14 @@ export async function saveUpdatedPaneConfig(
 
     // Update with remapped panes
     currentConfig.panes = activePanes;
+    const projectRoot = currentConfig.projectRoot || path.dirname(path.dirname(panesFile));
+    const projectName = currentConfig.projectName || path.basename(projectRoot);
+    currentConfig.sidebarProjects = normalizeSidebarProjects(
+      currentConfig.sidebarProjects,
+      activePanes,
+      projectRoot,
+      projectName
+    );
     currentConfig.lastUpdated = new Date().toISOString();
     LogService.getInstance().debug(
       `Writing config with ${currentConfig.panes.length} panes`,

@@ -4,6 +4,7 @@ import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import { execAsync, execAsyncRace } from './execAsync.js';
 import type { DmuxPane } from '../types.js';
+import { getTargetRef } from '../vcs/references.js';
 
 /** Regex for characters allowed in git branch names and branch prefixes */
 export const SAFE_BRANCH_CHARS = /^[a-zA-Z0-9._\/-]*$/;
@@ -16,7 +17,22 @@ const HAS_DOT_DOT = /\.\./;
  * Returns branchName if set (prefix-based), otherwise falls back to slug.
  */
 export function getPaneBranchName(pane: DmuxPane): string {
-  return pane.branchName || pane.slug;
+  return getTargetRef(pane);
+}
+
+/**
+ * Checks whether a local branch exists in the repository.
+ */
+export function branchExists(repoPath: string, branchName: string): boolean {
+  try {
+    execSync(`git show-ref --verify --quiet "refs/heads/${branchName}"`, {
+      cwd: repoPath,
+      stdio: 'pipe',
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

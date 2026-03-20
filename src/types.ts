@@ -1,4 +1,6 @@
-import type { AgentName } from './utils/agentLaunch.js';
+import type { AgentName, PermissionMode } from './utils/agentLaunch.js';
+import type { NotificationSoundId } from './utils/notificationSounds.js';
+import type { VcsBackendSetting } from './vcs/types.js';
 
 // Agent status with new analyzing state
 export type AgentStatus = 'idle' | 'analyzing' | 'waiting' | 'working';
@@ -14,17 +16,43 @@ export interface PotentialHarm {
   description?: string;
 }
 
-export interface DmuxPane {
+export interface MergeTargetReference {
+  slug?: string;
+  branchName: string;
+  worktreePath?: string;
+}
+
+export interface SidebarProject {
+  projectRoot: string;
+  projectName: string;
+}
+
+export type GitWorkspaceVcsState = {
+  vcsBackend: 'git';
+  targetRef: string; // dmux-managed workspace ref; branch name for git
+  branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
+};
+
+export type JjWorkspaceVcsState = {
+  vcsBackend: 'jj';
+  targetRef: string; // dmux-managed workspace ref; bookmark name for jj
+  workspaceName: string; // jj workspace name tracked by dmux
+};
+
+export type WorkspaceVcsState = GitWorkspaceVcsState | JjWorkspaceVcsState;
+
+interface DmuxPaneBase {
   id: string;
   slug: string;
-  branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
   prompt: string;
   paneId: string;
+  hidden?: boolean; // Pane is detached from the active dmux window but still running
   projectRoot?: string; // Main repository root this pane belongs to
   projectName?: string; // Display name for pane's project
   type?: 'worktree' | 'shell';  // Type of pane (defaults to 'worktree' for backward compat)
-  shellType?: string;  // Shell type for shell panes (bash, zsh, fish, etc)
+  shellType?: string;  // Shell type for shell panes (bash, zsh, fish, fb, etc)
   worktreePath?: string;
+  browserPath?: string; // Root path when a shell pane is a dmux file browser
   testWindowId?: string;  // Background window for tests
   testStatus?: 'running' | 'passed' | 'failed';
   testOutput?: string;
@@ -32,7 +60,9 @@ export interface DmuxPane {
   devStatus?: 'running' | 'stopped';
   devUrl?: string;        // Detected dev server URL
   agent?: AgentName;
+  permissionMode?: PermissionMode;
   agentStatus?: AgentStatus;  // Agent working/attention status
+  needsAttention?: boolean; // Pane has settled and is waiting on the user
   lastAgentCheck?: number;  // Timestamp of last status check
   lastDeterministicStatus?: 'ambiguous' | 'working';  // For LLM detection coordination
   llmRequestId?: string;  // Track active LLM request
@@ -46,7 +76,11 @@ export interface DmuxPane {
   autopilot?: boolean;
   // Error message if pane analyzer encounters issues
   analyzerError?: string;
+  // Merge ancestry for sub-worktrees; first entry is the immediate parent target.
+  mergeTargetChain?: MergeTargetReference[];
 }
+
+export type DmuxPane = DmuxPaneBase & WorkspaceVcsState;
 
 export interface PanePosition {
   paneId: string;
@@ -81,6 +115,10 @@ export interface DmuxSettings {
   defaultAgent?: AgentName | '';
   // Which agents appear in new-pane selection
   enabledAgents?: AgentName[];
+  // Which macOS helper notification sounds are eligible for random selection
+  enabledNotificationSounds?: NotificationSoundId[];
+  // Rotate short dmux tips in the footer
+  showFooterTips?: boolean;
   // Tmux hooks for event-driven updates (low CPU)
   // true = use hooks, false = use polling, undefined = not yet asked
   useTmuxHooks?: boolean;
@@ -89,6 +127,8 @@ export interface DmuxSettings {
   baseBranch?: string;
   // Prefix for branch names (e.g. 'feat/' produces 'feat/fix-auth')
   branchPrefix?: string;
+  // Which backend to use for workspace lifecycle operations.
+  vcsBackend?: VcsBackendSetting;
   // Preferred minimum content pane width in characters
   minPaneWidth?: number;
   // Preferred maximum content pane width in characters
@@ -123,6 +163,7 @@ export interface DmuxConfig {
   projectName: string;
   projectRoot: string;
   panes: DmuxPane[];
+  sidebarProjects?: SidebarProject[];
   settings: DmuxSettings;
   lastUpdated: string;
   controlPaneId?: string; // Pane ID running dmux TUI (left sidebar)

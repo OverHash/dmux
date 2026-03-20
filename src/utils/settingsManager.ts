@@ -19,6 +19,12 @@ import {
   isAgentName,
   type AgentName,
 } from './agentLaunch.js';
+import {
+  getDefaultNotificationSoundSelection,
+  isNotificationSoundId,
+  type NotificationSoundId,
+} from './notificationSounds.js';
+import type { VcsBackendSetting } from '../vcs/types.js';
 
 const GLOBAL_SETTINGS_PATH = join(homedir(), '.dmux.global.json');
 const PERMISSION_MODES = ['', 'plan', 'acceptEdits', 'bypassPermissions'] as const;
@@ -44,13 +50,34 @@ function isValidMinPaneWidth(value: unknown): value is number {
   );
 }
 
+function cloneSettingsArrays(settings: DmuxSettings): DmuxSettings {
+  const cloned: DmuxSettings = { ...settings };
+
+  if (Array.isArray(cloned.enabledAgents)) {
+    cloned.enabledAgents = [...cloned.enabledAgents];
+  }
+
+  if (Array.isArray(cloned.enabledNotificationSounds)) {
+    cloned.enabledNotificationSounds = [...cloned.enabledNotificationSounds];
+  }
+
+  return cloned;
+}
+
+function isVcsBackendSetting(value: string): value is VcsBackendSetting {
+  return value === 'auto' || value === 'git' || value === 'jj';
+}
+
 const DEFAULT_SETTINGS: DmuxSettings = {
   // Most permissive defaults for new dmux setups.
+  vcsBackend: 'auto',
   permissionMode: 'bypassPermissions',
   enableAutopilotByDefault: true,
   minPaneWidth: DEFAULT_MIN_PANE_WIDTH,
   maxPaneWidth: DEFAULT_MAX_PANE_WIDTH,
   enabledAgents: getDefaultEnabledAgents(),
+  enabledNotificationSounds: getDefaultNotificationSoundSelection(),
+  showFooterTips: true,
 };
 
 const AGENT_OPTIONS = getAgentDefinitions().map((agent) => ({
@@ -94,21 +121,44 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     type: 'action' as any,
   },
   {
+    key: 'enabledNotificationSounds' as any,
+    label: 'Attention Notification Sounds',
+    description: 'Select the macOS helper sounds that dmux randomizes between for background alerts',
+    type: 'action' as any,
+  },
+  {
+    key: 'showFooterTips',
+    label: 'Show Footer Tips',
+    description: 'Rotate short dmux tips in the footer. Disable this if you prefer a quieter sidebar.',
+    type: 'boolean',
+  },
+  {
     key: 'useTmuxHooks',
     label: 'Use Tmux Hooks',
     description: 'Use tmux hooks for event-driven updates (lower CPU). If disabled, uses polling in a worker thread.',
     type: 'boolean',
   },
   {
+    key: 'vcsBackend',
+    label: 'VCS Backend',
+    description: 'Choose whether dmux should use git or jj workspaces for this project.',
+    type: 'select',
+    options: [
+      { value: 'auto', label: 'Auto detect (default)' },
+      { value: 'git', label: 'Git' },
+      { value: 'jj', label: 'jj' },
+    ],
+  },
+  {
     key: 'baseBranch',
     label: 'Base Branch',
-    description: 'Branch to create new worktrees from. Leave empty to use current HEAD.',
+    description: 'Git only. Branch to create new worktrees from. Leave empty to use current HEAD.',
     type: 'text',
   },
   {
     key: 'branchPrefix',
     label: 'Branch Name Prefix',
-    description: 'Prefix for new branch names (e.g. "feat/" produces branch "feat/fix-auth"). Leave empty for no prefix.',
+    description: 'Git only. Prefix for new branch names (e.g. "feat/" produces branch "feat/fix-auth"). Leave empty for no prefix.',
     type: 'select',
     options: [
       { value: '', label: 'No prefix (default)' },
@@ -219,20 +269,16 @@ export class SettingsManager {
    * Get merged settings (project settings override global)
    */
   getSettings(): DmuxSettings {
-    const merged: DmuxSettings = {
+    const merged = cloneSettingsArrays({
       ...DEFAULT_SETTINGS,
       ...this.globalSettings,
       ...this.projectSettings,
-    };
+    });
 
     // Pane width bounds are global-only; ignore any project override values.
     const paneWidths = this.resolveGlobalPaneWidths();
     merged.minPaneWidth = paneWidths.minPaneWidth;
     merged.maxPaneWidth = paneWidths.maxPaneWidth;
-
-    if (Array.isArray(merged.enabledAgents)) {
-      merged.enabledAgents = [...merged.enabledAgents];
-    }
 
     return merged;
   }
@@ -249,14 +295,14 @@ export class SettingsManager {
    * Get global settings only
    */
   getGlobalSettings(): DmuxSettings {
-    return { ...this.globalSettings };
+    return cloneSettingsArrays(this.globalSettings);
   }
 
   /**
    * Get project settings only
    */
   getProjectSettings(): DmuxSettings {
-    return { ...this.projectSettings };
+    return cloneSettingsArrays(this.projectSettings);
   }
 
   /**
@@ -284,6 +330,18 @@ export class SettingsManager {
       if (invalidAgents.length > 0) {
         throw new Error(`Invalid enabledAgents: ${invalidAgents.join(', ')}`);
       }
+    }
+    if (key === 'enabledNotificationSounds') {
+      if (!Array.isArray(value)) {
+        throw new Error('Invalid enabledNotificationSounds: expected an array of sound IDs');
+      }
+      const invalidSoundIds = value.filter((soundId) => !isNotificationSoundId(soundId));
+      if (invalidSoundIds.length > 0) {
+        throw new Error(`Invalid enabledNotificationSounds: ${invalidSoundIds.join(', ')}`);
+      }
+    }
+		if (key === 'vcsBackend' && typeof value === 'string' && !isVcsBackendSetting(value)) {
+      throw new Error(`Invalid vcsBackend: "${value}"`);
     }
     if (key === 'minPaneWidth' && !isValidMinPaneWidth(value)) {
       throw new Error(
@@ -351,6 +409,21 @@ export class SettingsManager {
         throw new Error(`Invalid enabledAgents: ${invalidAgents.join(', ')}`);
       }
       settings.enabledAgents = settings.enabledAgents as AgentName[];
+    }
+    if (settings.enabledNotificationSounds !== undefined) {
+      if (!Array.isArray(settings.enabledNotificationSounds)) {
+        throw new Error('Invalid enabledNotificationSounds: expected an array of sound IDs');
+      }
+      const invalidSoundIds = settings.enabledNotificationSounds.filter(
+        (soundId) => !isNotificationSoundId(soundId)
+      );
+      if (invalidSoundIds.length > 0) {
+        throw new Error(`Invalid enabledNotificationSounds: ${invalidSoundIds.join(', ')}`);
+      }
+      settings.enabledNotificationSounds = settings.enabledNotificationSounds as NotificationSoundId[];
+    }
+	  if (typeof settings.vcsBackend === 'string' && !isVcsBackendSetting(settings.vcsBackend)) {
+      throw new Error(`Invalid vcsBackend: "${settings.vcsBackend}"`);
     }
     if (typeof settings.baseBranch === 'string' && settings.baseBranch !== '' && !isValidBranchName(settings.baseBranch)) {
       throw new Error('Invalid baseBranch: contains characters not allowed in git branch names');

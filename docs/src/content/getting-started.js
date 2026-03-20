@@ -9,20 +9,21 @@ export function render() {
     <pre><code data-lang="bash">npm -g i dmux</code></pre>
 
     <h2>Set Up OpenRouter (Recommended)</h2>
-    <p>Before your first run, we recommend setting up an <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> API key. dmux uses it to generate smart branch names from your prompts and AI-powered commit messages when merging. Without it, branch names fall back to <code>dmux-{timestamp}</code> and commit messages will be generic.</p>
+    <p>Before your first run, we recommend setting up an <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> API key. dmux uses it to generate smart ref names from your prompts and AI-powered commit messages when merging. Without it, ref names fall back to <code>dmux-{timestamp}</code> and commit messages will be generic.</p>
     <pre><code data-lang="bash">export OPENROUTER_API_KEY="sk-or-..."</code></pre>
     <p>Add this to your shell profile (<code>~/.zshrc</code> or <code>~/.bashrc</code>) so it persists across sessions. See <a href="#configuration">Configuration</a> for model options and details.</p>
 
     <h2>First Run</h2>
     <ol>
       <li>
-        <p><strong>Navigate to a git repository:</strong></p>
+        <p><strong>Navigate to a supported project:</strong></p>
         <pre><code data-lang="bash">cd /path/to/your/project</code></pre>
+        <p>dmux works with Git repositories and jj workspaces. In mixed Git + jj projects, <code>auto</code> detection defaults to Git unless you configure a global jj preference.</p>
       </li>
       <li>
         <p><strong>Launch dmux:</strong></p>
         <pre><code data-lang="bash">dmux</code></pre>
-        <p>dmux will create a tmux session named <code>dmux-{project-name}</code> and show the TUI.</p>
+        <p>dmux will create or attach to a project-scoped tmux session named like <code>dmux-your-project-a1b2c3d4</code> and show the TUI.</p>
       </li>
       <li>
         <p><strong>Create your first pane:</strong> Press <kbd>n</kbd> to create a new pane. You'll be prompted for:</p>
@@ -33,11 +34,42 @@ export function render() {
       </li>
       <li>
         <p><strong>Watch the agent work:</strong> Press <kbd>j</kbd> to jump to the pane and see the agent running.</p>
+        <p>dmux keeps tracking that pane even when it is in the background. On macOS, background panes can send native notifications when they settle into a waiting or attention-needed state.</p>
       </li>
       <li>
-        <p><strong>Merge when done:</strong> Navigate back to the dmux sidebar, select the pane, and press <kbd>m</kbd> to open the pane menu where you can merge the work back to your main branch.</p>
+        <p><strong>Merge when done:</strong> Navigate back to the dmux sidebar, select the pane, and press <kbd>m</kbd> to open the pane menu. Git panes can use dmux's built-in merge flow; jj panes should be integrated manually in jj for now.</p>
       </li>
     </ol>
+
+    <h2>Choosing a VCS Backend</h2>
+    <p>dmux supports multiple VCS backends for pane workspaces:</p>
+    <ul>
+      <li><strong>Git</strong> &mdash; the default backend, using git worktrees and branches</li>
+      <li><strong>jj</strong> &mdash; uses <code>jj workspace</code> and managed refs</li>
+    </ul>
+    <p>You can select <code>git</code>, <code>jj</code>, or <code>auto</code> from the settings UI. If you leave it on <code>auto</code>, dmux prefers Git by default. To make <code>auto</code> prefer jj whenever both are available, add this to <code>~/.dmux.global.json</code>:</p>
+    <pre><code data-lang="json">{
+  "vcsBackend": "auto",
+  "autoVcsPreference": "jj"
+}</code></pre>
+
+    <h2>Useful First-Day Shortcuts</h2>
+    <table class="shortcut-table">
+      <thead>
+        <tr><th>Key</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><kbd>f</kbd></td><td>Open a read-only file browser for the selected pane's worktree</td></tr>
+        <tr><td><kbd>h</kbd></td><td>Hide or show the selected pane without stopping it</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Hide all other panes, or show them again</td></tr>
+        <tr><td><kbd>P</kbd></td><td>Show only the selected project's panes, then restore all panes on the next press</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-info">
+      <div class="callout-title">macOS notifications</div>
+      On macOS, dmux can launch its native helper automatically and deliver background attention notifications. Open <kbd>s</kbd> settings and adjust <strong>Attention Notification Sounds</strong> if you want a different sound set.
+    </div>
 
     <h2>What Gets Created</h2>
     <p>When you first run dmux in a project, it creates a <code>.dmux/</code> directory:</p>
@@ -45,7 +77,7 @@ export function render() {
 ├── .dmux/                  # dmux data (gitignored)
 │   ├── dmux.config.json    # Pane tracking
 │   ├── settings.json       # Project settings
-│   └── worktrees/          # Git worktrees
+│   └── worktrees/          # Per-pane workspaces
 │       └── fix-auth/       # One per pane
 └── .dmux-hooks/            # Lifecycle hooks (optional)</div>
 
@@ -90,11 +122,12 @@ set -g allow-passthrough all
 bind-key -T copy-mode MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
 bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
 
-# Terminal overrides for image/cursor passthrough
+# Terminal overrides for clipboard/cursor compatibility
 set -ga terminal-overrides ',xterm-256color:Ms=\\E]52;c;%p2%s\\007'
 set -ga terminal-overrides ',*:Ss=\\E[%p1%d q:Se=\\E[2 q'
 set -ga update-environment "TERM_PROGRAM"</code></pre>
     <p>After editing, reload with <code>tmux source-file ~/.tmux.conf</code> or restart tmux.</p>
+    <p>dmux also applies its clipboard and passthrough compatibility settings to dmux-managed sessions at runtime. These settings improve terminal clipboard behavior, but tmux may still block rich image-paste flows that rely on terminal-specific clipboard protocols.</p>
 
     <div class="callout callout-info">
       <div class="callout-title">Note</div>
