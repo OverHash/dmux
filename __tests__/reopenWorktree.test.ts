@@ -20,6 +20,7 @@ const setupSidebarLayoutMock = vi.hoisted(() => vi.fn(() => '%1'));
 const recalculateAndApplyLayoutMock = vi.hoisted(() => vi.fn(async () => {}));
 const getInstalledAgentsMock = vi.hoisted(() => vi.fn(async () => ['claude', 'codex']));
 const filterEnabledAgentsMock = vi.hoisted(() => vi.fn((agents: string[]) => agents));
+const getCurrentBranchMock = vi.hoisted(() => vi.fn(() => 'feature/reopen-me'));
 const readWorktreeMetadataMock = vi.hoisted(() => vi.fn(() => ({
   agent: 'codex',
   permissionMode: 'bypassPermissions',
@@ -72,7 +73,7 @@ vi.mock('../src/utils/paneTitle.js', () => ({
 }));
 
 vi.mock('../src/utils/git.js', () => ({
-  getCurrentBranch: vi.fn(() => 'feature/reopen-me'),
+  getCurrentBranch: getCurrentBranchMock,
 }));
 
 vi.mock('../src/utils/geminiTrust.js', () => ({
@@ -90,6 +91,7 @@ vi.mock('../src/utils/welcomePaneManager.js', () => ({
 describe('reopenWorktree', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getCurrentBranchMock.mockReturnValue('feature/reopen-me');
     fsMock.readFileSync.mockReturnValue(JSON.stringify({ controlPaneId: '%0' }));
     readWorktreeMetadataMock.mockReturnValue({
       agent: 'codex',
@@ -147,5 +149,6 @@ describe('reopenWorktree', () => {
     if (result.pane.vcsBackend === 'jj') {
       expect(result.pane.workspaceName).toBe('jj-reopen-me');
     }
+    expect(getCurrentBranchMock).not.toHaveBeenCalled();
   });
 });
