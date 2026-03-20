@@ -757,6 +757,7 @@ export async function resumeBranchWorkspace(
         slug,
         worktreePath: rootWorktreePath,
         vcsBackend: 'git',
+        targetRef: branchName,
         branchName,
       },
       projectName: path.basename(projectRoot),

@@ -197,7 +197,7 @@ export async function createPane(
     ? existingWorktree.slug
     : appendSlugSuffix(generatedSlug, slugSuffix);
   const targetRef = existingWorktree
-    ? (getTargetRef(existingWorktree) || existingWorktree.slug)
+    ? getTargetRef(existingWorktree)
     : (vcsBackend === 'git' && branchPrefix ? `${branchPrefix}${slug}` : slug);
   const workspaceName = vcsBackend === 'jj'
     ? ((existingWorktree?.vcsBackend === 'jj' ? getWorkspaceName(existingWorktree) : undefined)

@@ -305,6 +305,7 @@ describe('Pane Lifecycle Integration Tests', () => {
             slug: 'resume-me',
             worktreePath: existingWorktreePath,
             vcsBackend: 'git',
+            targetRef: 'feature/resume-me',
             branchName: 'feature/resume-me',
           },
         },

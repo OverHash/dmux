@@ -188,7 +188,7 @@ export async function reopenWorktree(
   const currentBranch = metadata?.vcsBackend === 'jj'
     ? undefined
     : getCurrentBranch(worktreePath);
-  const targetRef = (metadata ? getTargetRef(metadata) : undefined) || currentBranch || slug;
+  const targetRef = metadata ? getTargetRef(metadata) : (currentBranch || slug);
   const workspaceName = metadata?.vcsBackend === 'jj' ? getWorkspaceName(metadata) : slug;
   const workspaceVcsState: WorkspaceVcsState = metadata?.vcsBackend === 'jj'
     ? {

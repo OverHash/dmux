@@ -117,7 +117,7 @@ export function readWorktreeMetadata(worktreePath: string): WorktreeMetadata | n
     return {
       ...metadataBase,
       vcsBackend: 'git',
-      targetRef: parsedTargetRef || parsedBranchName,
+      targetRef: parsedTargetRef || parsedBranchName || path.basename(worktreePath),
       branchName: parsedBranchName,
     };
   } catch {
