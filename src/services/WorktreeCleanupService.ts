@@ -1,8 +1,10 @@
 import { spawn } from 'child_process';
+import { rm } from 'fs/promises';
 import type { DmuxPane } from '../types.js';
 import { triggerHook } from '../utils/hooks.js';
 import { getPaneBranchName } from '../utils/git.js';
 import { detectAllWorktrees } from '../utils/worktreeDiscovery.js';
+import { getTargetRef } from '../vcs/references.js';
 import { LogService } from './LogService.js';
 
 interface WorktreeCleanupJob {
@@ -10,6 +12,22 @@ interface WorktreeCleanupJob {
   paneProjectRoot: string;
   mainRepoPath: string;
   deleteBranch: boolean;
+}
+
+type PaneWithWorktree = DmuxPane & { worktreePath: string };
+type GitCleanupPane = PaneWithWorktree & { vcsBackend?: 'git' };
+type JjCleanupPane = PaneWithWorktree & {
+  vcsBackend: 'jj';
+  targetRef: string;
+  workspaceName: string;
+};
+
+interface GitCleanupJob extends Omit<WorktreeCleanupJob, 'pane'> {
+  pane: GitCleanupPane;
+}
+
+interface JjCleanupJob extends Omit<WorktreeCleanupJob, 'pane'> {
+  pane: JjCleanupPane;
 }
 
 interface CommandResult {
@@ -44,12 +62,12 @@ export class WorktreeCleanupService {
     return WorktreeCleanupService.instance;
   }
 
-  enqueueCleanup(job: WorktreeCleanupJob): void {
+  enqueueCleanup(job: WorktreeCleanupJob): Promise<void> {
     if (!job.pane.worktreePath) {
-      return;
+      return Promise.resolve();
     }
 
-    this.cleanupQueue = this.cleanupQueue
+    const cleanupPromise = this.cleanupQueue
       .then(() => this.runCleanup(job))
       .catch((error) => {
         const errorObj = error instanceof Error ? error : new Error(String(error));
@@ -60,6 +78,9 @@ export class WorktreeCleanupService {
           errorObj
         );
       });
+
+    this.cleanupQueue = cleanupPromise;
+    return cleanupPromise;
   }
 
   private async runCleanup(job: WorktreeCleanupJob): Promise<void> {
@@ -78,6 +99,56 @@ export class WorktreeCleanupService {
       'paneActions',
       pane.id
     );
+
+    switch (pane.vcsBackend) {
+      case 'jj':
+        await this.runJjCleanup(this.asJjCleanupJob(job));
+        break;
+      case 'git':
+      case undefined:
+        await this.runGitCleanup(
+          this.asGitCleanupJob(job),
+          worktreeRemovalTargets,
+          branchDeletionTargets
+        );
+        break;
+    }
+
+    this.logger.debug(
+      `Finished background worktree cleanup for ${pane.slug}`,
+      'paneActions',
+      pane.id
+    );
+  }
+
+  private asGitCleanupJob(job: WorktreeCleanupJob): GitCleanupJob {
+    if (!job.pane.worktreePath || job.pane.vcsBackend === 'jj') {
+      throw new Error(`Expected a git cleanup job for ${job.pane.slug}`);
+    }
+
+    return {
+      ...job,
+      pane: job.pane as GitCleanupPane,
+    };
+  }
+
+  private asJjCleanupJob(job: WorktreeCleanupJob): JjCleanupJob {
+    if (!job.pane.worktreePath || job.pane.vcsBackend !== 'jj') {
+      throw new Error(`Expected a jj cleanup job for ${job.pane.slug}`);
+    }
+
+    return {
+      ...job,
+      pane: job.pane as JjCleanupPane,
+    };
+  }
+
+  private async runGitCleanup(
+    job: GitCleanupJob,
+    worktreeRemovalTargets: WorktreeRemovalTarget[],
+    branchDeletionTargets: BranchDeletionTarget[]
+  ): Promise<void> {
+    const { pane, paneProjectRoot, deleteBranch } = job;
 
     for (const target of worktreeRemovalTargets) {
       const removeResult = await this.runGitCommand(
@@ -121,12 +192,57 @@ export class WorktreeCleanupService {
         }
       }
     }
+  }
 
-    this.logger.debug(
-      `Finished background worktree cleanup for ${pane.slug}`,
-      'paneActions',
-      pane.id
+  private async runJjCleanup(job: JjCleanupJob): Promise<void> {
+    const { pane, paneProjectRoot, mainRepoPath, deleteBranch } = job;
+
+    const forgetResult = await this.runJjCommand(
+      ['workspace', 'forget', pane.workspaceName],
+      mainRepoPath
     );
+
+    if (!forgetResult.success) {
+      this.logger.warn(
+        `Workspace forget reported an error for ${pane.slug}: ${forgetResult.error}`,
+        'paneActions',
+        pane.id
+      );
+    }
+
+    try {
+      await rm(pane.worktreePath, { recursive: true, force: true });
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.logger.warn(
+        `Workspace directory removal reported an error for ${pane.slug}: ${errorObj.message}`,
+        'paneActions',
+        pane.id
+      );
+    }
+
+    // The hook should run after deletion is attempted, regardless of outcome.
+    await triggerHook('worktree_removed', paneProjectRoot, pane);
+
+    if (deleteBranch) {
+      const targetRef = getTargetRef(pane);
+      if (!targetRef) {
+        return;
+      }
+
+      const deleteBookmarkResult = await this.runJjCommand(
+        ['bookmark', 'delete', targetRef],
+        mainRepoPath
+      );
+
+      if (!deleteBookmarkResult.success) {
+        this.logger.warn(
+          `Bookmark deletion reported an error for ${pane.slug}: ${deleteBookmarkResult.error}`,
+          'paneActions',
+          pane.id
+        );
+      }
+    }
   }
 
   private getBranchDeletionTargets(
@@ -200,8 +316,16 @@ export class WorktreeCleanupService {
   }
 
   private runGitCommand(args: string[], cwd: string): Promise<CommandResult> {
+    return this.runCommand('git', args, cwd);
+  }
+
+  private runJjCommand(args: string[], cwd: string): Promise<CommandResult> {
+    return this.runCommand('jj', args, cwd);
+  }
+
+  private runCommand(command: 'git' | 'jj', args: string[], cwd: string): Promise<CommandResult> {
     return new Promise((resolve) => {
-      const child = spawn('git', args, {
+      const child = spawn(command, args, {
         cwd,
         stdio: ['ignore', 'ignore', 'pipe'],
       });
@@ -229,7 +353,7 @@ export class WorktreeCleanupService {
           success: false,
           error:
             stderr.trim() ||
-            `git ${args.join(' ')} failed with exit code ${code ?? 'unknown'}`,
+            `${command} ${args.join(' ')} failed with exit code ${code ?? 'unknown'}`,
         });
       });
     });
