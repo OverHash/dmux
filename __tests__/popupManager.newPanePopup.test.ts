@@ -20,6 +20,7 @@ function createPopupManager(
       getProjectSettings: () => ({}),
     },
     projectSettings: {},
+    trackProjectActivity: async <T>(work: () => Promise<T> | T) => await work(),
   };
 
   return new PopupManager(config, () => {}, () => {});
@@ -36,13 +37,12 @@ describe('PopupManager launchNewPanePopup', () => {
 
     const result = await manager.launchNewPanePopup('/tmp/other-project');
 
-    expect(manager.launchPopup).toHaveBeenCalledWith(
-      'newPanePopup.js',
-      ['/tmp/other-project', '1'],
-      expect.objectContaining({
-        title: '  ✨ New Pane — other-project  ',
-      })
-    );
+    const [scriptName, popupArgs, popupOptions] = manager.launchPopup.mock.calls[0];
+    expect(scriptName).toBe('newPanePopup.js');
+    expect(popupArgs).toEqual(['/tmp/other-project', '1', 'git']);
+    expect(popupOptions).toEqual(expect.objectContaining({
+      title: '  ✨ New Pane — other-project  ',
+    }));
     expect(result).toEqual({
       prompt: 'test prompt',
       baseBranch: 'develop',
@@ -60,11 +60,27 @@ describe('PopupManager launchNewPanePopup', () => {
 
     await manager.launchNewPanePopup('/tmp/project', { allowGitOptions: false });
 
-    expect(manager.launchPopup).toHaveBeenCalledWith(
-      'newPanePopup.js',
-      ['/tmp/project', '0'],
-      expect.any(Object)
-    );
+    const [scriptName, popupArgs] = manager.launchPopup.mock.calls[0];
+    expect(scriptName).toBe('newPanePopup.js');
+    expect(popupArgs).toEqual(['/tmp/project', '0', 'git']);
+  });
+
+  it('passes jj backend mode when project is configured for jj', async () => {
+    const manager = createPopupManager({
+      promptForGitOptionsOnCreate: true,
+      vcsBackend: 'jj',
+    }) as any;
+    manager.checkPopupSupport = vi.fn(() => true);
+    manager.launchPopup = vi.fn().mockResolvedValue({
+      success: true,
+      data: { prompt: 'jj prompt', baseBranch: 'main', branchName: 'feat/jj-target' },
+    });
+
+    await manager.launchNewPanePopup('/tmp/project');
+
+    const [scriptName, popupArgs] = manager.launchPopup.mock.calls[0];
+    expect(scriptName).toBe('newPanePopup.js');
+    expect(popupArgs).toEqual(['/tmp/project', '1', 'jj']);
   });
 
   it('normalizes legacy string payloads for backward compatibility', async () => {

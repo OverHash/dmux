@@ -23,13 +23,14 @@ import CleanTextInput from "../inputs/CleanTextInput.js"
 import InlineCursorInput from "../inputs/InlineCursorInput.js"
 import { scanProjectFiles, fuzzyMatchFiles } from "../../utils/fileScanner.js"
 import {
-  BASE_BRANCH_ERROR_MESSAGE,
   clampSelectedIndex,
   filterBranches,
+  getBaseRefErrorMessage,
   getVisibleBranchWindow,
   isValidBaseBranchOverride,
   loadLocalBranchNames,
   resolveBaseBranchEnter,
+  type NewPaneVcsOverrideBackend,
 } from "./newPaneGitOptions.js"
 import {
   getNextNewPaneField,
@@ -42,9 +43,25 @@ import { pathToFileURL } from "url"
 
 const PROJECT_PATH_ARG = process.argv[3]
 const ENABLE_GIT_OPTIONS_ARG = process.argv[4] === '1'
+const VCS_BACKEND_ARG: NewPaneVcsOverrideBackend = process.argv[5] === 'jj' ? 'jj' : 'git'
 const FILE_SCAN_ROOT = PROJECT_PATH_ARG || process.cwd()
 const PROJECT_NAME = path.basename(FILE_SCAN_ROOT)
 const ESC_CLEAR_CONFIRMATION_MS = 500
+const BASE_REF_LABEL = VCS_BACKEND_ARG === 'jj'
+  ? 'Base bookmark override (optional)'
+  : 'Base branch override (optional)'
+const TARGET_REF_LABEL = VCS_BACKEND_ARG === 'jj'
+  ? 'Target bookmark override (optional)'
+  : 'Branch/worktree name override (optional)'
+const BASE_REF_LIST_LABEL = VCS_BACKEND_ARG === 'jj' ? 'bookmarks' : 'branches'
+const BASE_REF_PLACEHOLDER = VCS_BACKEND_ARG === 'jj' ? 'e.g., main' : 'e.g., develop'
+const TARGET_REF_PLACEHOLDER = VCS_BACKEND_ARG === 'jj'
+  ? 'e.g., feat/jj-target-bookmark'
+  : 'e.g., feat/LIN-123-fix-auth'
+const OPTIONS_TITLE = VCS_BACKEND_ARG === 'jj'
+  ? 'Optional jj overrides for this pane.'
+  : 'Optional Git overrides for this pane.'
+const OPTIONS_FOOTER = `↑↓ ${BASE_REF_LIST_LABEL} list • Tab/Shift+Tab cycle fields • Enter select/create • ESC progressive back`
 
 // Debug logging to file
 const DEBUG_LOG = path.join(FILE_SCAN_ROOT, '.dmux', 'file-picker-debug.log')
@@ -96,7 +113,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
   const writeSuccessResult = () => {
     const trimmedBaseBranch = baseBranch.trim()
     if (!isValidBaseBranchOverride(trimmedBaseBranch, availableBranches)) {
-      setGitOptionsError(BASE_BRANCH_ERROR_MESSAGE)
+      setGitOptionsError(getBaseRefErrorMessage(VCS_BACKEND_ARG))
       return
     }
 
@@ -117,7 +134,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
       return
     }
 
-    const branches = loadLocalBranchNames(FILE_SCAN_ROOT)
+    const branches = loadLocalBranchNames(FILE_SCAN_ROOT, VCS_BACKEND_ARG)
     setAvailableBranches(branches)
   }, [])
 
@@ -363,10 +380,11 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
             availableBranches,
             filteredBranches,
             selectedIndex: selectedBranchIndex,
+            backend: VCS_BACKEND_ARG,
           })
 
           if (!resolution.accepted) {
-            setGitOptionsError(resolution.error || BASE_BRANCH_ERROR_MESSAGE)
+            setGitOptionsError(resolution.error || getBaseRefErrorMessage(VCS_BACKEND_ARG))
             return
           }
 
@@ -528,7 +546,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
       <PopupContainer
         footer={mode === 'prompt'
           ? PopupFooters.input()
-          : '↑↓ branch list • Tab/Shift+Tab cycle fields • Enter select/create • ESC progressive back'}
+          : OPTIONS_FOOTER}
       >
         {mode === 'prompt' && (
           <>
@@ -587,7 +605,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
         {mode === 'gitOptions' && (
           <>
             <Box marginBottom={1}>
-              <Text dimColor>Optional Git overrides for this pane.</Text>
+              <Text dimColor>{OPTIONS_TITLE}</Text>
             </Box>
 
             {gitOptionsError && (
@@ -603,7 +621,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
 
             <Box marginBottom={0}>
               <Text color={activeGitField === 'baseBranch' ? POPUP_CONFIG.titleColor : 'white'}>
-                {activeGitField === 'baseBranch' ? '▶ ' : '  '}Base branch override (optional)
+                {activeGitField === 'baseBranch' ? '▶ ' : '  '}{BASE_REF_LABEL}
               </Text>
             </Box>
             <Box
@@ -619,14 +637,14 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
                 value={baseBranch}
                 onChange={setBaseBranch}
                 focus={activeGitField === 'baseBranch'}
-                placeholder="e.g., develop"
+                placeholder={BASE_REF_PLACEHOLDER}
               />
 
               {activeGitField === 'baseBranch' && filteredBranches.length > 0 && (
                 <>
                   <Box marginBottom={0}>
                     <Text dimColor>
-                      Existing branches ({filteredBranches.length}) - Use ↑↓ to navigate, Enter to pick
+                      Existing {BASE_REF_LIST_LABEL} ({filteredBranches.length}) - Use ↑↓ to navigate, Enter to pick
                     </Text>
                   </Box>
 
@@ -663,7 +681,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
 
             <Box marginBottom={0}>
               <Text color={activeGitField === 'branchName' ? POPUP_CONFIG.titleColor : 'white'}>
-                {activeGitField === 'branchName' ? '▶ ' : '  '}Branch/worktree name override (optional)
+                {activeGitField === 'branchName' ? '▶ ' : '  '}{TARGET_REF_LABEL}
               </Text>
             </Box>
             <Box
@@ -677,7 +695,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
                 value={branchName}
                 onChange={setBranchName}
                 focus={activeGitField === 'branchName'}
-                placeholder="e.g., feat/LIN-123-fix-auth"
+                placeholder={TARGET_REF_PLACEHOLDER}
               />
             </Box>
           </>

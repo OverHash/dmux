@@ -230,7 +230,9 @@ export async function createPane(
   const effectiveBaseBranch = naming.baseBranch;
   const targetRef = existingWorktree
     ? getTargetRef(existingWorktree)
-    : (vcsBackend === 'git' ? naming.branchName : slug);
+    : (vcsBackend === 'jj'
+      ? (overrideBranchName ? naming.branchName : slug)
+      : naming.branchName);
   const workspaceName = vcsBackend === 'jj'
     ? ((existingWorktree?.vcsBackend === 'jj' ? getWorkspaceName(existingWorktree) : undefined)
       || slug)
@@ -525,10 +527,13 @@ export async function createPane(
         }
         case 'jj': {
           // jj path creates a named workspace and then assigns the dmux-managed
-          // bookmark (`targetRef`) to the new working-copy revision. For now we
-          // only honor explicit parent start points here; Git's baseBranch setting
-          // remains Git-only.
-          const revisionArg = startPointBranch ? ` --revision "${startPointBranch}"` : '';
+          // bookmark (`targetRef`) to the new working-copy revision.
+          // Priority: explicit startPointBranch (child/reopen flows) > base bookmark override/setting.
+          const resolvedStartPoint = startPointBranch || effectiveBaseBranch;
+          if (resolvedStartPoint && !isValidBranchName(resolvedStartPoint)) {
+            throw new Error(`Invalid worktree start-point branch name: ${resolvedStartPoint}`);
+          }
+          const revisionArg = resolvedStartPoint ? ` --revision "${resolvedStartPoint}"` : '';
 
           for (let attempt = 1; attempt <= maxWorktreeAttempts && !worktreeCreated; attempt++) {
             const workspaceCmd = `cd "${projectRoot}" && jj workspace add --name "${workspaceName || slug}"${revisionArg} "${worktreePath}" && cd "${worktreePath}" && jj bookmark set "${targetRef}" -r @`;

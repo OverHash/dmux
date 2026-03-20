@@ -170,8 +170,8 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   },
   {
     key: 'promptForGitOptionsOnCreate',
-    label: 'Ask Git Options on Create',
-    description: 'When enabled, new-pane popup asks for optional base branch and branch/worktree name overrides.',
+    label: 'Ask VCS Options on Create',
+    description: 'When enabled, new-pane popup asks for optional base branch/bookmark and target branch/bookmark overrides.',
     type: 'boolean',
   },
   {

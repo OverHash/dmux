@@ -27,6 +27,7 @@ import {
 import { resolveDistPath } from "../utils/runtimePaths.js"
 import { getPaneProjectRoot } from "../utils/paneProject.js"
 import type { TrackProjectActivity } from "../types/activity.js"
+import { detectVcsForPath } from "../vcs/detect.js"
 import type {
   ReopenWorktreePopupResult,
   ReopenWorktreePopupState,
@@ -327,7 +328,22 @@ export class PopupManager {
       const settings = this.config.settingsManager.getSettings()
       const shouldPromptForGitOptions =
         (settings.promptForGitOptionsOnCreate ?? false) && (options.allowGitOptions ?? true)
-      const popupArgs = [effectivePath, shouldPromptForGitOptions ? "1" : "0"]
+      const preferredBackend = settings.vcsBackend ?? 'auto'
+      let popupVcsBackend: 'git' | 'jj' = 'git'
+      try {
+        popupVcsBackend = detectVcsForPath(effectivePath, preferredBackend)?.backend
+          || (preferredBackend === 'git' || preferredBackend === 'jj' ? preferredBackend : 'git')
+      } catch {
+        popupVcsBackend = preferredBackend === 'git' || preferredBackend === 'jj'
+          ? preferredBackend
+          : 'git'
+      }
+
+      const popupArgs = [
+        effectivePath,
+        shouldPromptForGitOptions ? "1" : "0",
+        popupVcsBackend,
+      ]
       const projectName = effectivePath ? path.basename(effectivePath) : "dmux"
       const result = await this.launchPopup<unknown>(
         "newPanePopup.js",

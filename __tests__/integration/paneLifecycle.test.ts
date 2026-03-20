@@ -93,6 +93,7 @@ describe('Pane Lifecycle Integration Tests', () => {
     // Reset all mocks
     vi.clearAllMocks();
     mockEnqueueCleanup.mockReset();
+    fsMock.readFileSync.mockImplementation(() => JSON.stringify({ controlPaneId: '%0' }));
 
     // Create fresh test environment
     tmuxSession = createMockTmuxSession('dmux-test', 1);
@@ -343,6 +344,70 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
     });
 
+    it('should pass jj base bookmark overrides through --revision', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      detectedVcsBackend.current = 'jj';
+      fsMock.readFileSync.mockImplementation(((target: string) => {
+        if (String(target).endsWith('.dmux.global.json')) {
+          return JSON.stringify({ vcsBackend: 'jj' });
+        }
+
+        return JSON.stringify({ controlPaneId: '%0' });
+      }) as any);
+
+      await createPane(
+        {
+          prompt: 'branch from bookmark override',
+          agent: 'claude',
+          projectName: 'test-project',
+          projectRoot: '/test',
+          slugBase: 'jj-from-bookmark',
+          existingPanes: [],
+          baseBranchOverride: 'feat/base-bookmark',
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj workspace add --name "jj-from-bookmark" --revision "feat/base-bookmark" "/test/.dmux/worktrees/jj-from-bookmark"'),
+        expect.any(Object)
+      );
+    });
+
+    it('should use jj target bookmark overrides for workspace bookmark naming', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      detectedVcsBackend.current = 'jj';
+      fsMock.readFileSync.mockImplementation(((target: string) => {
+        if (String(target).endsWith('.dmux.global.json')) {
+          return JSON.stringify({ vcsBackend: 'jj' });
+        }
+
+        return JSON.stringify({ controlPaneId: '%0' });
+      }) as any);
+
+      const result = await createPane(
+        {
+          prompt: 'override jj target bookmark',
+          agent: 'claude',
+          projectName: 'test-project',
+          projectRoot: '/test',
+          existingPanes: [],
+          branchNameOverride: 'feat/jj-target-bookmark',
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj bookmark set "feat/jj-target-bookmark" -r @'),
+        expect.any(Object)
+      );
+
+      if ('pane' in result) {
+        expect(result.pane.vcsBackend).toBe('jj');
+        expect(result.pane.targetRef).toBe('feat/jj-target-bookmark');
+      }
+    });
+
     it('should attach a fresh pane to an existing worktree without recreating it', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
       const existingWorktreePath = '/test/.dmux/worktrees/resume-me';
@@ -494,7 +559,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
 
       expect(worktreeCall).toBeDefined();
-      expect(String(worktreeCall?.[0])).toContain('/test/.dmux/worktrees/feat-lin-123-fix-auth');
+      expect(String(worktreeCall?.[0])).toContain('/.dmux/worktrees/feat-lin-123-fix-auth');
       expect(String(worktreeCall?.[0])).toContain('-b "feat/LIN-123-fix-auth" "develop"');
     });
 
@@ -521,7 +586,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
 
       expect(worktreeCall).toBeDefined();
-      expect(String(worktreeCall?.[0])).toContain('/test/.dmux/worktrees/feat-lin-777-ab-test-opencode');
+      expect(String(worktreeCall?.[0])).toContain('/.dmux/worktrees/feat-lin-777-ab-test-opencode');
       expect(String(worktreeCall?.[0])).toContain('-b "feat/LIN-777-ab-test-opencode"');
     });
 
@@ -530,7 +595,7 @@ describe('Pane Lifecycle Integration Tests', () => {
 
       fsMock.existsSync.mockImplementation((targetPath: string) => {
         const value = String(targetPath);
-        if (value === '/test/.dmux/worktrees/feat-lin-999-existing') {
+        if (value.endsWith('/.dmux/worktrees/feat-lin-999-existing')) {
           return true;
         }
         return !value.includes('.dmux/worktrees/');

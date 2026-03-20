@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BASE_BOOKMARK_ERROR_MESSAGE,
   BASE_BRANCH_ERROR_MESSAGE,
   clampSelectedIndex,
   filterBranches,
+  getBaseRefErrorMessage,
   getVisibleBranchWindow,
   isValidBaseBranchOverride,
   parseBranchList,
@@ -106,6 +108,25 @@ describe('new pane git options helpers', () => {
       accepted: false,
       nextValue: 'missing-branch',
       error: BASE_BRANCH_ERROR_MESSAGE,
+    });
+  });
+
+  it('uses bookmark-specific validation copy for jj', () => {
+    expect(getBaseRefErrorMessage('git')).toBe(BASE_BRANCH_ERROR_MESSAGE);
+    expect(getBaseRefErrorMessage('jj')).toBe(BASE_BOOKMARK_ERROR_MESSAGE);
+
+    const resolution = resolveBaseBranchEnter({
+      baseBranch: 'missing-bookmark',
+      availableBranches: ['main', 'feat/demo'],
+      filteredBranches: [],
+      selectedIndex: 0,
+      backend: 'jj',
+    });
+
+    expect(resolution).toEqual({
+      accepted: false,
+      nextValue: 'missing-bookmark',
+      error: BASE_BOOKMARK_ERROR_MESSAGE,
     });
   });
 });
