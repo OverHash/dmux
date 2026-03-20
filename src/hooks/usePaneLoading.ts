@@ -11,6 +11,7 @@ import { atomicWriteJson } from '../utils/atomicWrite.js';
 import { buildAgentResumeOrLaunchCommand } from '../utils/agentLaunch.js';
 import { ensureGeminiFolderTrusted } from '../utils/geminiTrust.js';
 import { getPaneTmuxTitle } from '../utils/paneTitle.js';
+import { normalizePanes } from '../utils/paneNormalization.js';
 import {
   getVisiblePanes,
   syncHiddenStateFromCurrentWindow,
@@ -112,10 +113,10 @@ export async function loadPanesFromFile(panesFile: string): Promise<DmuxPane[]> 
     const parsed: any = JSON.parse(content);
 
     if (Array.isArray(parsed)) {
-      return parsed as DmuxPane[];
+      return normalizePanes(parsed as DmuxPane[]);
     } else {
       const config = parsed as DmuxConfig;
-      return config.panes || [];
+      return normalizePanes(config.panes || []);
     }
   } catch (error) {
     // Return empty array if config file doesn't exist or is invalid
@@ -138,9 +139,9 @@ export async function loadSidebarProjectsFromFile(
     const content = await fs.readFile(panesFile, 'utf-8');
     const parsed: any = JSON.parse(content);
     const config = Array.isArray(parsed)
-      ? { panes: parsed as DmuxPane[] }
+      ? { panes: normalizePanes(parsed as DmuxPane[]) }
       : parsed as DmuxConfig;
-    const configPanes = Array.isArray(config.panes) ? config.panes : [];
+    const configPanes = Array.isArray(config.panes) ? normalizePanes(config.panes) : [];
     const effectivePanes = panes || configPanes;
     const projectRoot = config.projectRoot || fallbackProjectRoot;
     const projectName = config.projectName || path.basename(projectRoot);

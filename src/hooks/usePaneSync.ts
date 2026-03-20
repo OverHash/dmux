@@ -11,6 +11,7 @@ import { atomicWriteJson } from '../utils/atomicWrite.js';
 import { getPaneTmuxTitle } from '../utils/paneTitle.js';
 import { StateManager } from '../shared/StateManager.js';
 import { normalizeSidebarProjects } from '../utils/sidebarProjects.js';
+import { normalizePanes } from '../utils/paneNormalization.js';
 
 /**
  * Enforces that pane titles in tmux match the slugs in the config
@@ -85,7 +86,7 @@ export async function savePanesToFile(
   withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>
 ): Promise<DmuxPane[]> {
   return withWriteLock(async () => {
-    let activePanes = panes;
+    let activePanes = normalizePanes(panes);
 
     // Try to update pane IDs if they've changed (rebinding)
     try {
@@ -115,7 +116,7 @@ export async function savePanesToFile(
         `Failed to fetch tmux panes for rebinding: ${error instanceof Error ? error.message : String(error)}`,
         'usePaneSync'
       );
-      activePanes = panes;
+      activePanes = normalizePanes(panes);
     }
 
     // Read existing config to preserve other fields

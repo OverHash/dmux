@@ -304,6 +304,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           existingWorktree: {
             slug: 'resume-me',
             worktreePath: existingWorktreePath,
+            vcsBackend: 'git',
             branchName: 'feature/resume-me',
           },
         },
@@ -361,6 +362,8 @@ describe('Pane Lifecycle Integration Tests', () => {
             {
               id: 'dmux-1',
               slug: 'existing',
+              vcsBackend: 'git',
+              targetRef: 'existing',
               prompt: 'existing pane',
               paneId: '%5',
               projectRoot: '/primary/repo',
@@ -404,9 +407,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
 
       // Should fallback to timestamp-based slug
-      if ('pane' in result) {
-        expect(result.pane.slug).toMatch(/dmux-\d+/);
-      }
+      expect(result.pane.slug).toMatch(/dmux-\d+/);
     });
 
     it('should return needsAgentChoice when agent not specified', async () => {
@@ -452,12 +453,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -483,12 +487,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -516,12 +523,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -553,12 +563,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -584,12 +597,15 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'test-branch',
+        vcsBackend: 'git',
+        targetRef: 'test-branch',
         prompt: 'test',
         paneId: '%1',
         worktreePath: '/test/.dmux/worktrees/test-branch',
       };
 
       const mockContext: ActionContext = {
+        sessionName: 'test-session',
         projectName: 'test-project',
         panes: [testPane],
         savePanes: vi.fn(),
@@ -653,6 +669,8 @@ describe('Pane Lifecycle Integration Tests', () => {
       const testPane: DmuxPane = {
         id: 'dmux-1',
         slug: 'existing-branch',
+        vcsBackend: 'git',
+        targetRef: 'existing-branch',
         prompt: 'original prompt',
         paneId: '%1', // Old, dead pane
         worktreePath: '/test/.dmux/worktrees/existing-branch',

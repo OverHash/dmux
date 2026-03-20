@@ -203,6 +203,8 @@ export async function createConflictResolutionPane(
   const newPane: DmuxPane = {
     id: `dmux-${Date.now()}`,
     slug,
+    vcsBackend: 'git',
+    targetRef: slug,
     prompt,
     paneId: paneInfo,
     agent,

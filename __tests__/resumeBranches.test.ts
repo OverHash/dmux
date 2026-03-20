@@ -443,11 +443,12 @@ describe('resumeBranches', () => {
         prompt: '',
         agent: 'codex',
         projectRoot: rootRepo,
-        existingWorktree: {
+        existingWorktree: expect.objectContaining({
           slug: 'remote-shared',
           worktreePath: rootWorktreePath,
+          vcsBackend: 'git',
           branchName: 'feature/remote-shared',
-        },
+        }),
       }),
       ['codex']
     );

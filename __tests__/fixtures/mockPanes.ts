@@ -8,6 +8,8 @@ export function createMockPane(overrides?: Partial<DmuxPane>): DmuxPane {
   return {
     id: 'dmux-1',
     slug: 'test-pane',
+    vcsBackend: 'git',
+    targetRef: 'test-pane',
     prompt: 'test prompt',
     paneId: '%42',
     worktreePath: '/test/worktree/path',
@@ -15,7 +17,7 @@ export function createMockPane(overrides?: Partial<DmuxPane>): DmuxPane {
     type: 'worktree',
     autopilot: false,
     ...overrides,
-  };
+  } as DmuxPane;
 }
 
 export function createShellPane(overrides?: Partial<DmuxPane>): DmuxPane {
