@@ -214,8 +214,10 @@ export async function reopenWorktree(
   await tmuxService.selectPane(paneInfo);
 
   // Create the pane object
-  const currentBranch = getCurrentBranch(worktreePath);
-  const targetRef = (metadata ? getTargetRef(metadata) : undefined) || currentBranch;
+  const currentBranch = metadata?.vcsBackend === 'jj'
+    ? undefined
+    : getCurrentBranch(worktreePath);
+  const targetRef = (metadata ? getTargetRef(metadata) : undefined) || currentBranch || slug;
   const workspaceName = metadata?.vcsBackend === 'jj' ? getWorkspaceName(metadata) : slug;
   const workspaceVcsState: WorkspaceVcsState = metadata?.vcsBackend === 'jj'
     ? {
