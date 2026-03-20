@@ -9,15 +9,16 @@ export function render() {
     <pre><code data-lang="bash">npm -g i dmux</code></pre>
 
     <h2>Set Up OpenRouter (Recommended)</h2>
-    <p>Before your first run, we recommend setting up an <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> API key. dmux uses it to generate smart branch names from your prompts and AI-powered commit messages when merging. Without it, branch names fall back to <code>dmux-{timestamp}</code> and commit messages will be generic.</p>
+    <p>Before your first run, we recommend setting up an <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> API key. dmux uses it to generate smart ref names from your prompts and AI-powered commit messages when merging. Without it, ref names fall back to <code>dmux-{timestamp}</code> and commit messages will be generic.</p>
     <pre><code data-lang="bash">export OPENROUTER_API_KEY="sk-or-..."</code></pre>
     <p>Add this to your shell profile (<code>~/.zshrc</code> or <code>~/.bashrc</code>) so it persists across sessions. See <a href="#configuration">Configuration</a> for model options and details.</p>
 
     <h2>First Run</h2>
     <ol>
       <li>
-        <p><strong>Navigate to a git repository:</strong></p>
+        <p><strong>Navigate to a supported project:</strong></p>
         <pre><code data-lang="bash">cd /path/to/your/project</code></pre>
+        <p>dmux works with Git repositories and jj workspaces. In mixed Git + jj projects, <code>auto</code> detection defaults to Git unless you configure a global jj preference.</p>
       </li>
       <li>
         <p><strong>Launch dmux:</strong></p>
@@ -36,9 +37,21 @@ export function render() {
         <p>dmux keeps tracking that pane even when it is in the background. On macOS, background panes can send native notifications when they settle into a waiting or attention-needed state.</p>
       </li>
       <li>
-        <p><strong>Merge when done:</strong> Navigate back to the dmux sidebar, select the pane, and press <kbd>m</kbd> to open the pane menu where you can merge the work back to your main branch.</p>
+        <p><strong>Merge when done:</strong> Navigate back to the dmux sidebar, select the pane, and press <kbd>m</kbd> to open the pane menu. Git panes can use dmux's built-in merge flow; jj panes should be integrated manually in jj for now.</p>
       </li>
     </ol>
+
+    <h2>Choosing a VCS Backend</h2>
+    <p>dmux supports multiple VCS backends for pane workspaces:</p>
+    <ul>
+      <li><strong>Git</strong> &mdash; the default backend, using git worktrees and branches</li>
+      <li><strong>jj</strong> &mdash; uses <code>jj workspace</code> and managed refs</li>
+    </ul>
+    <p>You can select <code>git</code>, <code>jj</code>, or <code>auto</code> from the settings UI. If you leave it on <code>auto</code>, dmux prefers Git by default. To make <code>auto</code> prefer jj whenever both are available, add this to <code>~/.dmux.global.json</code>:</p>
+    <pre><code data-lang="json">{
+  "vcsBackend": "auto",
+  "autoVcsPreference": "jj"
+}</code></pre>
 
     <h2>Useful First-Day Shortcuts</h2>
     <table class="shortcut-table">
@@ -64,7 +77,7 @@ export function render() {
 ├── .dmux/                  # dmux data (gitignored)
 │   ├── dmux.config.json    # Pane tracking
 │   ├── settings.json       # Project settings
-│   └── worktrees/          # Git worktrees
+│   └── worktrees/          # Per-pane workspaces
 │       └── fix-auth/       # One per pane
 └── .dmux-hooks/            # Lifecycle hooks (optional)</div>
 
