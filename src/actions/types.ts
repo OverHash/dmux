@@ -295,8 +295,21 @@ export function getAvailableActions(
   isDevMode: boolean = false
 ): ActionMetadata[] {
   return Object.values(ACTION_REGISTRY).filter(action => {
+    const backend = pane.vcsBackend;
+
     if (HIDDEN_MENU_ACTIONS.has(action.id)) return false;
     if (action.id === PaneAction.SET_SOURCE && !isDevMode) return false;
+    if (action.id === PaneAction.MERGE) {
+      switch (backend) {
+        case 'jj':
+          return false;
+        case 'git':
+        case undefined:
+          break;
+        default:
+          return backend satisfies never;
+      }
+    }
     if (!action.requires) return true;
 
     const { worktree, testCommand, devCommand, runningProcess } = action.requires;

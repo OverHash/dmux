@@ -43,6 +43,23 @@ export async function mergePane(
     };
   }
 
+  const backend = pane.vcsBackend;
+
+  switch (backend) {
+    case 'jj':
+      return {
+        type: 'info',
+        title: 'Merge Not Yet Supported for jj',
+        message: 'dmux can create, reopen, and close jj workspaces, but merge is still git-only for now. Finish the integration manually in jj.',
+        dismissable: true,
+      };
+    case 'git':
+    case undefined:
+      break;
+    default:
+      return backend satisfies never;
+  }
+
   const mergeTarget = resolveMergeTarget(pane);
   if (!mergeTarget) {
     return {
