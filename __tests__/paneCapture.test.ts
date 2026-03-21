@@ -17,9 +17,9 @@ describe('paneCapture', () => {
     const result = capturePaneContent('%1', 30);
 
     expect(result).toBe('Finished work');
-    expect(execSync).toHaveBeenCalledWith(
-      "tmux capture-pane -t '%1' -p -J -S -30",
-      { encoding: 'utf8', stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith("tmux capture-pane -t '%1' -p -J -S -30", {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
   });
 });

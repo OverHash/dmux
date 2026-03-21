@@ -8,11 +8,7 @@ export default defineConfig({
       'tests/**/*.test.ts',
       'tests/**/*.test.tsx',
     ],
-    exclude: [
-      '.dmux/**',
-      'node_modules/**',
-      'dist/**',
-    ],
+    exclude: ['.dmux/**', 'node_modules/**', 'dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

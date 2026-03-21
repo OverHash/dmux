@@ -107,7 +107,7 @@ const startChild = () => {
 
     const status = signal ? `signal ${signal}` : `code ${code ?? 1}`;
     console.error(
-      `[dmux dev:watch] dmux exited with ${status}; waiting for rebuilt output to restart...`
+      `[dmux dev:watch] dmux exited with ${status}; waiting for rebuilt output to restart...`,
     );
   });
 
@@ -150,7 +150,11 @@ const shutdown = async (exitCode = 0, signalToChild = null) => {
 
 watcher.on('all', (event, changedPath) => {
   if (event !== 'add' && event !== 'change' && event !== 'unlink') return;
-  if (!changedPath.endsWith('.js') && !changedPath.endsWith('.mjs') && !changedPath.endsWith('.cjs')) {
+  if (
+    !changedPath.endsWith('.js') &&
+    !changedPath.endsWith('.mjs') &&
+    !changedPath.endsWith('.cjs')
+  ) {
     return;
   }
   requestRestart();

@@ -52,8 +52,8 @@ export class ConfigWatcher extends EventEmitter {
       ignoreInitial: true, // Don't emit on initial add
       awaitWriteFinish: {
         stabilityThreshold: 100, // Wait 100ms after last write
-        pollInterval: 50
-      }
+        pollInterval: 50,
+      },
     });
 
     this.watcher.on('change', async (path) => {
@@ -68,7 +68,12 @@ export class ConfigWatcher extends EventEmitter {
     this.watcher.on('error', (error) => {
       const msg = 'Config watcher error';
       console.error(msg, error);
-      LogService.getInstance().error(msg, 'ConfigWatcher', undefined, error instanceof Error ? error : undefined);
+      LogService.getInstance().error(
+        msg,
+        'ConfigWatcher',
+        undefined,
+        error instanceof Error ? error : undefined,
+      );
     });
   }
 
@@ -91,13 +96,23 @@ export class ConfigWatcher extends EventEmitter {
         } catch (parseErr) {
           const msg = 'Failed to parse config file';
           console.error(msg, parseErr);
-          LogService.getInstance().error(msg, 'ConfigWatcher', undefined, parseErr instanceof Error ? parseErr : undefined);
+          LogService.getInstance().error(
+            msg,
+            'ConfigWatcher',
+            undefined,
+            parseErr instanceof Error ? parseErr : undefined,
+          );
         }
       }
     } catch (err) {
       const msg = 'Failed to read config file';
       console.error(msg, err);
-      LogService.getInstance().error(msg, 'ConfigWatcher', undefined, err instanceof Error ? err : undefined);
+      LogService.getInstance().error(
+        msg,
+        'ConfigWatcher',
+        undefined,
+        err instanceof Error ? err : undefined,
+      );
     }
   }
 

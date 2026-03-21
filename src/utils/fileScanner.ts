@@ -41,8 +41,8 @@ export function scanProjectFiles(projectPath: string): FileScanResult {
 
     const files = output
       .split('\n')
-      .filter(f => f.trim())
-      .filter(f => {
+      .filter((f) => f.trim())
+      .filter((f) => {
         // Minimal filtering - just exclude obvious non-source files
         // git ls-files already respects .gitignore, so we trust that
         const lower = f.toLowerCase();
@@ -144,7 +144,7 @@ export function fuzzyMatchFiles(query: string, files: string[]): string[] {
   matches.sort((a, b) => b.score - a.score);
 
   // Limit to top 50 matches for performance
-  return matches.slice(0, 50).map(m => m.file);
+  return matches.slice(0, 50).map((m) => m.file);
 }
 
 /**

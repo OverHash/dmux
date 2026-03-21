@@ -29,10 +29,7 @@ import {
   type AgentName,
 } from './agentLaunch.js';
 import { buildWorktreePaneTitle } from './paneTitle.js';
-import {
-  buildPromptReadAndDeleteSnippet,
-  writePromptFile,
-} from './promptStore.js';
+import { buildPromptReadAndDeleteSnippet, writePromptFile } from './promptStore.js';
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { isValidBranchName } from './git.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
@@ -66,10 +63,10 @@ export interface CreatePaneResult {
 async function waitForPaneReady(
   tmuxService: TmuxService,
   paneId: string,
-  timeoutMs: number = 600
+  timeoutMs: number = 600,
 ): Promise<void> {
   const start = Date.now();
-  while ((Date.now() - start) < timeoutMs) {
+  while (Date.now() - start < timeoutMs) {
     if (await tmuxService.paneExists(paneId)) {
       return;
     }
@@ -83,7 +80,7 @@ async function waitForPaneReady(
  */
 export async function createPane(
   options: CreatePaneOptions,
-  availableAgents: AgentName[]
+  availableAgents: AgentName[],
 ): Promise<CreatePaneResult> {
   const {
     prompt,
@@ -139,8 +136,9 @@ export async function createPane(
     ? readWorktreeMetadata(existingWorktree.worktreePath)
     : null;
 
-  const sessionProjectRoot = optionsSessionProjectRoot
-    || (optionsSessionConfigPath ? path.dirname(path.dirname(optionsSessionConfigPath)) : projectRoot);
+  const sessionProjectRoot =
+    optionsSessionProjectRoot ||
+    (optionsSessionConfigPath ? path.dirname(path.dirname(optionsSessionConfigPath)) : projectRoot);
   const paneProjectName = path.basename(projectRoot);
 
   // If no agent specified, check settings for default agent unless caller explicitly disabled auto-selection.
@@ -180,22 +178,24 @@ export async function createPane(
   // Generate slug (filesystem-safe directory name) and branch name (may include prefix).
   const generatedSlug = existingWorktree
     ? existingWorktree.slug
-    : (slugBase || await generateSlug(prompt));
+    : slugBase || (await generateSlug(prompt));
   const slug = existingWorktree
     ? existingWorktree.slug
     : appendSlugSuffix(generatedSlug, slugSuffix);
   const branchName = existingWorktree
     ? existingWorktree.branchName
-    : (branchPrefix ? `${branchPrefix}${slug}` : slug);
+    : branchPrefix
+      ? `${branchPrefix}${slug}`
+      : slug;
   const tmuxService = TmuxService.getInstance();
 
-  const worktreePath = existingWorktree?.worktreePath
-    || path.join(projectRoot, '.dmux', 'worktrees', slug);
+  const worktreePath =
+    existingWorktree?.worktreePath || path.join(projectRoot, '.dmux', 'worktrees', slug);
   const originalPaneId = tmuxService.getCurrentPaneIdSync();
 
   // Load config to get control pane info
-  const configPath = optionsSessionConfigPath
-    || path.join(sessionProjectRoot, '.dmux', 'dmux.config.json');
+  const configPath =
+    optionsSessionConfigPath || path.join(sessionProjectRoot, '.dmux', 'dmux.config.json');
   let controlPaneId: string | undefined;
 
   try {
@@ -210,7 +210,7 @@ export async function createPane(
         // Pane doesn't exist anymore, use current pane and update config
         LogService.getInstance().warn(
           `Control pane ${controlPaneId} no longer exists, updating to ${originalPaneId}`,
-          'paneCreation'
+          'paneCreation',
         );
         controlPaneId = originalPaneId;
         config.controlPaneId = controlPaneId;
@@ -257,7 +257,7 @@ export async function createPane(
     } else {
       // Subsequent panes - always split horizontally, let layout manager organize
       // Get actual dmux pane IDs (not welcome pane) from existingPanes
-      const dmuxPaneIds = existingPanes.map(p => p.paneId);
+      const dmuxPaneIds = existingPanes.map((p) => p.paneId);
       const targetPane = dmuxPaneIds[dmuxPaneIds.length - 1]; // Split from the most recent dmux pane
 
       // Always split horizontally - the layout manager will organize panes optimally
@@ -267,13 +267,16 @@ export async function createPane(
     // Check if error is due to stale pane ID (can't find pane)
     const errorMsg = error instanceof Error ? error.message : String(error);
     if (errorMsg.includes("can't find pane")) {
-      LogService.getInstance().warn('Pane creation failed with stale control pane ID, self-healing', 'paneCreation');
+      LogService.getInstance().warn(
+        'Pane creation failed with stale control pane ID, self-healing',
+        'paneCreation',
+      );
 
       // Fix: Update controlPaneId to current pane and save to config
       const currentPaneId = originalPaneId; // We got this at the start of createPane
       LogService.getInstance().info(
         `Updating controlPaneId from ${controlPaneId} to ${currentPaneId}`,
-        'paneCreation'
+        'paneCreation',
       );
 
       try {
@@ -286,7 +289,7 @@ export async function createPane(
       } catch (configError) {
         LogService.getInstance().error(
           `Failed to update config after control pane recovery: ${configError}`,
-          'paneCreation'
+          'paneCreation',
         );
         throw error; // Re-throw original error
       }
@@ -295,7 +298,7 @@ export async function createPane(
       if (isFirstContentPane) {
         paneInfo = setupSidebarLayout(controlPaneId, projectRoot);
       } else {
-        const dmuxPaneIds = existingPanes.map(p => p.paneId);
+        const dmuxPaneIds = existingPanes.map((p) => p.paneId);
         const targetPane = dmuxPaneIds[dmuxPaneIds.length - 1];
         paneInfo = splitPane({ targetPane, cwd: projectRoot });
       }
@@ -309,9 +312,10 @@ export async function createPane(
 
   // Set pane title (project-tagged for collision-safe rebinding across projects)
   try {
-    const paneTitle = projectRoot === sessionProjectRoot
-      ? slug
-      : buildWorktreePaneTitle(slug, projectRoot, paneProjectName);
+    const paneTitle =
+      projectRoot === sessionProjectRoot
+        ? slug
+        : buildWorktreePaneTitle(slug, projectRoot, paneProjectName);
     await tmuxService.setPaneTitle(paneInfo, paneTitle);
   } catch {
     // Ignore if setting title fails
@@ -320,13 +324,13 @@ export async function createPane(
   // Apply optimal layout using the layout manager
   if (controlPaneId) {
     const dimensions = getTerminalDimensions();
-    const allContentPaneIds = [...existingPanes.map(p => p.paneId), paneInfo];
+    const allContentPaneIds = [...existingPanes.map((p) => p.paneId), paneInfo];
 
     await recalculateAndApplyLayout(
       controlPaneId,
       allContentPaneIds,
       dimensions.width,
-      dimensions.height
+      dimensions.height,
     );
 
     // Refresh tmux to apply changes
@@ -343,10 +347,9 @@ export async function createPane(
   });
 
   // Check if this is a hooks editing session (before worktree creation)
-  const isHooksEditingSession = !!prompt && (
-    /(create|edit|modify).*(dmux|\.)?.*hooks/i.test(prompt)
-    || /\.dmux-hooks/i.test(prompt)
-  );
+  const isHooksEditingSession =
+    !!prompt &&
+    (/(create|edit|modify).*(dmux|\.)?.*hooks/i.test(prompt) || /\.dmux-hooks/i.test(prompt));
 
   // Create git worktree and cd into it
   try {
@@ -389,12 +392,12 @@ export async function createPane(
         } catch {
           if (startPointBranch) {
             throw new Error(
-              `Worktree start-point branch "${resolvedStartPoint}" does not exist anymore. Reopen the parent worktree or recreate it before branching again.`
+              `Worktree start-point branch "${resolvedStartPoint}" does not exist anymore. Reopen the parent worktree or recreate it before branching again.`,
             );
           }
 
           throw new Error(
-            `Base branch "${resolvedStartPoint}" does not exist. Update the baseBranch setting to a valid branch name.`
+            `Base branch "${resolvedStartPoint}" does not exist. Update the baseBranch setting to a valid branch name.`,
           );
         }
       }
@@ -431,7 +434,7 @@ export async function createPane(
         await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
 
         const startTime = Date.now();
-        while (!fs.existsSync(worktreePath) && (Date.now() - startTime) < maxWaitTime) {
+        while (!fs.existsSync(worktreePath) && Date.now() - startTime < maxWaitTime) {
           await new Promise((resolve) => setTimeout(resolve, checkInterval));
         }
 
@@ -443,7 +446,9 @@ export async function createPane(
 
       // Verify worktree was created successfully
       if (!worktreeCreated) {
-        throw new Error(`Worktree directory not created at ${worktreePath} after ${maxWorktreeAttempts} attempts`);
+        throw new Error(
+          `Worktree directory not created at ${worktreePath} after ${maxWorktreeAttempts} attempts`,
+        );
       }
 
       // Give a bit more time for git to finish setting up the worktree
@@ -461,7 +466,7 @@ export async function createPane(
     } catch (metadataError) {
       LogService.getInstance().warn(
         `Failed to persist worktree metadata for ${slug}: ${metadataError}`,
-        'paneCreation'
+        'paneCreation',
       );
     }
 
@@ -474,12 +479,12 @@ export async function createPane(
     const errorMsg = error instanceof Error ? error.message : String(error);
     await tmuxService.sendShellCommand(
       paneInfo,
-      `echo "❌ Failed to create worktree: ${errorMsg}"`
+      `echo "❌ Failed to create worktree: ${errorMsg}"`,
     );
     await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
     await tmuxService.sendShellCommand(
       paneInfo,
-      `echo "Tip: Try running: git worktree prune && git branch -D ${branchName}"`
+      `echo "Tip: Try running: git worktree prune && git branch -D ${branchName}"`,
     );
     await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
     await new Promise((resolve) => setTimeout(resolve, TMUX_LAYOUT_APPLY_DELAY));
@@ -492,9 +497,7 @@ export async function createPane(
 
   if (agent) {
     if (agent === 'gemini') {
-      const geminiWorkspacePath = fs.existsSync(worktreePath)
-        ? worktreePath
-        : projectRoot;
+      const geminiWorkspacePath = fs.existsSync(worktreePath) ? worktreePath : projectRoot;
       ensureGeminiFolderTrusted(geminiWorkspacePath);
     }
 
@@ -523,7 +526,7 @@ export async function createPane(
         launchCommand = `${promptBootstrap}; ${buildInitialPromptCommand(
           agent,
           '"$DMUX_PROMPT_CONTENT"',
-          settings.permissionMode
+          settings.permissionMode,
         )}`;
       } else {
         const escapedPrompt = prompt
@@ -534,7 +537,7 @@ export async function createPane(
         launchCommand = buildInitialPromptCommand(
           agent,
           `"${escapedPrompt}"`,
-          settings.permissionMode
+          settings.permissionMode,
         );
       }
     } else {
@@ -615,7 +618,7 @@ export async function createPane(
 
   // Re-set the title for the dmux pane
   try {
-    await tmuxService.setPaneTitle(originalPaneId, "dmux");
+    await tmuxService.setPaneTitle(originalPaneId, 'dmux');
   } catch {
     // Ignore if setting title fails
   }
@@ -629,10 +632,7 @@ export async function createPane(
 /**
  * Auto-approve Claude trust prompts
  */
-export async function autoApproveTrustPrompt(
-  paneInfo: string,
-  prompt: string
-): Promise<void> {
+export async function autoApproveTrustPrompt(paneInfo: string, prompt: string): Promise<void> {
   // Wait longer for Claude to start up before checking for prompts
   await new Promise((resolve) => setTimeout(resolve, 1200));
 
@@ -686,9 +686,7 @@ export async function autoApproveTrustPrompt(
       }
 
       // Look for trust prompt using specific patterns only
-      const hasTrustPrompt = trustPromptPatterns.some((pattern) =>
-        pattern.test(paneContent)
-      );
+      const hasTrustPrompt = trustPromptPatterns.some((pattern) => pattern.test(paneContent));
 
       // Only act if we have high confidence it's a trust prompt
       if (hasTrustPrompt && !promptHandled) {
@@ -720,9 +718,7 @@ export async function autoApproveTrustPrompt(
           // Verify the prompt is gone
           const updatedContent = capturePaneContent(paneInfo, 10);
 
-          const promptGone = !trustPromptPatterns.some((p) =>
-            p.test(updatedContent)
-          );
+          const promptGone = !trustPromptPatterns.some((p) => p.test(updatedContent));
 
           if (promptGone) {
             // Check if Claude is running
@@ -730,10 +726,7 @@ export async function autoApproveTrustPrompt(
               updatedContent.includes('Claude') ||
               updatedContent.includes('claude') ||
               updatedContent.includes('Assistant') ||
-              (prompt &&
-                updatedContent.includes(
-                  prompt.substring(0, Math.min(20, prompt.length))
-                ));
+              (prompt && updatedContent.includes(prompt.substring(0, Math.min(20, prompt.length))));
 
             if (!claudeRunning && !updatedContent.includes('$')) {
               // Resend Claude command if needed

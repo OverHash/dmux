@@ -135,7 +135,7 @@ class PaneWorker {
 
       // Check for activity (any changes in captures)
       const hasActivity = !this.captureHistory.every(
-        capture => capture.fingerprint === this.captureHistory[0]?.fingerprint
+        (capture) => capture.fingerprint === this.captureHistory[0]?.fingerprint,
       );
 
       if (hasActivity) {
@@ -234,7 +234,7 @@ class PaneWorker {
     const payload: StatusChangePayload = {
       status: newStatus,
       previousStatus,
-      captureSnapshot: this.captureHistory[this.captureHistory.length - 1]?.raw
+      captureSnapshot: this.captureHistory[this.captureHistory.length - 1]?.raw,
     };
 
     this.emit('status-change', payload);
@@ -245,7 +245,7 @@ class PaneWorker {
 
     const payload: AnalysisNeededPayload = {
       captureSnapshot: content,
-      reason
+      reason,
     };
 
     this.emit('analysis-needed', payload);
@@ -253,11 +253,10 @@ class PaneWorker {
 
   private transitionToAnalyzing(
     content: string,
-    reason: 'new-static-content' | 'revalidation'
+    reason: 'new-static-content' | 'revalidation',
   ): void {
-    this.statusBeforeAnalyzing = this.currentStatus === 'analyzing'
-      ? this.statusBeforeAnalyzing
-      : this.currentStatus;
+    this.statusBeforeAnalyzing =
+      this.currentStatus === 'analyzing' ? this.statusBeforeAnalyzing : this.currentStatus;
     this.updateStatus('analyzing');
     this.requestAnalysis(content, reason);
   }
@@ -335,7 +334,7 @@ class PaneWorker {
       type: `${originalMsg.type}-response` as any,
       timestamp: Date.now(),
       paneId: this.paneId,
-      payload
+      payload,
     });
   }
 
@@ -345,7 +344,7 @@ class PaneWorker {
       type,
       timestamp: Date.now(),
       paneId: this.paneId,
-      payload
+      payload,
     });
   }
 
@@ -366,7 +365,7 @@ class PaneWorker {
   private emitError(error: string, recoverable: boolean): void {
     const payload: ErrorPayload = {
       error,
-      recoverable
+      recoverable,
     };
     this.emit('error', payload);
   }

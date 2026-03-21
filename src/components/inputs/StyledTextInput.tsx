@@ -13,7 +13,7 @@ const StyledTextInput: React.FC<StyledTextInputProps> = ({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Type your message...'
+  placeholder = 'Type your message...',
 }) => {
   return (
     <Box>

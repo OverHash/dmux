@@ -24,10 +24,7 @@ export function buildPaneExitedHookCommand(pid: number): string {
  * Same as buildPaneExitedHookCommand, but with an explicit session name.
  * This avoids relying on hook format variables that may vary by tmux version.
  */
-export function buildPaneExitedHookCommandForSession(
-  pid: number,
-  sessionName: string
-): string {
+export function buildPaneExitedHookCommandForSession(pid: number, sessionName: string): string {
   const recoveryScriptPath = resolveDistPath('utils', 'controlPaneRecovery.js');
   const escapedScriptPath = escapeForDoubleQuotes(recoveryScriptPath);
   const encodedSessionName = Buffer.from(sessionName, 'utf-8').toString('base64');

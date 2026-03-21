@@ -1,11 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { MergeTargetReference } from '../types.js';
-import {
-  isAgentName,
-  type AgentName,
-  type PermissionMode,
-} from './agentLaunch.js';
+import { isAgentName, type AgentName, type PermissionMode } from './agentLaunch.js';
 import { atomicWriteJsonSync } from './atomicWrite.js';
 import { sanitizePaneDisplayName } from './paneTitle.js';
 
@@ -39,29 +35,22 @@ function isMergeTargetReference(value: unknown): value is MergeTargetReference {
   if (candidate.slug !== undefined && typeof candidate.slug !== 'string') {
     return false;
   }
-  if (
-    candidate.worktreePath !== undefined
-    && typeof candidate.worktreePath !== 'string'
-  ) {
+  if (candidate.worktreePath !== undefined && typeof candidate.worktreePath !== 'string') {
     return false;
   }
 
   return true;
 }
 
-function normalizeMergeTargetChain(
-  mergeTargetChain: unknown
-): MergeTargetReference[] | undefined {
+function normalizeMergeTargetChain(mergeTargetChain: unknown): MergeTargetReference[] | undefined {
   if (!Array.isArray(mergeTargetChain)) return undefined;
 
-  const normalized = mergeTargetChain
-    .filter(isMergeTargetReference)
-    .map((entry) => ({
-      displayName: entry.displayName,
-      branchName: entry.branchName,
-      slug: entry.slug,
-      worktreePath: entry.worktreePath,
-    }));
+  const normalized = mergeTargetChain.filter(isMergeTargetReference).map((entry) => ({
+    displayName: entry.displayName,
+    branchName: entry.branchName,
+    slug: entry.slug,
+    worktreePath: entry.worktreePath,
+  }));
 
   return normalized.length > 0 ? normalized : undefined;
 }
@@ -82,8 +71,8 @@ export function readWorktreeMetadata(worktreePath: string): WorktreeMetadata | n
     }
 
     if (
-      typeof parsed.permissionMode === 'string'
-      && PERMISSION_MODES.has(parsed.permissionMode as PermissionMode)
+      typeof parsed.permissionMode === 'string' &&
+      PERMISSION_MODES.has(parsed.permissionMode as PermissionMode)
     ) {
       metadata.permissionMode = parsed.permissionMode as PermissionMode;
     }
@@ -110,16 +99,11 @@ export function readWorktreeMetadata(worktreePath: string): WorktreeMetadata | n
   }
 }
 
-export function writeWorktreeMetadata(
-  worktreePath: string,
-  metadata: WorktreeMetadata
-): void {
+export function writeWorktreeMetadata(worktreePath: string, metadata: WorktreeMetadata): void {
   const metadataPath = getWorktreeMetadataPath(worktreePath);
   fs.mkdirSync(path.dirname(metadataPath), { recursive: true });
   atomicWriteJsonSync(metadataPath, {
     ...metadata,
-    displayName: metadata.displayName
-      ? sanitizePaneDisplayName(metadata.displayName)
-      : undefined,
+    displayName: metadata.displayName ? sanitizePaneDisplayName(metadata.displayName) : undefined,
   });
 }

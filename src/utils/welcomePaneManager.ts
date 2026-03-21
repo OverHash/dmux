@@ -78,7 +78,12 @@ export function destroyWelcomePaneCoordinated(projectRoot: string): boolean {
 
     return true;
   } catch (error) {
-    logService.error('Failed to destroy welcome pane', 'WelcomePaneManager', undefined, error instanceof Error ? error : undefined);
+    logService.error(
+      'Failed to destroy welcome pane',
+      'WelcomePaneManager',
+      undefined,
+      error instanceof Error ? error : undefined,
+    );
     return false;
   }
 }
@@ -94,7 +99,7 @@ export function destroyWelcomePaneCoordinated(projectRoot: string): boolean {
  */
 export async function createWelcomePaneCoordinated(
   projectRoot: string,
-  controlPaneId: string
+  controlPaneId: string,
 ): Promise<boolean> {
   const logService = LogService.getInstance();
 
@@ -116,7 +121,7 @@ export async function createWelcomePaneCoordinated(
     const config: DmuxConfig = JSON.parse(configContent);
 
     // Check if we already have a valid welcome pane
-    if (config.welcomePaneId && await welcomePaneExists(config.welcomePaneId)) {
+    if (config.welcomePaneId && (await welcomePaneExists(config.welcomePaneId))) {
       return true; // Already exists, that's fine
     }
 
@@ -133,7 +138,12 @@ export async function createWelcomePaneCoordinated(
       return false;
     }
   } catch (error) {
-    logService.error('Failed to create welcome pane', 'WelcomePaneManager', undefined, error instanceof Error ? error : undefined);
+    logService.error(
+      'Failed to create welcome pane',
+      'WelcomePaneManager',
+      undefined,
+      error instanceof Error ? error : undefined,
+    );
     return false;
   } finally {
     releaseCreationLock();
@@ -158,15 +168,21 @@ export async function createWelcomePaneCoordinated(
 export async function ensureWelcomePane(
   projectRoot: string,
   controlPaneId: string | undefined,
-  panesCount: number
+  panesCount: number,
 ): Promise<void> {
   const logService = LogService.getInstance();
 
-  logService.debug(`ensureWelcomePane called: panesCount=${panesCount}, controlPaneId=${controlPaneId}`, 'WelcomePaneManager');
+  logService.debug(
+    `ensureWelcomePane called: panesCount=${panesCount}, controlPaneId=${controlPaneId}`,
+    'WelcomePaneManager',
+  );
 
   // Only create welcome pane if there are no dmux panes
   if (panesCount > 0 || !controlPaneId) {
-    logService.debug(`Skipping: panesCount > 0 (${panesCount}) or no controlPaneId (${controlPaneId})`, 'WelcomePaneManager');
+    logService.debug(
+      `Skipping: panesCount > 0 (${panesCount}) or no controlPaneId (${controlPaneId})`,
+      'WelcomePaneManager',
+    );
     return;
   }
 

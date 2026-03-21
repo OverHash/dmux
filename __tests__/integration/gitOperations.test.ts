@@ -7,7 +7,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { DmuxPane } from '../../src/types.js';
 import type { ActionContext } from '../../src/actions/types.js';
-import { createMockGitRepo, addWorktree, type MockGitRepo } from '../fixtures/integration/gitRepo.js';
+import {
+  createMockGitRepo,
+  addWorktree,
+  type MockGitRepo,
+} from '../fixtures/integration/gitRepo.js';
 
 // Mock child_process
 const mockExecSync = vi.fn();
@@ -81,7 +85,7 @@ describe('Git Operations Integration Tests', () => {
       // Git worktree list
       if (cmd.includes('worktree list')) {
         const list = gitRepo.worktrees
-          .map(wt => `${wt.path} ${wt.commit} [${wt.branch}]`)
+          .map((wt) => `${wt.path} ${wt.commit} [${wt.branch}]`)
           .join('\n');
         return returnValue(list);
       }
@@ -104,7 +108,7 @@ describe('Git Operations Integration Tests', () => {
           const path = match[1];
           gitRepo = {
             ...gitRepo,
-            worktrees: gitRepo.worktrees.filter(wt => wt.path !== path),
+            worktrees: gitRepo.worktrees.filter((wt) => wt.path !== path),
           };
         }
         return returnValue('');
@@ -164,9 +168,9 @@ describe('Git Operations Integration Tests', () => {
 
       // Git branch (list branches)
       if (cmd.includes('branch') && !cmd.includes('-D')) {
-        const branches = [gitRepo.mainBranch, ...gitRepo.worktrees.map(wt => wt.branch)];
+        const branches = [gitRepo.mainBranch, ...gitRepo.worktrees.map((wt) => wt.branch)];
         const output = branches
-          .map(b => (b === gitRepo.currentBranch ? `* ${b}` : `  ${b}`))
+          .map((b) => (b === gitRepo.currentBranch ? `* ${b}` : `  ${b}`))
           .join('\n');
         return returnValue(output);
       }
@@ -206,21 +210,20 @@ describe('Git Operations Integration Tests', () => {
       // Verify the command was called with -b flag
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('-b new-feature'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
     it('should handle worktree creation from specific commit', async () => {
       const { execSync } = await import('child_process');
 
-      execSync(
-        'git worktree add "/test/.dmux/worktrees/hotfix" -b hotfix abc123',
-        { cwd: '/test' }
-      );
+      execSync('git worktree add "/test/.dmux/worktrees/hotfix" -b hotfix abc123', {
+        cwd: '/test',
+      });
 
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('abc123'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -254,7 +257,7 @@ describe('Git Operations Integration Tests', () => {
       expect(branch).toBe('main');
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('branch --show-current'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -266,7 +269,7 @@ describe('Git Operations Integration Tests', () => {
       expect(mainBranch).toBe('main');
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('symbolic-ref refs/remotes/origin/HEAD'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -322,7 +325,7 @@ describe('Git Operations Integration Tests', () => {
       expect(result.success).toBe(true);
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('git merge "main"'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -334,7 +337,7 @@ describe('Git Operations Integration Tests', () => {
       expect(result.success).toBe(true);
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('git merge "feature-branch"'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -368,7 +371,7 @@ describe('Git Operations Integration Tests', () => {
           const error: any = new Error('Merge conflict');
           error.status = 1;
           error.stderr = Buffer.from(
-            'CONFLICT (content): Merge conflict in src/file1.ts\nCONFLICT (content): Merge conflict in src/file2.ts'
+            'CONFLICT (content): Merge conflict in src/file1.ts\nCONFLICT (content): Merge conflict in src/file2.ts',
           );
           throw error;
         }
@@ -416,18 +419,14 @@ describe('Git Operations Integration Tests', () => {
     it('should cleanup worktree after successful merge', async () => {
       const { cleanupAfterMerge } = await import('../../src/utils/mergeExecution.js');
 
-      const result = cleanupAfterMerge(
-        '/test',
-        '/test/.dmux/worktrees/feature',
-        'feature-branch'
-      );
+      const result = cleanupAfterMerge('/test', '/test/.dmux/worktrees/feature', 'feature-branch');
 
       expect(result.success).toBe(true);
 
       // Verify worktree remove was called
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('git worktree remove'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -480,7 +479,7 @@ index abc123..def456 100644
             Promise.resolve({
               choices: [{ message: { content: 'feat: add JWT authentication' } }],
             }),
-        } as Response)
+        } as Response),
       );
 
       const { generateCommitMessage } = await import('../../src/utils/aiMerge.js');

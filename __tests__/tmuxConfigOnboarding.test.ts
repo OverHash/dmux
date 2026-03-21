@@ -34,7 +34,7 @@ describe('tmux config onboarding utils', () => {
     const homeDir = mkdtempSync(join(tmpdir(), 'dmux-onboarding-'));
 
     try {
-      writeFileSync(join(homeDir, '.tmux.conf'), "set -g mouse on\n", 'utf-8');
+      writeFileSync(join(homeDir, '.tmux.conf'), 'set -g mouse on\n', 'utf-8');
       const result = await hasMeaningfulTmuxConfig(homeDir);
       expect(result).toBe(true);
     } finally {
@@ -60,7 +60,7 @@ describe('tmux config onboarding utils', () => {
     try {
       const configDir = join(homeDir, '.config', 'tmux');
       mkdirSync(configDir, { recursive: true });
-      writeFileSync(join(configDir, 'tmux.conf'), "set -g mouse on\n", 'utf-8');
+      writeFileSync(join(configDir, 'tmux.conf'), 'set -g mouse on\n', 'utf-8');
 
       const result = await hasMeaningfulTmuxConfig(homeDir);
       expect(result).toBe(true);

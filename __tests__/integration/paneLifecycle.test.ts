@@ -16,7 +16,10 @@ import {
   addWorktree,
   type MockGitRepo,
 } from '../fixtures/integration/gitRepo.js';
-import { createMockExecSync, createMockOpenRouterAPI } from '../helpers/integration/mockCommands.js';
+import {
+  createMockExecSync,
+  createMockOpenRouterAPI,
+} from '../helpers/integration/mockCommands.js';
 
 const fsMock = vi.hoisted(() => ({
   readFileSync: vi.fn(() => JSON.stringify({ controlPaneId: '%0' })),
@@ -138,7 +141,8 @@ describe('Pane Lifecycle Integration Tests', () => {
       // Git worktree add
       if (cmd.includes('worktree add')) {
         const pathMatch = cmd.match(/git worktree add "([^"]+)"/);
-        const branchMatch = cmd.match(/-b "([^"]+)"/) || cmd.match(/git worktree add "[^"]+" "([^"]+)"/);
+        const branchMatch =
+          cmd.match(/-b "([^"]+)"/) || cmd.match(/git worktree add "[^"]+" "([^"]+)"/);
         const worktreePath = pathMatch?.[1] || '/test/.dmux/worktrees/test-slug';
         const branchName = branchMatch?.[1] || 'test-slug';
         createdWorktreePaths.add(worktreePath);
@@ -153,7 +157,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           Array.from(createdWorktreePaths)
             .filter((worktreePath) => !worktreePath.endsWith('/.git'))
             .map((worktreePath) => `${worktreePath} abc123 [${worktreePath.split('/').pop()}]`)
-            .join('\n')
+            .join('\n'),
         );
       }
 
@@ -199,7 +203,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectName: 'test-project',
           existingPanes: [],
         },
-        ['claude', 'opencode']
+        ['claude', 'opencode'],
       );
 
       // Should return a pane (not needsAgentChoice)
@@ -221,18 +225,22 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectName: 'test-project',
           existingPanes: [],
         },
-        ['claude']
+        ['claude'],
       );
 
-      expect(mockExecSync.mock.calls.some(([cmd]) =>
-        typeof cmd === 'string'
-        && cmd.includes('tmux set -t dmux-test pane-border-status top')
-      )).toBe(true);
+      expect(
+        mockExecSync.mock.calls.some(
+          ([cmd]) =>
+            typeof cmd === 'string' && cmd.includes('tmux set -t dmux-test pane-border-status top'),
+        ),
+      ).toBe(true);
 
-      expect(mockExecSync.mock.calls.some(([cmd]) =>
-        typeof cmd === 'string'
-        && cmd.includes('tmux set-option -g pane-border-status top')
-      )).toBe(false);
+      expect(
+        mockExecSync.mock.calls.some(
+          ([cmd]) =>
+            typeof cmd === 'string' && cmd.includes('tmux set-option -g pane-border-status top'),
+        ),
+      ).toBe(false);
     });
 
     it('should create git worktree with branch', async () => {
@@ -245,13 +253,13 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectName: 'test-project',
           existingPanes: [],
         },
-        ['claude']
+        ['claude'],
       );
 
       // Verify git worktree add was called
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('git worktree add'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -273,12 +281,15 @@ describe('Pane Lifecycle Integration Tests', () => {
             branchName: 'feature/resume-me',
           },
         },
-        ['claude']
+        ['claude'],
       );
 
-      expect(mockExecSync.mock.calls.some(([cmd]) =>
-        typeof cmd === 'string' && cmd.includes(`git worktree add "${existingWorktreePath}"`)
-      )).toBe(false);
+      expect(
+        mockExecSync.mock.calls.some(
+          ([cmd]) =>
+            typeof cmd === 'string' && cmd.includes(`git worktree add "${existingWorktreePath}"`),
+        ),
+      ).toBe(false);
 
       if ('pane' in result) {
         expect(result.pane.slug).toBe('resume-me');
@@ -298,13 +309,13 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectName: 'test-project',
           existingPanes: [],
         },
-        ['claude']
+        ['claude'],
       );
 
       // Verify tmux split-window was called
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('tmux split-window'),
-        expect.any(Object)
+        expect.any(Object),
       );
 
       // Pane should have tmux pane ID
@@ -334,25 +345,25 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectRoot: '/target/repo',
           slugBase: 'target-slug',
         },
-        ['claude']
+        ['claude'],
       );
 
-      const splitCall = mockExecSync.mock.calls.find(([cmd]) =>
-        typeof cmd === 'string' && cmd.includes('tmux split-window')
+      const splitCall = mockExecSync.mock.calls.find(
+        ([cmd]) => typeof cmd === 'string' && cmd.includes('tmux split-window'),
       );
       expect(splitCall?.[0]).toContain('-c "/target/repo"');
 
-      const worktreeCall = mockExecSync.mock.calls.find(([cmd]) =>
-        typeof cmd === 'string' && cmd.includes('git worktree add')
+      const worktreeCall = mockExecSync.mock.calls.find(
+        ([cmd]) => typeof cmd === 'string' && cmd.includes('git worktree add'),
       );
-      expect(worktreeCall?.[0]).toContain('cd "/target/repo" && git worktree add "/target/repo/.dmux/worktrees/target-slug"');
+      expect(worktreeCall?.[0]).toContain(
+        'cd "/target/repo" && git worktree add "/target/repo/.dmux/worktrees/target-slug"',
+      );
     });
 
     it('should handle slug generation failure (fallback to timestamp)', async () => {
       // Mock OpenRouter API failure
-      const mockFetch = vi.fn(() =>
-        Promise.reject(new Error('API timeout'))
-      );
+      const mockFetch = vi.fn(() => Promise.reject(new Error('API timeout')));
       global.fetch = mockFetch;
 
       const { createPane } = await import('../../src/utils/paneCreation.js');
@@ -364,7 +375,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectName: 'test-project',
           existingPanes: [],
         },
-        ['claude']
+        ['claude'],
       );
 
       // Should fallback to timestamp-based slug
@@ -382,7 +393,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectName: 'test-project',
           existingPanes: [],
         },
-        ['claude', 'opencode']
+        ['claude', 'opencode'],
       );
 
       // Should return needsAgentChoice
@@ -401,7 +412,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           projectName: 'test-project',
           existingPanes: [],
         },
-        []
+        [],
       );
 
       // Should return error or handle gracefully
@@ -433,7 +444,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       expect(result.type).toBe('choice');
       if (result.type === 'choice') {
         expect(result.options).toHaveLength(3);
-        expect(result.options?.map(o => o.id)).toEqual([
+        expect(result.options?.map((o) => o.id)).toEqual([
           'kill_only',
           'kill_and_clean',
           'kill_clean_branch',
@@ -470,7 +481,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       // Verify tmux kill-pane was called
       expect(mockExecSync).toHaveBeenCalledWith(
         expect.stringContaining('tmux kill-pane'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -503,7 +514,7 @@ describe('Pane Lifecycle Integration Tests', () => {
         expect.objectContaining({
           pane: testPane,
           deleteBranch: false,
-        })
+        }),
       );
     });
 
@@ -605,9 +616,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       });
 
       const { execSync } = await import('child_process');
-      const newPaneId = execSync('tmux split-window -h', { stdio: 'pipe' })
-        .toString()
-        .trim();
+      const newPaneId = execSync('tmux split-window -h', { stdio: 'pipe' }).toString().trim();
 
       expect(newPaneId).toBe('%2');
     });

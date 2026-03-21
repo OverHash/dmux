@@ -82,14 +82,14 @@ export async function runOpenRouterApiKeyOnboardingIfNeeded(): Promise<void> {
     if (!process.stdin.isTTY || !process.stdout.isTTY) {
       logger.debug(
         'Skipping OpenRouter API key onboarding because terminal is non-interactive',
-        'onboarding'
+        'onboarding',
       );
       return;
     }
 
     const shouldConfigure = await promptYesNo(
       'OPENROUTER_API_KEY is not set. Configure it now to enable AI-powered features?',
-      true
+      true,
     );
 
     if (!shouldConfigure) {
@@ -113,11 +113,13 @@ export async function runOpenRouterApiKeyOnboardingIfNeeded(): Promise<void> {
     await writeOpenRouterOnboardingState(homeDir, 'configured', shellConfigPath);
 
     console.log(chalk.green(`Saved OPENROUTER_API_KEY to ${shellConfigPath}`));
-    console.log(chalk.yellow(`Run 'source ${shellConfigPath}' or open a new shell to load it globally.`));
+    console.log(
+      chalk.yellow(`Run 'source ${shellConfigPath}' or open a new shell to load it globally.`),
+    );
   } catch (error) {
     logger.warn(
       `OpenRouter onboarding failed: ${error instanceof Error ? error.message : String(error)}`,
-      'onboarding'
+      'onboarding',
     );
   }
 }

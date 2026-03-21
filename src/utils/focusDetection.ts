@@ -34,7 +34,10 @@ export interface DmuxHelperFocusStateMessage {
 }
 
 export function buildFocusToken(instanceId: string): string {
-  const compactId = instanceId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase();
+  const compactId = instanceId
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 8)
+    .toLowerCase();
   return `dmx-${compactId}`;
 }
 

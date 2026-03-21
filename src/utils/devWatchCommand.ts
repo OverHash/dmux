@@ -4,8 +4,7 @@
  * after dmux exits intentionally.
  */
 
-const escapeForDoubleQuotedShell = (value: string): string =>
-  value.replace(/([\\$"`])/g, "\\$1");
+const escapeForDoubleQuotedShell = (value: string): string => value.replace(/([\\$"`])/g, '\\$1');
 
 export function buildDevWatchCommand(sourcePath: string): string {
   const escapedPath = escapeForDoubleQuotedShell(sourcePath);

@@ -12,7 +12,7 @@ export const NOTIFICATION_SOUND_IDS = [
   'war-horn',
 ] as const;
 
-export type NotificationSoundId = typeof NOTIFICATION_SOUND_IDS[number];
+export type NotificationSoundId = (typeof NOTIFICATION_SOUND_IDS)[number];
 
 export interface NotificationSoundDefinition {
   id: NotificationSoundId;
@@ -90,7 +90,7 @@ export const NOTIFICATION_SOUND_DEFINITIONS: readonly NotificationSoundDefinitio
 ] as const;
 
 const NOTIFICATION_SOUND_ID_SET = new Set<string>(
-  NOTIFICATION_SOUND_DEFINITIONS.map((definition) => definition.id)
+  NOTIFICATION_SOUND_DEFINITIONS.map((definition) => definition.id),
 );
 
 export function getNotificationSoundDefinitions(): NotificationSoundDefinition[] {
@@ -98,15 +98,15 @@ export function getNotificationSoundDefinitions(): NotificationSoundDefinition[]
 }
 
 export function getBundledNotificationSoundDefinitions(): NotificationSoundDefinition[] {
-  return NOTIFICATION_SOUND_DEFINITIONS
-    .filter((definition) => typeof definition.resourceFileName === 'string')
-    .map((definition) => ({ ...definition }));
+  return NOTIFICATION_SOUND_DEFINITIONS.filter(
+    (definition) => typeof definition.resourceFileName === 'string',
+  ).map((definition) => ({ ...definition }));
 }
 
 export function getDefaultNotificationSoundSelection(): NotificationSoundId[] {
-  return NOTIFICATION_SOUND_DEFINITIONS
-    .filter((definition) => definition.defaultEnabled)
-    .map((definition) => definition.id);
+  return NOTIFICATION_SOUND_DEFINITIONS.filter((definition) => definition.defaultEnabled).map(
+    (definition) => definition.id,
+  );
 }
 
 export function isNotificationSoundId(value: string): value is NotificationSoundId {
@@ -114,13 +114,13 @@ export function isNotificationSoundId(value: string): value is NotificationSound
 }
 
 export function resolveNotificationSoundsSelection(
-  enabledNotificationSounds: readonly string[] | undefined
+  enabledNotificationSounds: readonly string[] | undefined,
 ): NotificationSoundId[] {
   if (Array.isArray(enabledNotificationSounds)) {
     const configured = new Set(enabledNotificationSounds.filter(isNotificationSoundId));
-    const resolved = NOTIFICATION_SOUND_DEFINITIONS
-      .map((definition) => definition.id)
-      .filter((id) => configured.has(id));
+    const resolved = NOTIFICATION_SOUND_DEFINITIONS.map((definition) => definition.id).filter(
+      (id) => configured.has(id),
+    );
 
     if (resolved.length > 0) {
       return resolved;
@@ -131,7 +131,7 @@ export function resolveNotificationSoundsSelection(
 }
 
 export function getNotificationSoundDefinition(
-  id: NotificationSoundId
+  id: NotificationSoundId,
 ): NotificationSoundDefinition {
   const definition = NOTIFICATION_SOUND_DEFINITIONS.find((candidate) => candidate.id === id);
   if (!definition) {
@@ -143,7 +143,7 @@ export function getNotificationSoundDefinition(
 
 export function pickNotificationSound(
   enabledNotificationSounds: readonly string[] | undefined,
-  randomValue: number = Math.random()
+  randomValue: number = Math.random(),
 ): NotificationSoundDefinition {
   const selection = resolveNotificationSoundsSelection(enabledNotificationSounds);
   const boundedRandomValue = Math.max(0, Math.min(0.999999999, randomValue));

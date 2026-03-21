@@ -11,9 +11,9 @@ import { TmuxService } from '../services/TmuxService.js';
 import { execSync } from 'child_process';
 
 export interface ConflictMonitorOptions {
-  conflictPaneId: string;  // tmux pane ID to monitor
-  repoPath: string;        // Repository path to check git status
-  onResolved: () => void;  // Callback when conflicts are resolved
+  conflictPaneId: string; // tmux pane ID to monitor
+  repoPath: string; // Repository path to check git status
+  onResolved: () => void; // Callback when conflicts are resolved
   checkIntervalMs?: number;
   maxChecks?: number;
 }
@@ -28,7 +28,7 @@ export function startConflictMonitoring(options: ConflictMonitorOptions): () => 
     repoPath,
     onResolved,
     checkIntervalMs = 2000, // Check every 2 seconds
-    maxChecks = 300,        // Stop after 10 minutes (300 * 2s)
+    maxChecks = 300, // Stop after 10 minutes (300 * 2s)
   } = options;
 
   const tmuxService = TmuxService.getInstance();

@@ -12,7 +12,9 @@ const CloseOptionsDialog: React.FC<CloseOptionsDialogProps> = ({ pane, selectedI
     <Box borderStyle="double" borderColor="red" paddingX={1} marginTop={1}>
       <Box flexDirection="column">
         <Box marginBottom={1}>
-          <Text color="red" bold>Close pane "{pane.slug}"?</Text>
+          <Text color="red" bold>
+            Close pane "{pane.slug}"?
+          </Text>
         </Box>
         <Box flexDirection="column">
           <Box>

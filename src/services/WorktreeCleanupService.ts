@@ -57,7 +57,7 @@ export class WorktreeCleanupService {
           `Background worktree cleanup failed for ${job.pane.slug}: ${errorObj.message}`,
           'paneActions',
           job.pane.id,
-          errorObj
+          errorObj,
         );
       });
   }
@@ -76,20 +76,20 @@ export class WorktreeCleanupService {
     this.logger.debug(
       `Starting background worktree cleanup for ${pane.slug}`,
       'paneActions',
-      pane.id
+      pane.id,
     );
 
     for (const target of worktreeRemovalTargets) {
       const removeResult = await this.runGitCommand(
         ['worktree', 'remove', target.worktreePath, '--force'],
-        target.repoPath
+        target.repoPath,
       );
 
       if (!removeResult.success) {
         this.logger.warn(
           `Worktree removal reported an error for ${pane.slug} in ${target.repoPath}: ${removeResult.error}`,
           'paneActions',
-          pane.id
+          pane.id,
         );
       }
     }
@@ -101,7 +101,7 @@ export class WorktreeCleanupService {
       for (const target of branchDeletionTargets) {
         const branchExists = await this.runGitCommand(
           ['show-ref', '--verify', '--quiet', `refs/heads/${target.branchName}`],
-          target.repoPath
+          target.repoPath,
         );
         if (!branchExists.success) {
           continue;
@@ -109,14 +109,14 @@ export class WorktreeCleanupService {
 
         const deleteBranchResult = await this.runGitCommand(
           ['branch', '-D', target.branchName],
-          target.repoPath
+          target.repoPath,
         );
 
         if (!deleteBranchResult.success) {
           this.logger.warn(
             `Branch deletion reported an error for ${pane.slug} in ${target.repoPath}: ${deleteBranchResult.error}`,
             'paneActions',
-            pane.id
+            pane.id,
           );
         }
       }
@@ -125,14 +125,11 @@ export class WorktreeCleanupService {
     this.logger.debug(
       `Finished background worktree cleanup for ${pane.slug}`,
       'paneActions',
-      pane.id
+      pane.id,
     );
   }
 
-  private getBranchDeletionTargets(
-    pane: DmuxPane,
-    mainRepoPath: string
-  ): BranchDeletionTarget[] {
+  private getBranchDeletionTargets(pane: DmuxPane, mainRepoPath: string): BranchDeletionTarget[] {
     const branchName = getPaneBranchName(pane);
     const repoPaths = new Set<string>([mainRepoPath]);
 
@@ -146,7 +143,7 @@ export class WorktreeCleanupService {
         this.logger.debug(
           `Failed to detect nested worktrees for ${pane.slug}: ${errorObj.message}`,
           'paneActions',
-          pane.id
+          pane.id,
         );
       }
     }
@@ -157,10 +154,7 @@ export class WorktreeCleanupService {
     }));
   }
 
-  private getWorktreeRemovalTargets(
-    pane: DmuxPane,
-    mainRepoPath: string
-  ): WorktreeRemovalTarget[] {
+  private getWorktreeRemovalTargets(pane: DmuxPane, mainRepoPath: string): WorktreeRemovalTarget[] {
     if (!pane.worktreePath) {
       return [];
     }
@@ -186,7 +180,7 @@ export class WorktreeCleanupService {
       this.logger.debug(
         `Failed to detect worktree removal targets for ${pane.slug}: ${errorObj.message}`,
         'paneActions',
-        pane.id
+        pane.id,
       );
     }
 
@@ -228,8 +222,7 @@ export class WorktreeCleanupService {
         resolve({
           success: false,
           error:
-            stderr.trim() ||
-            `git ${args.join(' ')} failed with exit code ${code ?? 'unknown'}`,
+            stderr.trim() || `git ${args.join(' ')} failed with exit code ${code ?? 'unknown'}`,
         });
       });
     });

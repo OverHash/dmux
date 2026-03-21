@@ -32,6 +32,7 @@ npm run build
 ```
 
 **Steps:**
+
 1. **`npm run build:frontend`** - Vite builds Vue app to `./dist/`
    - Outputs: `dashboard.html`, `dashboard.js`, `dashboard.css`, `terminal.*`, `chunks/*`
 
@@ -51,15 +52,18 @@ npm run build
 // src/server/routes.ts
 import { getEmbeddedAsset } from './embedded-assets.js';
 
-app.use('/', eventHandler(async (event) => {
-  if (path === '/') {
-    return getEmbeddedAsset('dashboard.html').content;
-  }
-  if (path === '/dashboard.js') {
-    return getEmbeddedAsset('dashboard.js').content;
-  }
-  // etc...
-}));
+app.use(
+  '/',
+  eventHandler(async (event) => {
+    if (path === '/') {
+      return getEmbeddedAsset('dashboard.html').content;
+    }
+    if (path === '/dashboard.js') {
+      return getEmbeddedAsset('dashboard.js').content;
+    }
+    // etc...
+  }),
+);
 ```
 
 All assets are served from memory (embedded strings), **no file system access needed** at runtime.
@@ -67,12 +71,14 @@ All assets are served from memory (embedded strings), **no file system access ne
 ## Vue 3 Migration Complete ✅
 
 ### Dashboard Component
+
 - ✅ Migrated from string-based code to proper Vue 3 SFC
 - ✅ Full functionality preserved (350+ lines)
 - ✅ Fixed CSS class name mismatches
 - ✅ Kebab menus, dialogs, and all interactions working
 
 ### Terminal Component
+
 - ✅ **Fully migrated** with complete ANSI parsing (935 lines)
 - ✅ 256-color palette support
 - ✅ ANSI escape sequence parsing (CSI, OSC, SGR)
@@ -97,6 +103,7 @@ All assets are served from memory (embedded strings), **no file system access ne
 ## Development Workflow
 
 ### Full Build
+
 ```bash
 npm run build
 # 1. Vite → dist/
@@ -105,18 +112,21 @@ npm run build
 ```
 
 ### Clean Build
+
 ```bash
 npm run clean  # Removes dist/ and embedded-assets.ts
 npm run build
 ```
 
 ### Frontend Development
+
 ```bash
 npm run dev:frontend
 # Vite dev server with hot reload on localhost:5173
 ```
 
 ### Backend Development
+
 ```bash
 npm run dev
 # Runs TypeScript directly with tsx
@@ -125,14 +135,17 @@ npm run dev
 ## Files
 
 ### Source Files (committed to git)
+
 - `src/**/*.ts` - TypeScript source
 - `frontend/src/**/*` - Vue source
 - `src/server/embedded-assets.ts` - Generated, committed (deterministic)
 
 ### Build Artifacts (gitignored)
+
 - `dist/` - All build output
 
 ### Published to npm
+
 - `dmux` - Executable wrapper
 - `dist/` - Compiled code + embedded assets
 
@@ -159,17 +172,17 @@ export const embeddedAssets: Record<string, EmbeddedAsset> = {
   'dashboard.html': {
     content: `<!DOCTYPE html>...`,
     mimeType: 'text/html',
-    size: 463
+    size: 463,
   },
   'dashboard.js': {
     content: `(function(){...})()`,
     mimeType: 'application/javascript',
-    size: 15073
+    size: 15073,
   },
   'terminal.js': {
     content: `(function(){...})()`,
     mimeType: 'application/javascript',
-    size: 13781
+    size: 13781,
   },
   // ... all other assets
 };
@@ -188,11 +201,13 @@ export const embeddedAssets: Record<string, EmbeddedAsset> = {
 ## Comparison
 
 **Before (string-based Vue in static.ts):**
+
 ```
 src/server/static.ts    # 83KB, 3044 lines of Vue code as strings
 ```
 
 **After (filesystem-based Vue 3):**
+
 ```
 frontend/src/
 ├── components/
@@ -215,6 +230,7 @@ Much cleaner and more maintainable! 🎉
 The fully migrated Terminal.vue includes:
 
 **Styling:**
+
 - Both Dashboard and Terminal components import the same `styles.css` using `<style src="../styles.css"></style>`
 - Shared CSS variables for theming (dark/light mode)
 - Consistent header layout with back button, title, and status indicator

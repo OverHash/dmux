@@ -200,8 +200,6 @@ function handleGitCommand(cmd: string, context: CommandMockContext): Buffer {
 export function createMockOpenRouterAPI() {
   return {
     generateSlug: vi.fn((prompt: string) => Promise.resolve('test-slug')),
-    generateCommitMessage: vi.fn((diff: string) =>
-      Promise.resolve('feat: test commit message')
-    ),
+    generateCommitMessage: vi.fn((diff: string) => Promise.resolve('feat: test commit message')),
   };
 }

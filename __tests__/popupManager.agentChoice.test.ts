@@ -4,7 +4,7 @@ import type { AgentName } from '../src/utils/agentLaunch.js';
 
 function createPopupManager(
   availableAgents: AgentName[],
-  defaultAgent?: AgentName | ''
+  defaultAgent?: AgentName | '',
 ): PopupManager {
   const config: PopupManagerConfig = {
     sidebarWidth: 40,
@@ -23,7 +23,11 @@ function createPopupManager(
     trackProjectActivity: async (work) => await work(),
   };
 
-  return new PopupManager(config, () => {}, () => {});
+  return new PopupManager(
+    config,
+    () => {},
+    () => {},
+  );
 }
 
 describe('PopupManager launchAgentChoicePopup', () => {
@@ -45,7 +49,7 @@ describe('PopupManager launchAgentChoicePopup', () => {
         title: 'Select Agent(s)',
       }),
       undefined,
-      undefined
+      undefined,
     );
   });
 
@@ -64,7 +68,7 @@ describe('PopupManager launchAgentChoicePopup', () => {
       [JSON.stringify(['claude', 'opencode']), JSON.stringify([])],
       expect.any(Object),
       undefined,
-      undefined
+      undefined,
     );
   });
 });

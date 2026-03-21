@@ -113,7 +113,7 @@ export class TmuxHookManager extends EventEmitter {
         try {
           const result = await execAsync(
             `tmux show-hooks -t '${this.sessionName}' 2>/dev/null | grep -q '${hookName}'`,
-            { silent: true, timeout: 2000 }
+            { silent: true, timeout: 2000 },
           );
           return true;
         } catch {
@@ -153,7 +153,7 @@ export class TmuxHookManager extends EventEmitter {
       // Quick check - just look for our signature hook
       await execAsync(
         `tmux show-hooks -t '${this.sessionName}' 2>/dev/null | grep -q 'dmux-hook'`,
-        { silent: true, timeout: 1000 }
+        { silent: true, timeout: 1000 },
       );
       return true;
     } catch {
@@ -175,7 +175,7 @@ export class TmuxHookManager extends EventEmitter {
       // We add a comment marker so we can identify our hooks later
       const paneExitedHookCommand = buildPaneExitedHookCommandForSession(
         this.pid,
-        this.sessionName
+        this.sessionName,
       );
       const hookCommands = [
         // Pane split (new pane created)
@@ -218,7 +218,7 @@ export class TmuxHookManager extends EventEmitter {
 
       // Try to unset each hook (ignore errors - hook might not exist)
       await Promise.all(
-        unsetCommands.map(cmd => execAsync(cmd, { silent: true, timeout: 2000 }).catch(() => {}))
+        unsetCommands.map((cmd) => execAsync(cmd, { silent: true, timeout: 2000 }).catch(() => {})),
       );
 
       this.hooksInstalled = false;

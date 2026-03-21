@@ -23,7 +23,7 @@ const hookTypesMatch = hooksContent.match(/export type HookType =\s*\|([\s\S]*?)
 const hookTypes = hookTypesMatch
   ? hookTypesMatch[1]
       .split('|')
-      .map(t => t.trim().replace(/['"]/g, ''))
+      .map((t) => t.trim().replace(/['"]/g, ''))
       .filter(Boolean)
   : [];
 
@@ -461,8 +461,14 @@ function generateHooksTable() {
   table += '| Hook | When | Common Use Cases |\n';
   table += '|------|------|------------------|\n';
 
-  const paneHooks = ['before_pane_create', 'pane_created', 'worktree_created', 'before_pane_close', 'pane_closed'];
-  paneHooks.forEach(hook => {
+  const paneHooks = [
+    'before_pane_create',
+    'pane_created',
+    'worktree_created',
+    'before_pane_close',
+    'pane_closed',
+  ];
+  paneHooks.forEach((hook) => {
     const [when, use] = hookDescriptions[hook] || ['', ''];
     table += `| \`${hook}\` | ${when} | ${use} |\n`;
   });
@@ -472,7 +478,7 @@ function generateHooksTable() {
   table += '|------|------|------------------|\n';
 
   const worktreeHooks = ['before_worktree_remove', 'worktree_removed'];
-  worktreeHooks.forEach(hook => {
+  worktreeHooks.forEach((hook) => {
     const [when, use] = hookDescriptions[hook] || ['', ''];
     table += `| \`${hook}\` | ${when} | ${use} |\n`;
   });
@@ -482,7 +488,7 @@ function generateHooksTable() {
   table += '|------|------|------------------|\n';
 
   const mergeHooks = ['pre_merge', 'post_merge'];
-  mergeHooks.forEach(hook => {
+  mergeHooks.forEach((hook) => {
     const [when, use] = hookDescriptions[hook] || ['', ''];
     table += `| \`${hook}\` | ${when} | ${use} |\n`;
   });
@@ -492,7 +498,7 @@ function generateHooksTable() {
   table += '|------|------|------------------|\n';
 
   const interactiveHooks = ['run_test', 'run_dev'];
-  interactiveHooks.forEach(hook => {
+  interactiveHooks.forEach((hook) => {
     const [when, use] = hookDescriptions[hook] || ['', ''];
     table += `| \`${hook}\` | ${when} | ${use} |\n`;
   });

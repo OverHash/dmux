@@ -12,7 +12,7 @@ describe('PaneAnalyzer content normalization', () => {
     ].join('\n');
 
     expect(normalizePaneContentForAnalysis(content).split('\n')).toEqual(
-      Array.from({ length: 50 }, (_, index) => `line ${index + 6}`)
+      Array.from({ length: 50 }, (_, index) => `line ${index + 6}`),
     );
   });
 
@@ -24,7 +24,7 @@ describe('PaneAnalyzer content normalization', () => {
     ].join('\n');
 
     expect(normalizePaneContentForAnalysis(content).split('\n')).toEqual(
-      Array.from({ length: 49 }, (_, index) => `keep ${index + 1}`)
+      Array.from({ length: 49 }, (_, index) => `keep ${index + 1}`),
     );
   });
 });

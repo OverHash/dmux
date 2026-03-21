@@ -9,7 +9,12 @@ import React, { useState } from 'react';
 import { render, Box, Text, useApp } from 'ink';
 import * as fs from 'fs';
 import CleanTextInput from '../inputs/CleanTextInput.js';
-import { PopupContainer, PopupInputBox, PopupWrapper, writeSuccessAndExit } from './shared/index.js';
+import {
+  PopupContainer,
+  PopupInputBox,
+  PopupWrapper,
+  writeSuccessAndExit,
+} from './shared/index.js';
 import { PopupFooters } from './config.js';
 
 interface InputPopupProps {
@@ -40,7 +45,9 @@ const InputPopupApp: React.FC<InputPopupProps> = ({
         {/* Message */}
         <Box marginBottom={1} flexDirection="column">
           {message.split('\n').map((line, idx) => (
-            <Text key={idx} wrap="truncate-end">{line}</Text>
+            <Text key={idx} wrap="truncate-end">
+              {line}
+            </Text>
           ))}
         </Box>
 
@@ -58,7 +65,9 @@ const InputPopupApp: React.FC<InputPopupProps> = ({
 
         {/* Help text */}
         <Box>
-          <Text dimColor italic>💡 Tip: Shift+Enter for multi-line</Text>
+          <Text dimColor italic>
+            💡 Tip: Shift+Enter for multi-line
+          </Text>
         </Box>
       </PopupContainer>
     </PopupWrapper>
@@ -97,7 +106,7 @@ function main() {
       message={data.message}
       placeholder={data.placeholder}
       defaultValue={data.defaultValue}
-    />
+    />,
   );
 }
 

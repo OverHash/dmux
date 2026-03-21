@@ -7,8 +7,8 @@ import type { PatchMessage } from '../shared/StreamProtocol.js';
 
 interface Cell {
   char: string;
-  fg?: string;  // Foreground color
-  bg?: string;  // Background color
+  fg?: string; // Foreground color
+  bg?: string; // Background color
   bold?: boolean;
   dim?: boolean;
   italic?: boolean;
@@ -25,10 +25,10 @@ interface CursorPosition {
  */
 enum ParserState {
   Normal,
-  Escape,      // Saw ESC
-  CSI,         // Saw ESC[
-  OSC,         // Saw ESC]
-  DCS,         // Saw ESC P
+  Escape, // Saw ESC
+  CSI, // Saw ESC[
+  OSC, // Saw ESC]
+  DCS, // Saw ESC P
 }
 
 /**
@@ -149,7 +149,7 @@ export class TerminalBuffer {
 
     this.buffer[this.cursor.row][this.cursor.col] = {
       char,
-      ...this.currentAttrs
+      ...this.currentAttrs,
     };
 
     this.cursor.col++;
@@ -211,7 +211,7 @@ export class TerminalBuffer {
   }
 
   private handleCSI(params: string, command: string): void {
-    const args = params.split(';').map(p => parseInt(p) || 0);
+    const args = params.split(';').map((p) => parseInt(p) || 0);
 
     switch (command) {
       case 'H': // Cursor position
@@ -350,29 +350,53 @@ export class TerminalBuffer {
           delete this.currentAttrs.underline;
           break;
         // Foreground colors
-        case 30: case 31: case 32: case 33:
-        case 34: case 35: case 36: case 37:
+        case 30:
+        case 31:
+        case 32:
+        case 33:
+        case 34:
+        case 35:
+        case 36:
+        case 37:
           this.currentAttrs.fg = this.getColorName(arg - 30);
           break;
         case 39: // Default foreground
           delete this.currentAttrs.fg;
           break;
         // Background colors
-        case 40: case 41: case 42: case 43:
-        case 44: case 45: case 46: case 47:
+        case 40:
+        case 41:
+        case 42:
+        case 43:
+        case 44:
+        case 45:
+        case 46:
+        case 47:
           this.currentAttrs.bg = this.getColorName(arg - 40);
           break;
         case 49: // Default background
           delete this.currentAttrs.bg;
           break;
         // Bright foreground colors
-        case 90: case 91: case 92: case 93:
-        case 94: case 95: case 96: case 97:
+        case 90:
+        case 91:
+        case 92:
+        case 93:
+        case 94:
+        case 95:
+        case 96:
+        case 97:
           this.currentAttrs.fg = this.getColorName(arg - 90, true);
           break;
         // Bright background colors
-        case 100: case 101: case 102: case 103:
-        case 104: case 105: case 106: case 107:
+        case 100:
+        case 101:
+        case 102:
+        case 103:
+        case 104:
+        case 105:
+        case 106:
+        case 107:
           this.currentAttrs.bg = this.getColorName(arg - 100, true);
           break;
       }
@@ -389,9 +413,7 @@ export class TerminalBuffer {
    * Get current buffer as text
    */
   getText(): string {
-    return this.buffer.map(row =>
-      row.map(cell => cell.char).join('')
-    ).join('\n');
+    return this.buffer.map((row) => row.map((cell) => cell.char).join('')).join('\n');
   }
 
   /**
@@ -480,7 +502,7 @@ export class TerminalDiffer {
               row,
               col,
               text,
-              length
+              length,
             });
 
             // Skip the cells we just processed
@@ -490,33 +512,33 @@ export class TerminalDiffer {
       }
     } else {
       // First update - send everything as one big change
-      const text = currentBuffer.map(row =>
-        row.map(cell => cell.char).join('')
-      ).join('\n');
+      const text = currentBuffer.map((row) => row.map((cell) => cell.char).join('')).join('\n');
 
       if (text.trim()) {
         changes.push({
           row: 0,
           col: 0,
-          text
+          text,
         });
       }
     }
 
     // Save current buffer for next diff
-    this.lastSentBuffer = currentBuffer.map(row => [...row]);
+    this.lastSentBuffer = currentBuffer.map((row) => [...row]);
 
     return changes;
   }
 
   private cellsEqual(a: Cell, b: Cell): boolean {
-    return a.char === b.char &&
-           a.fg === b.fg &&
-           a.bg === b.bg &&
-           a.bold === b.bold &&
-           a.dim === b.dim &&
-           a.italic === b.italic &&
-           a.underline === b.underline;
+    return (
+      a.char === b.char &&
+      a.fg === b.fg &&
+      a.bg === b.bg &&
+      a.bold === b.bold &&
+      a.dim === b.dim &&
+      a.italic === b.italic &&
+      a.underline === b.underline
+    );
   }
 
   /**

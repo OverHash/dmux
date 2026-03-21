@@ -89,7 +89,7 @@ export class SpacerManager {
       const scriptPath = resolveDistPath('spacer-pane.js');
 
       const newPaneId = this.tmuxService.splitPaneSync({
-        command: `node '${scriptPath}'`
+        command: `node '${scriptPath}'`,
       });
 
       // Set the pane title to identify it as a spacer
@@ -154,7 +154,7 @@ export class SpacerManager {
     // Calculate number of panes in last row (row-based layout)
     // For 5 panes in 3 cols: (5 % 3) || 3 = 2 (last row has 2 panes)
     // For 6 panes in 3 cols: (6 % 3) || 3 = 3 (last row is full)
-    const panesInLastRow = (numContentPanes % cols) || cols;
+    const panesInLastRow = numContentPanes % cols || cols;
 
     // If last row is full, no spacer needed
     if (panesInLastRow === cols) return false;
@@ -167,10 +167,10 @@ export class SpacerManager {
     // Calculate width per pane if we distribute evenly
     const widthPerPane = availableWidth / panesInLastRow;
 
-  //     LogService.getInstance().debug(
-  //       `Spacer check: ${panesInLastRow} panes in last row, ${Math.round(availableWidth)} available width, ${Math.round(widthPerPane)} per pane (max: ${this.config.MAX_COMFORTABLE_WIDTH})`,
-  //       'Layout'
-  //     );
+    //     LogService.getInstance().debug(
+    //       `Spacer check: ${panesInLastRow} panes in last row, ${Math.round(availableWidth)} available width, ${Math.round(widthPerPane)} per pane (max: ${this.config.MAX_COMFORTABLE_WIDTH})`,
+    //       'Layout'
+    //     );
 
     // Need spacer if distributing width evenly would exceed comfortable width
     if (widthPerPane <= this.config.MAX_COMFORTABLE_WIDTH) {
@@ -185,10 +185,10 @@ export class SpacerManager {
 
     // Only use spacer if it would be wide enough (avoid tmux rejecting tiny panes)
     if (spacerWidth < MIN_SPACER_WIDTH) {
-  //       LogService.getInstance().debug(
-  //         `Spacer would be too narrow (${spacerWidth} < ${MIN_SPACER_WIDTH}), skipping spacer`,
-  //         'Layout'
-  //       );
+      //       LogService.getInstance().debug(
+      //         `Spacer would be too narrow (${spacerWidth} < ${MIN_SPACER_WIDTH}), skipping spacer`,
+      //         'Layout'
+      //       );
       return false;
     }
 

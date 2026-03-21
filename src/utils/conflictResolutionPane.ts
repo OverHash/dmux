@@ -34,9 +34,9 @@ import {
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
 
 export interface ConflictResolutionPaneOptions {
-  sourceBranch: string;      // Branch being merged (the worktree branch)
-  targetBranch: string;      // Branch merging into (usually main)
-  targetRepoPath: string;    // Path to the target repository (where merge will happen)
+  sourceBranch: string; // Branch being merged (the worktree branch)
+  targetBranch: string; // Branch merging into (usually main)
+  targetRepoPath: string; // Path to the target repository (where merge will happen)
   agent: AgentName;
   projectName: string;
   existingPanes: DmuxPane[];
@@ -46,7 +46,7 @@ export interface ConflictResolutionPaneOptions {
  * Create a pane for resolving merge conflicts with AI assistance
  */
 export async function createConflictResolutionPane(
-  options: ConflictResolutionPaneOptions
+  options: ConflictResolutionPaneOptions,
 ): Promise<DmuxPane> {
   const { sourceBranch, targetBranch, targetRepoPath, agent, projectName, existingPanes } = options;
   const tmuxService = TmuxService.getInstance();
@@ -151,7 +151,7 @@ export async function createConflictResolutionPane(
       launchCommand = `${promptBootstrap}; ${buildInitialPromptCommand(
         agent,
         '"$DMUX_PROMPT_CONTENT"',
-        settings.permissionMode
+        settings.permissionMode,
       )}`;
       promptFilePath = null;
     } else {
@@ -163,7 +163,7 @@ export async function createConflictResolutionPane(
       launchCommand = buildInitialPromptCommand(
         agent,
         `"${escapedPrompt}"`,
-        settings.permissionMode
+        settings.permissionMode,
       );
     }
 
@@ -218,7 +218,7 @@ export async function createConflictResolutionPane(
 
   // Re-set the title for the dmux pane
   try {
-    await tmuxService.setPaneTitle(originalPaneId, "dmux");
+    await tmuxService.setPaneTitle(originalPaneId, 'dmux');
   } catch {
     // Ignore if setting title fails
   }
@@ -281,9 +281,7 @@ async function autoApproveTrustPrompt(paneInfo: string): Promise<void> {
       }
 
       // Look for trust prompt using specific patterns only
-      const hasTrustPrompt = trustPromptPatterns.some((pattern) =>
-        pattern.test(paneContent)
-      );
+      const hasTrustPrompt = trustPromptPatterns.some((pattern) => pattern.test(paneContent));
 
       // Only act if we have high confidence it's a trust prompt
       if (hasTrustPrompt && !promptHandled) {
@@ -310,9 +308,7 @@ async function autoApproveTrustPrompt(paneInfo: string): Promise<void> {
 
           const updatedContent = capturePaneContent(paneInfo, 10);
 
-          const promptGone = !trustPromptPatterns.some((p) =>
-            p.test(updatedContent)
-          );
+          const promptGone = !trustPromptPatterns.some((p) => p.test(updatedContent));
 
           if (promptGone) {
             break;

@@ -10,7 +10,7 @@ const ESC = String.fromCharCode(27);
 const PASTE_START = '\x1b[200~';
 const PASTE_END = '\x1b[201~';
 
-const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 async function type(stdin: any, str: string) {
   stdin.write(str);
@@ -18,27 +18,46 @@ async function type(stdin: any, str: string) {
 }
 
 async function left(stdin: any, n = 1) {
-  for (let i = 0; i < n; i++) { stdin.write(`${ESC}[D`); await sleep(2); }
+  for (let i = 0; i < n; i++) {
+    stdin.write(`${ESC}[D`);
+    await sleep(2);
+  }
 }
 async function right(stdin: any, n = 1) {
-  for (let i = 0; i < n; i++) { stdin.write(`${ESC}[C`); await sleep(2); }
+  for (let i = 0; i < n; i++) {
+    stdin.write(`${ESC}[C`);
+    await sleep(2);
+  }
 }
 async function up(stdin: any, n = 1) {
-  for (let i = 0; i < n; i++) { stdin.write(`${ESC}[A`); await sleep(2); }
+  for (let i = 0; i < n; i++) {
+    stdin.write(`${ESC}[A`);
+    await sleep(2);
+  }
 }
 async function down(stdin: any, n = 1) {
-  for (let i = 0; i < n; i++) { stdin.write(`${ESC}[B`); await sleep(2); }
+  for (let i = 0; i < n; i++) {
+    stdin.write(`${ESC}[B`);
+    await sleep(2);
+  }
 }
-async function enter(stdin: any) { stdin.write('\r'); await sleep(5); }
+async function enter(stdin: any) {
+  stdin.write('\r');
+  await sleep(5);
+}
 async function backspace(stdin: any, n = 1) {
-  for (let i = 0; i < n; i++) { stdin.write('\x7f'); await sleep(2); }
+  for (let i = 0; i < n; i++) {
+    stdin.write('\x7f');
+    await sleep(2);
+  }
 }
 
-const Harness: React.FC<{ initial?: string, onSubmit?: (v?: string) => void }>= ({ initial = '', onSubmit }) => {
+const Harness: React.FC<{ initial?: string; onSubmit?: (v?: string) => void }> = ({
+  initial = '',
+  onSubmit,
+}) => {
   const [val, setVal] = useState(initial);
-  return (
-    <CleanTextInput value={val} onChange={setVal} onSubmit={onSubmit} />
-  );
+  return <CleanTextInput value={val} onChange={setVal} onSubmit={onSubmit} />;
 };
 
 describe('CleanTextInput basic editing', () => {
@@ -67,7 +86,8 @@ describe('CleanTextInput basic editing', () => {
 
 describe('CleanTextInput wrapping and movement', () => {
   it.skip('wraps long lines by word boundaries', async () => {
-    const long = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua';
+    const long =
+      'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua';
     const { stdin, lastFrame } = render(<Harness />);
     await sleep(50);
     await type(stdin, long);
@@ -79,7 +99,8 @@ describe('CleanTextInput wrapping and movement', () => {
   });
 
   it.skip('up/down maintain approximate column across wrapped lines', async () => {
-    const base = 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty';
+    const base =
+      'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty';
     const { stdin, lastFrame } = render(<Harness />);
     await sleep(50);
     await type(stdin, base);
@@ -95,7 +116,7 @@ describe('CleanTextInput wrapping and movement', () => {
 describe('CleanTextInput submit vs newline', () => {
   it.skip('enter submits current (expanded) value', async () => {
     let submitted: string | undefined;
-    const { stdin } = render(<Harness initial="hello" onSubmit={(v) => submitted = v} />);
+    const { stdin } = render(<Harness initial="hello" onSubmit={(v) => (submitted = v)} />);
     await sleep(30);
     await enter(stdin);
     expect(submitted).toBe('hello');
@@ -117,9 +138,9 @@ describe('CleanTextInput paste handling', () => {
 
   it.skip('large multi-line paste injects tag then expands on submit', async () => {
     let submitted: string | undefined;
-    const { stdin, lastFrame } = render(<Harness onSubmit={(v) => submitted = v} />);
+    const { stdin, lastFrame } = render(<Harness onSubmit={(v) => (submitted = v)} />);
     await sleep(30);
-    const lines = Array.from({ length: 20 }, (_, i) => `line ${i+1}`).join('\n');
+    const lines = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join('\n');
     const seq = `${PASTE_START}${lines}${PASTE_END}`;
     stdin.write(seq);
     await sleep(50);

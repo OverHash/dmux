@@ -26,14 +26,9 @@ interface ChoicePopupProps {
   options: ChoiceOption[];
 }
 
-const ChoicePopupApp: React.FC<ChoicePopupProps> = ({
-  resultFile,
-  title,
-  message,
-  options,
-}) => {
+const ChoicePopupApp: React.FC<ChoicePopupProps> = ({ resultFile, title, message, options }) => {
   // Find default option or start at 0
-  const defaultIndex = options.findIndex(o => o.default) || 0;
+  const defaultIndex = options.findIndex((o) => o.default) || 0;
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, defaultIndex));
   const { exit } = useApp();
 
@@ -71,7 +66,13 @@ const ChoicePopupApp: React.FC<ChoicePopupProps> = ({
               <Box key={option.id} marginBottom={index < options.length - 1 ? 1 : 0}>
                 <Box flexDirection="column">
                   <Text
-                    color={isSelected ? POPUP_CONFIG.titleColor : option.danger ? POPUP_CONFIG.errorColor : 'white'}
+                    color={
+                      isSelected
+                        ? POPUP_CONFIG.titleColor
+                        : option.danger
+                          ? POPUP_CONFIG.errorColor
+                          : 'white'
+                    }
                     bold={isSelected}
                   >
                     {isSelected ? '▶ ' : '  '}
@@ -122,7 +123,7 @@ function main() {
       title={data.title}
       message={data.message}
       options={data.options}
-    />
+    />,
   );
 }
 

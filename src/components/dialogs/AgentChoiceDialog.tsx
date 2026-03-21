@@ -1,9 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import {
-  getAgentDefinitions,
-  type AgentName,
-} from '../../utils/agentLaunch.js';
+import { getAgentDefinitions, type AgentName } from '../../utils/agentLaunch.js';
 
 interface AgentChoiceDialogProps {
   agentChoice: AgentName | null;

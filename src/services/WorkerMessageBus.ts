@@ -40,7 +40,7 @@ export class WorkerMessageBus extends EventEmitter {
 
     // Notify type-specific subscribers
     const handlers = this.subscribers.get(message.type) || new Set();
-    handlers.forEach(handler => {
+    handlers.forEach((handler) => {
       try {
         handler(paneId, message);
       } catch (error) {
@@ -66,33 +66,27 @@ export class WorkerMessageBus extends EventEmitter {
     return {
       unsubscribe: () => {
         this.subscribers.get(messageType)?.delete(handler);
-      }
+      },
     };
   }
 
   /**
    * Subscribe to multiple message types at once
    */
-  subscribeMultiple(
-    messageTypes: string[],
-    handler: MessageHandler
-  ): MessageSubscription {
-    const subscriptions = messageTypes.map(type => this.subscribe(type, handler));
+  subscribeMultiple(messageTypes: string[], handler: MessageHandler): MessageSubscription {
+    const subscriptions = messageTypes.map((type) => this.subscribe(type, handler));
 
     return {
       unsubscribe: () => {
-        subscriptions.forEach(sub => sub.unsubscribe());
-      }
+        subscriptions.forEach((sub) => sub.unsubscribe());
+      },
     };
   }
 
   /**
    * Wait for a response to a specific request
    */
-  waitForResponse(
-    requestId: string,
-    timeoutMs: number = 5000
-  ): Promise<OutboundMessage> {
+  waitForResponse(requestId: string, timeoutMs: number = 5000): Promise<OutboundMessage> {
     return new Promise((resolve, reject) => {
       // Set up timeout
       const timeout = setTimeout(() => {
@@ -132,10 +126,10 @@ export class WorkerMessageBus extends EventEmitter {
     return {
       subscriptionCount: Array.from(this.subscribers.values()).reduce(
         (sum, set) => sum + set.size,
-        0
+        0,
       ),
       pendingResponses: this.responseHandlers.size,
-      messageTypes: Array.from(this.subscribers.keys())
+      messageTypes: Array.from(this.subscribers.keys()),
     };
   }
 
@@ -144,7 +138,7 @@ export class WorkerMessageBus extends EventEmitter {
    */
   destroy(): void {
     // Clear all timeouts
-    this.requestTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.requestTimeouts.forEach((timeout) => clearTimeout(timeout));
     this.requestTimeouts.clear();
 
     // Clear all handlers

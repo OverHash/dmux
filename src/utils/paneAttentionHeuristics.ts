@@ -50,10 +50,7 @@ const PROMPT_PATTERNS = [
   /^\s*│\s*❯\s*$/,
   /^\s*│\s*›\s*$/,
 ];
-const PROMPT_CONTINUATION_PATTERNS = [
-  /^\s{2,}\S/,
-  /^\s*│\s{2,}\S/,
-];
+const PROMPT_CONTINUATION_PATTERNS = [/^\s{2,}\S/, /^\s*│\s{2,}\S/];
 
 function trimSurroundingEmptyLines(lines: string[]): string[] {
   let start = 0;
@@ -111,7 +108,7 @@ function normalizePromptBlock(lines: string[]): string {
 }
 
 function extractTrailingPromptBlock(
-  content: string
+  content: string,
 ): { prefixLines: string[]; promptLines: string[] } | null {
   const lines = trimSurroundingEmptyLines(content.split('\n'));
   if (lines.length === 0) {
@@ -136,10 +133,7 @@ function extractTrailingPromptBlock(
   return null;
 }
 
-export function buildPaneActivityFingerprint(
-  content: string,
-  maxLines: number = 12
-): string {
+export function buildPaneActivityFingerprint(content: string, maxLines: number = 12): string {
   const lines = trimSurroundingEmptyLines(content.split('\n'));
   if (lines.length === 0) {
     return '';
@@ -164,15 +158,15 @@ export function hasAgentWorkingIndicators(content: string, agent?: AgentName): b
 
   const progressWordPattern = new RegExp(
     `(?:${GENERIC_PROGRESS_WORDS.join('|')})(?:\\b|\\.\\.\\.|…|\\s)`,
-    'i'
+    'i',
   );
   const spinnerLinePattern = new RegExp(
     `^${SPINNER_PREFIX}\\s*(?:${GENERIC_PROGRESS_WORDS.join('|')})(?:\\b|\\.\\.\\.|…|\\s)`,
-    'i'
+    'i',
   );
   const progressSuffixPattern = new RegExp(
     `\\b(?:${GENERIC_PROGRESS_WORDS.join('|')})\\b.*(?:\\.\\.\\.|…|\\d{1,3}%|/\\d+)`,
-    'i'
+    'i',
   );
 
   if (lines.some((line) => spinnerLinePattern.test(line) || progressSuffixPattern.test(line))) {
@@ -181,10 +175,13 @@ export function hasAgentWorkingIndicators(content: string, agent?: AgentName): b
 
   switch (agent) {
     case 'claude':
-      return lines.some((line) =>
-        /claude\s+is\s+working/i.test(line)
-        || /(?:germinating|thinking|planning|writing|reading|analyzing|building|testing|running|searching|reviewing|understanding)[.…]*$/i.test(line)
-        || progressWordPattern.test(line)
+      return lines.some(
+        (line) =>
+          /claude\s+is\s+working/i.test(line) ||
+          /(?:germinating|thinking|planning|writing|reading|analyzing|building|testing|running|searching|reviewing|understanding)[.…]*$/i.test(
+            line,
+          ) ||
+          progressWordPattern.test(line),
       );
     case 'opencode':
     case 'codex':
@@ -211,10 +208,10 @@ export function isLikelyUserTyping(previousContent: string, currentContent: stri
   const currentPromptBlock = extractTrailingPromptBlock(currentContent);
   if (previousPromptBlock || currentPromptBlock) {
     const previousPrefix = normalizeLinesForComparison(
-      previousPromptBlock ? previousPromptBlock.prefixLines : previousContent.split('\n')
+      previousPromptBlock ? previousPromptBlock.prefixLines : previousContent.split('\n'),
     );
     const currentPrefix = normalizeLinesForComparison(
-      currentPromptBlock ? currentPromptBlock.prefixLines : currentContent.split('\n')
+      currentPromptBlock ? currentPromptBlock.prefixLines : currentContent.split('\n'),
     );
 
     if (previousPrefix === currentPrefix) {
@@ -256,12 +253,13 @@ export function isLikelyUserTyping(previousContent: string, currentContent: stri
     const prefixLength = commonPrefixLength(previousLine, currentLine);
     const maxLengthForLine = Math.max(previousLine.length, currentLine.length);
     const mostlySharedPrefix = maxLengthForLine > 0 && prefixLength / maxLengthForLine >= 0.7;
-    const promptLike = looksLikePromptLine(currentLine || previousLine)
-      || looksLikePromptContinuationLine(currentLine || previousLine);
+    const promptLike =
+      looksLikePromptLine(currentLine || previousLine) ||
+      looksLikePromptContinuationLine(currentLine || previousLine);
 
     if (
-      (currentLine.startsWith(previousLine) || previousLine.startsWith(currentLine))
-      && promptLike
+      (currentLine.startsWith(previousLine) || previousLine.startsWith(currentLine)) &&
+      promptLike
     ) {
       return true;
     }

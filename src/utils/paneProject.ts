@@ -17,10 +17,7 @@ export function deriveProjectRootFromWorktreePath(worktreePath?: string): string
  * Resolve a pane's project root using pane metadata first, then worktree path,
  * then the session project root as fallback.
  */
-export function getPaneProjectRoot(
-  pane: DmuxPane,
-  fallbackProjectRoot: string
-): string {
+export function getPaneProjectRoot(pane: DmuxPane, fallbackProjectRoot: string): string {
   const fromPane = pane.projectRoot?.trim();
   if (fromPane) return fromPane;
 
@@ -36,7 +33,7 @@ export function getPaneProjectRoot(
 export function getPaneProjectName(
   pane: DmuxPane,
   fallbackProjectRoot: string,
-  fallbackProjectName?: string
+  fallbackProjectName?: string,
 ): string {
   const fromPane = pane.projectName?.trim();
   if (fromPane) return fromPane;

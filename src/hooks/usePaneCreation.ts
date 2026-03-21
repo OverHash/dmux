@@ -44,15 +44,13 @@ function getParallelPaneCreationLimit(totalAgents: number): number {
   }
 
   const maybeAvailableParallelism = (os as any).availableParallelism;
-  const cpuCount = typeof maybeAvailableParallelism === 'function'
-    ? maybeAvailableParallelism.call(os)
-    : os.cpus().length;
+  const cpuCount =
+    typeof maybeAvailableParallelism === 'function'
+      ? maybeAvailableParallelism.call(os)
+      : os.cpus().length;
   const conservativeLimit = Math.max(1, Math.floor(cpuCount / 2));
 
-  return Math.max(
-    1,
-    Math.min(totalAgents, MAX_PARALLEL_PANE_CREATIONS, conservativeLimit)
-  );
+  return Math.max(1, Math.min(totalAgents, MAX_PARALLEL_PANE_CREATIONS, conservativeLimit));
 }
 
 export default function usePaneCreation({
@@ -77,7 +75,10 @@ export default function usePaneCreation({
       const editorProcess = spawn(editor, [tmpFile], { stdio: 'inherit', shell: true });
       editorProcess.on('close', () => {
         try {
-          const content = fs.readFileSync(tmpFile, 'utf8').replace(/^# Enter your Claude prompt here\s*\n*/m, '').trim();
+          const content = fs
+            .readFileSync(tmpFile, 'utf8')
+            .replace(/^# Enter your Claude prompt here\s*\n*/m, '')
+            .trim();
           setPrompt(content);
           fs.unlinkSync(tmpFile);
           process.stdout.write('\x1b[2J\x1b[H');
@@ -89,7 +90,7 @@ export default function usePaneCreation({
   const createPaneInternal = async (
     prompt: string,
     agent?: AgentName,
-    options: CreateNewPaneOptions = {}
+    options: CreateNewPaneOptions = {},
   ): Promise<DmuxPane> => {
     const panesForCreation = options.existingPanes ?? panes;
     const result = await createPane(
@@ -107,7 +108,7 @@ export default function usePaneCreation({
         sessionProjectRoot,
         sessionConfigPath: panesFile,
       },
-      availableAgents
+      availableAgents,
     );
 
     if (result.needsAgentChoice) {
@@ -120,13 +121,13 @@ export default function usePaneCreation({
   const createNewPane = async (
     prompt: string,
     agent?: AgentName,
-    options: CreateNewPaneOptions = {}
+    options: CreateNewPaneOptions = {},
   ): Promise<DmuxPane | null> => {
     const panesForCreation = options.existingPanes ?? panes;
 
     try {
-      setIsCreatingPane(true)
-      setStatusMessage("Creating pane...")
+      setIsCreatingPane(true);
+      setStatusMessage('Creating pane...');
 
       const pane = await createPaneInternal(prompt, agent, options);
 
@@ -135,17 +136,22 @@ export default function usePaneCreation({
       await savePanes(updatedPanes);
 
       await loadPanes();
-      setStatusMessage("Pane created")
-      setTimeout(() => setStatusMessage(""), 2000)
+      setStatusMessage('Pane created');
+      setTimeout(() => setStatusMessage(''), 2000);
       return pane;
     } catch (error) {
       const msg = 'Failed to create pane';
-      LogService.getInstance().error(msg, 'usePaneCreation', undefined, error instanceof Error ? error : undefined);
+      LogService.getInstance().error(
+        msg,
+        'usePaneCreation',
+        undefined,
+        error instanceof Error ? error : undefined,
+      );
       setStatusMessage(`Failed to create pane: ${error}`);
       setTimeout(() => setStatusMessage(''), 3000);
       return null;
     } finally {
-      setIsCreatingPane(false)
+      setIsCreatingPane(false);
     }
   };
 
@@ -155,11 +161,11 @@ export default function usePaneCreation({
     options: Pick<
       CreateNewPaneOptions,
       'existingPanes' | 'targetProjectRoot' | 'startPointBranch' | 'mergeTargetChain'
-    > = {}
+    > = {},
   ): Promise<DmuxPane[]> => {
     const panesForCreation = options.existingPanes ?? panes;
     const dedupedAgents = selectedAgents.filter(
-      (agent, index) => selectedAgents.indexOf(agent) === index
+      (agent, index) => selectedAgents.indexOf(agent) === index,
     );
 
     if (dedupedAgents.length === 0) {
@@ -173,11 +179,11 @@ export default function usePaneCreation({
     try {
       setIsCreatingPane(true);
       if (parallelLimit > 1) {
-        setStatusMessage(
-          `Creating ${dedupedAgents.length} panes (${parallelLimit} parallel)...`
-        );
+        setStatusMessage(`Creating ${dedupedAgents.length} panes (${parallelLimit} parallel)...`);
       } else {
-        setStatusMessage(`Creating ${dedupedAgents.length} pane${dedupedAgents.length === 1 ? '' : 's'}...`);
+        setStatusMessage(
+          `Creating ${dedupedAgents.length} pane${dedupedAgents.length === 1 ? '' : 's'}...`,
+        );
       }
 
       const createdByIndex: Array<DmuxPane | null> = new Array(dedupedAgents.length).fill(null);
@@ -206,9 +212,7 @@ export default function usePaneCreation({
           const agentResultIndex = currentTaskIndex + 1;
 
           try {
-            const createdSoFar = createdByIndex.filter(
-              (pane): pane is DmuxPane => pane !== null
-            );
+            const createdSoFar = createdByIndex.filter((pane): pane is DmuxPane => pane !== null);
             const pane = await createPaneInternal(prompt, selectedAgent, {
               existingPanes: [...panesForCreation, ...createdSoFar],
               slugSuffix: getAgentSlugSuffix(selectedAgent),
@@ -224,7 +228,7 @@ export default function usePaneCreation({
               `Failed to create pane for agent ${selectedAgent}`,
               'usePaneCreation',
               undefined,
-              error instanceof Error ? error : undefined
+              error instanceof Error ? error : undefined,
             );
           }
         }
@@ -232,9 +236,7 @@ export default function usePaneCreation({
 
       await Promise.all(workers);
 
-      const createdPanes = createdByIndex.filter(
-        (pane): pane is DmuxPane => pane !== null
-      );
+      const createdPanes = createdByIndex.filter((pane): pane is DmuxPane => pane !== null);
 
       if (createdPanes.length > 0) {
         const updatedPanes = [...panesForCreation, ...createdPanes];
@@ -244,14 +246,14 @@ export default function usePaneCreation({
 
       if (failures.length > 0) {
         setStatusMessage(
-          `Created ${createdPanes.length}/${dedupedAgents.length} panes (${failures.length} failed)`
+          `Created ${createdPanes.length}/${dedupedAgents.length} panes (${failures.length} failed)`,
         );
       } else {
         setStatusMessage(
-          `Created ${createdPanes.length} pane${createdPanes.length === 1 ? '' : 's'}`
+          `Created ${createdPanes.length} pane${createdPanes.length === 1 ? '' : 's'}`,
         );
       }
-      setTimeout(() => setStatusMessage(""), 3000);
+      setTimeout(() => setStatusMessage(''), 3000);
 
       return createdPanes;
     } catch (error) {
@@ -259,7 +261,7 @@ export default function usePaneCreation({
         'Failed to create panes',
         'usePaneCreation',
         undefined,
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
       setStatusMessage(`Failed to create panes: ${error}`);
       setTimeout(() => setStatusMessage(''), 3000);

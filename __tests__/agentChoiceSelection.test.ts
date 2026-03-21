@@ -6,11 +6,7 @@ describe('resolveAgentsToLaunchOnEnter', () => {
   const availableAgents: AgentName[] = ['claude', 'codex', 'opencode'];
 
   it('launches focused agent when no agents are selected', () => {
-    const result = resolveAgentsToLaunchOnEnter(
-      availableAgents,
-      new Set<AgentName>(),
-      1
-    );
+    const result = resolveAgentsToLaunchOnEnter(availableAgents, new Set<AgentName>(), 1);
 
     expect(result).toEqual(['codex']);
   });
@@ -19,7 +15,7 @@ describe('resolveAgentsToLaunchOnEnter', () => {
     const result = resolveAgentsToLaunchOnEnter(
       availableAgents,
       new Set<AgentName>(['opencode', 'claude']),
-      1
+      1,
     );
 
     // Preserve UI order, not set insertion order.
@@ -27,11 +23,7 @@ describe('resolveAgentsToLaunchOnEnter', () => {
   });
 
   it('returns empty when focus is out of range and nothing is selected', () => {
-    const result = resolveAgentsToLaunchOnEnter(
-      availableAgents,
-      new Set<AgentName>(),
-      999
-    );
+    const result = resolveAgentsToLaunchOnEnter(availableAgents, new Set<AgentName>(), 999);
 
     expect(result).toEqual([]);
   });

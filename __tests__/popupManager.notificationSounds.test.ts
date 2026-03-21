@@ -3,9 +3,7 @@ import { PopupManager, type PopupManagerConfig } from '../src/services/PopupMana
 import type { AgentName } from '../src/utils/agentLaunch.js';
 import type { NotificationSoundId } from '../src/utils/notificationSounds.js';
 
-function createPopupManager(
-  enabledNotificationSounds?: NotificationSoundId[]
-): PopupManager {
+function createPopupManager(enabledNotificationSounds?: NotificationSoundId[]): PopupManager {
   const config: PopupManagerConfig = {
     sidebarWidth: 40,
     projectRoot: '/tmp/project',
@@ -23,7 +21,11 @@ function createPopupManager(
     trackProjectActivity: async (work) => await work(),
   };
 
-  return new PopupManager(config, () => {}, () => {});
+  return new PopupManager(
+    config,
+    () => {},
+    () => {},
+  );
 }
 
 describe('PopupManager launchNotificationSoundsPopup', () => {
@@ -60,7 +62,7 @@ describe('PopupManager launchNotificationSoundsPopup', () => {
           }),
         ]),
       }),
-      undefined
+      undefined,
     );
 
     expect(result).toEqual({

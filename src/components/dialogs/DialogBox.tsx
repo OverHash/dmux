@@ -4,7 +4,14 @@ import { Box } from 'ink';
 interface DialogBoxProps {
   children: React.ReactNode;
   borderColor?: string;
-  borderStyle?: 'single' | 'double' | 'round' | 'bold' | 'singleDouble' | 'doubleSingle' | 'classic';
+  borderStyle?:
+    | 'single'
+    | 'double'
+    | 'round'
+    | 'bold'
+    | 'singleDouble'
+    | 'doubleSingle'
+    | 'classic';
   paddingX?: number;
   paddingY?: number;
   marginTop?: number;

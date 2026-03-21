@@ -16,11 +16,7 @@ import { SIDEBAR_WIDTH } from '../../utils/layoutManager.js';
 import { resolveEnabledAgentsSelection } from '../../utils/agentLaunch.js';
 import { resolveNotificationSoundsSelection } from '../../utils/notificationSounds.js';
 import { POPUP_CONFIG } from './config.js';
-import {
-  PopupWrapper,
-  writeSuccessAndExit,
-  writeCancelAndExit,
-} from './shared/index.js';
+import { PopupWrapper, writeSuccessAndExit, writeCancelAndExit } from './shared/index.js';
 
 interface SettingsPopupProps {
   resultFile: string;
@@ -52,8 +48,12 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
   const [mode, setMode] = useState<'list' | 'edit' | 'scope'>('list');
   const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);
   const [currentSettings, setCurrentSettings] = useState<DmuxSettings>({ ...settings });
-  const [currentGlobalSettings, setCurrentGlobalSettings] = useState<DmuxSettings>({ ...globalSettings });
-  const [currentProjectSettings, setCurrentProjectSettings] = useState<DmuxSettings>({ ...projectSettings });
+  const [currentGlobalSettings, setCurrentGlobalSettings] = useState<DmuxSettings>({
+    ...globalSettings,
+  });
+  const [currentProjectSettings, setCurrentProjectSettings] = useState<DmuxSettings>({
+    ...projectSettings,
+  });
   const pendingUpdatesRef = useRef<PendingSettingUpdate[]>([]);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingPreviewUpdateRef = useRef<PendingSettingUpdate | null>(null);
@@ -66,7 +66,7 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
   const [scopeIndex, setScopeIndex] = useState(0);
   const { exit } = useApp();
 
-  const currentDef = editingKey ? settingDefinitions.find(d => d.key === editingKey) : null;
+  const currentDef = editingKey ? settingDefinitions.find((d) => d.key === editingKey) : null;
 
   const isTextEditing = mode === 'edit' && currentDef?.type === 'text';
 
@@ -105,7 +105,7 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
 
   const upsertPendingUpdate = (update: PendingSettingUpdate) => {
     const next = pendingUpdatesRef.current.filter(
-      item => !(item.key === update.key && item.scope === update.scope)
+      (item) => !(item.key === update.key && item.scope === update.scope),
     );
     next.push(update);
     pendingUpdatesRef.current = next;
@@ -117,8 +117,10 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
     const nextProjectSettings: DmuxSettings = { ...currentProjectSettings };
 
     if (update.key === 'minPaneWidth' || update.key === 'maxPaneWidth') {
-      let minPaneWidth = typeof nextSettings.minPaneWidth === 'number' ? nextSettings.minPaneWidth : 50;
-      let maxPaneWidth = typeof nextSettings.maxPaneWidth === 'number' ? nextSettings.maxPaneWidth : 80;
+      let minPaneWidth =
+        typeof nextSettings.minPaneWidth === 'number' ? nextSettings.minPaneWidth : 50;
+      let maxPaneWidth =
+        typeof nextSettings.maxPaneWidth === 'number' ? nextSettings.maxPaneWidth : 80;
 
       if (update.key === 'minPaneWidth') {
         minPaneWidth = update.value;
@@ -170,7 +172,9 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
     }
   };
 
-  const persistWidthUpdate = async (update: PendingSettingUpdate): Promise<PendingSettingUpdate> => {
+  const persistWidthUpdate = async (
+    update: PendingSettingUpdate,
+  ): Promise<PendingSettingUpdate> => {
     try {
       const manager = new SettingsManager(projectRoot || process.cwd());
       manager.updateSetting(update.key as keyof DmuxSettings, update.value, 'global');
@@ -261,8 +265,8 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
     widthEditBaselineRef.current = null;
 
     const hasChanged =
-      currentSettings.minPaneWidth !== baseline.minPaneWidth
-      || currentSettings.maxPaneWidth !== baseline.maxPaneWidth;
+      currentSettings.minPaneWidth !== baseline.minPaneWidth ||
+      currentSettings.maxPaneWidth !== baseline.maxPaneWidth;
     if (!hasChanged) {
       return;
     }
@@ -274,7 +278,7 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
           minPaneWidth: baseline.minPaneWidth,
           maxPaneWidth: baseline.maxPaneWidth,
         },
-        'global'
+        'global',
       );
       const merged = manager.getSettings();
       setCurrentSettings(merged);
@@ -312,7 +316,7 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
   }, []);
 
   const writeSuccessWithPendingAndExit = (
-    primary: Partial<PendingSettingUpdate> & { action?: string } = {}
+    primary: Partial<PendingSettingUpdate> & { action?: string } = {},
   ) => {
     const data: any = { ...primary };
     if (pendingUpdatesRef.current.length > 0) {
@@ -380,25 +384,22 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
       if (mode === 'list') {
         setSelectedIndex(Math.min(settingDefinitions.length - 1, selectedIndex + 1));
       } else if (mode === 'edit') {
-        const currentDef = settingDefinitions.find(d => d.key === editingKey);
+        const currentDef = settingDefinitions.find((d) => d.key === editingKey);
         if (currentDef && (currentDef.type === 'boolean' || currentDef.type === 'select')) {
-          const maxIndex = currentDef.type === 'boolean' ? 1 : (currentDef.options?.length || 1) - 1;
+          const maxIndex =
+            currentDef.type === 'boolean' ? 1 : (currentDef.options?.length || 1) - 1;
           setEditingValueIndex(Math.min(maxIndex, editingValueIndex + 1));
         }
       } else if (mode === 'scope') {
         setScopeIndex(Math.min(1, scopeIndex + 1));
       }
-    } else if (
-      mode === 'edit' &&
-      currentDef?.type === 'number' &&
-      (isLeftArrow || isRightArrow)
-    ) {
+    } else if (mode === 'edit' && currentDef?.type === 'number' && (isLeftArrow || isRightArrow)) {
       const baseStep = currentDef.step ?? 1;
       const shiftStep = currentDef.shiftStep ?? 10;
       const delta = isRightArrow ? 1 : -1;
       const appliedStep = isShiftArrow ? shiftStep : baseStep;
       setNumberValue((prev) => {
-        const nextValue = clampNumberValue(prev + (delta * appliedStep), currentDef);
+        const nextValue = clampNumberValue(prev + delta * appliedStep, currentDef);
         if (currentDef.key === 'minPaneWidth' || currentDef.key === 'maxPaneWidth') {
           queueWidthPreviewUpdate({
             key: currentDef.key,
@@ -426,8 +427,10 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
           (currentDef.key === 'minPaneWidth' || currentDef.key === 'maxPaneWidth')
         ) {
           widthEditBaselineRef.current = {
-            minPaneWidth: typeof currentSettings.minPaneWidth === 'number' ? currentSettings.minPaneWidth : 50,
-            maxPaneWidth: typeof currentSettings.maxPaneWidth === 'number' ? currentSettings.maxPaneWidth : 80,
+            minPaneWidth:
+              typeof currentSettings.minPaneWidth === 'number' ? currentSettings.minPaneWidth : 50,
+            maxPaneWidth:
+              typeof currentSettings.maxPaneWidth === 'number' ? currentSettings.maxPaneWidth : 80,
           };
           pendingPreviewUpdateRef.current = null;
           clearPreviewTimer();
@@ -439,14 +442,17 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
         if (currentDef.type === 'boolean') {
           setEditingValueIndex(currentValue ? 0 : 1);
         } else if (currentDef.type === 'select' && currentDef.options) {
-          const optIndex = currentDef.options.findIndex(o => o.value === currentValue);
+          const optIndex = currentDef.options.findIndex((o) => o.value === currentValue);
           setEditingValueIndex(Math.max(0, optIndex));
         } else if (currentDef.type === 'text') {
           setTextValue(typeof currentValue === 'string' ? currentValue : '');
         } else if (currentDef.type === 'number') {
-          const initialValue = typeof currentValue === 'number'
-            ? currentValue
-            : (typeof currentDef.min === 'number' ? currentDef.min : 0);
+          const initialValue =
+            typeof currentValue === 'number'
+              ? currentValue
+              : typeof currentDef.min === 'number'
+                ? currentDef.min
+                : 0;
           setNumberValue(clampNumberValue(initialValue, currentDef));
         }
       } else if (mode === 'edit') {
@@ -475,7 +481,7 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
         setScopeIndex(0);
       } else if (mode === 'scope') {
         // Save the setting
-        const currentDef = settingDefinitions.find(d => d.key === editingKey);
+        const currentDef = settingDefinitions.find((d) => d.key === editingKey);
         if (currentDef && currentDef.type !== 'action') {
           const scope = scopeIndex === 0 ? 'global' : 'project';
 
@@ -507,160 +513,189 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
         {mode === 'list' && (
           <>
             {settingDefinitions.map((def, index) => {
-            const isSelected = index === selectedIndex;
+              const isSelected = index === selectedIndex;
 
-            // Handle action type differently - no value display
-            if (def.type === 'action') {
-              const actionSummary = getActionSummary(def.key);
+              // Handle action type differently - no value display
+              if (def.type === 'action') {
+                const actionSummary = getActionSummary(def.key);
+                return (
+                  <Box key={def.key}>
+                    <Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
+                      {isSelected ? '▶ ' : '  '}
+                      {def.label}
+                    </Text>
+                    <Text color={isSelected ? 'cyan' : 'gray'} dimColor={!isSelected}>
+                      {' '}
+                      ({actionSummary ? `${actionSummary} • ` : ''}press Enter)
+                    </Text>
+                  </Box>
+                );
+              }
+
+              const currentValue = currentSettings[def.key as keyof DmuxSettings];
+              const isProjectOverride = def.key in currentProjectSettings;
+              const isGlobalSetting = def.key in currentGlobalSettings;
+
+              let displayValue: string;
+              let scopeLabel: string;
+
+              if (currentValue === undefined || currentValue === null) {
+                displayValue = 'none';
+                scopeLabel = '';
+              } else {
+                if (def.type === 'boolean') {
+                  displayValue = currentValue ? 'on' : 'off';
+                } else if (def.type === 'select' && def.options) {
+                  const option = def.options.find((o) => o.value === currentValue);
+                  displayValue = option?.label || 'none';
+                } else {
+                  displayValue = String(currentValue) || 'none';
+                }
+
+                if (def.key === 'minPaneWidth' || def.key === 'maxPaneWidth') {
+                  scopeLabel = ' - global';
+                } else {
+                  scopeLabel = isProjectOverride
+                    ? ' - project'
+                    : isGlobalSetting
+                      ? ' - global'
+                      : '';
+                }
+              }
+
               return (
                 <Box key={def.key}>
-                  <Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
+                  <Text color={isSelected ? POPUP_CONFIG.titleColor : 'white'} bold={isSelected}>
                     {isSelected ? '▶ ' : '  '}
                     {def.label}
                   </Text>
-                  <Text color={isSelected ? 'cyan' : 'gray'} dimColor={!isSelected}>
-                    {' '}({actionSummary ? `${actionSummary} • ` : ''}press Enter)
+                  <Text
+                    color={isSelected ? POPUP_CONFIG.titleColor : 'gray'}
+                    dimColor={!isSelected}
+                  >
+                    {' '}
+                    ({displayValue}
+                    {scopeLabel})
                   </Text>
                 </Box>
               );
-            }
+            })}
+            <Box marginTop={1}>
+              <Text dimColor>↑↓ to navigate • Enter to select • ESC to close</Text>
+            </Box>
+          </>
+        )}
 
-            const currentValue = currentSettings[def.key as keyof DmuxSettings];
-            const isProjectOverride = def.key in currentProjectSettings;
-            const isGlobalSetting = def.key in currentGlobalSettings;
+        {mode === 'edit' && currentDef && (
+          <>
+            <Box marginBottom={1}>
+              <Text bold>{currentDef.label}</Text>
+            </Box>
+            <Box marginBottom={1}>
+              <Text dimColor>{currentDef.description}</Text>
+            </Box>
 
-            let displayValue: string;
-            let scopeLabel: string;
-
-            if (currentValue === undefined || currentValue === null) {
-              displayValue = 'none';
-              scopeLabel = '';
-            } else {
-              if (def.type === 'boolean') {
-                displayValue = currentValue ? 'on' : 'off';
-              } else if (def.type === 'select' && def.options) {
-                const option = def.options.find(o => o.value === currentValue);
-                displayValue = option?.label || 'none';
-              } else {
-                displayValue = String(currentValue) || 'none';
-              }
-
-              if (def.key === 'minPaneWidth' || def.key === 'maxPaneWidth') {
-                scopeLabel = ' - global';
-              } else {
-                scopeLabel = isProjectOverride ? ' - project' : (isGlobalSetting ? ' - global' : '');
-              }
-            }
-
-            return (
-              <Box key={def.key}>
-                <Text color={isSelected ? POPUP_CONFIG.titleColor : 'white'} bold={isSelected}>
-                  {isSelected ? '▶ ' : '  '}
-                  {def.label}
-                </Text>
-                <Text color={isSelected ? POPUP_CONFIG.titleColor : 'gray'} dimColor={!isSelected}>
-                  {' '}({displayValue}{scopeLabel})
-                </Text>
-              </Box>
-            );
-          })}
-          <Box marginTop={1}>
-            <Text dimColor>↑↓ to navigate • Enter to select • ESC to close</Text>
-          </Box>
-        </>
-      )}
-
-      {mode === 'edit' && currentDef && (
-        <>
-          <Box marginBottom={1}>
-            <Text bold>{currentDef.label}</Text>
-          </Box>
-          <Box marginBottom={1}>
-            <Text dimColor>{currentDef.description}</Text>
-          </Box>
-
-          {currentDef.type === 'boolean' && (
-            <>
-              <Box>
-                <Text color={editingValueIndex === 0 ? POPUP_CONFIG.titleColor : 'white'} bold={editingValueIndex === 0}>
-                  {editingValueIndex === 0 ? '▶ ' : '  '}Enable
-                </Text>
-              </Box>
-              <Box>
-                <Text color={editingValueIndex === 1 ? POPUP_CONFIG.titleColor : 'white'} bold={editingValueIndex === 1}>
-                  {editingValueIndex === 1 ? '▶ ' : '  '}Disable
-                </Text>
-              </Box>
-            </>
-          )}
-
-          {currentDef.type === 'select' && currentDef.options && (
-            <>
-              {currentDef.options.map((option, index) => (
-                <Box key={option.value}>
-                  <Text color={editingValueIndex === index ? POPUP_CONFIG.titleColor : 'white'} bold={editingValueIndex === index}>
-                    {editingValueIndex === index ? '▶ ' : '  '}{option.label}
+            {currentDef.type === 'boolean' && (
+              <>
+                <Box>
+                  <Text
+                    color={editingValueIndex === 0 ? POPUP_CONFIG.titleColor : 'white'}
+                    bold={editingValueIndex === 0}
+                  >
+                    {editingValueIndex === 0 ? '▶ ' : '  '}Enable
                   </Text>
                 </Box>
-              ))}
-            </>
-          )}
+                <Box>
+                  <Text
+                    color={editingValueIndex === 1 ? POPUP_CONFIG.titleColor : 'white'}
+                    bold={editingValueIndex === 1}
+                  >
+                    {editingValueIndex === 1 ? '▶ ' : '  '}Disable
+                  </Text>
+                </Box>
+              </>
+            )}
 
-          {currentDef.type === 'text' && (
-            <Box>
-              <Text>{'> '}</Text>
-              <TextInput
-                value={textValue}
-                onChange={setTextValue}
-                onSubmit={() => { setMode('scope'); setScopeIndex(0); }}
-                placeholder="Leave empty for default"
-              />
-            </Box>
-          )}
+            {currentDef.type === 'select' && currentDef.options && (
+              <>
+                {currentDef.options.map((option, index) => (
+                  <Box key={option.value}>
+                    <Text
+                      color={editingValueIndex === index ? POPUP_CONFIG.titleColor : 'white'}
+                      bold={editingValueIndex === index}
+                    >
+                      {editingValueIndex === index ? '▶ ' : '  '}
+                      {option.label}
+                    </Text>
+                  </Box>
+                ))}
+              </>
+            )}
 
-          {currentDef.type === 'number' && (
-            <Box>
-              <Text color={POPUP_CONFIG.titleColor} bold>{numberValue}</Text>
-              <Text dimColor> chars</Text>
-            </Box>
-          )}
+            {currentDef.type === 'text' && (
+              <Box>
+                <Text>{'> '}</Text>
+                <TextInput
+                  value={textValue}
+                  onChange={setTextValue}
+                  onSubmit={() => {
+                    setMode('scope');
+                    setScopeIndex(0);
+                  }}
+                  placeholder="Leave empty for default"
+                />
+              </Box>
+            )}
 
-          <Box marginTop={1}>
-            <Text dimColor>
-              {
-                currentDef.type === 'text'
+            {currentDef.type === 'number' && (
+              <Box>
+                <Text color={POPUP_CONFIG.titleColor} bold>
+                  {numberValue}
+                </Text>
+                <Text dimColor> chars</Text>
+              </Box>
+            )}
+
+            <Box marginTop={1}>
+              <Text dimColor>
+                {currentDef.type === 'text'
                   ? 'Type value • Enter scope • ESC back'
                   : currentDef.type === 'number'
                     ? '←→ adjust • Shift+←→ ±10 • Enter apply • ESC back'
-                    : '↑↓ choose • Enter scope • ESC back'
-              }
-            </Text>
-          </Box>
-        </>
-      )}
+                    : '↑↓ choose • Enter scope • ESC back'}
+              </Text>
+            </Box>
+          </>
+        )}
 
-      {mode === 'scope' && currentDef && (
-        <>
-          <Box marginBottom={1}>
-            <Text bold>Save {currentDef.label} as:</Text>
-          </Box>
+        {mode === 'scope' && currentDef && (
+          <>
+            <Box marginBottom={1}>
+              <Text bold>Save {currentDef.label} as:</Text>
+            </Box>
 
-          <Box>
-            <Text color={scopeIndex === 0 ? POPUP_CONFIG.titleColor : 'white'} bold={scopeIndex === 0}>
-              {scopeIndex === 0 ? '▶ ' : '  '}Global (all projects)
-            </Text>
-          </Box>
-          <Box>
-            <Text color={scopeIndex === 1 ? POPUP_CONFIG.titleColor : 'white'} bold={scopeIndex === 1}>
-              {scopeIndex === 1 ? '▶ ' : '  '}Project only
-            </Text>
-          </Box>
+            <Box>
+              <Text
+                color={scopeIndex === 0 ? POPUP_CONFIG.titleColor : 'white'}
+                bold={scopeIndex === 0}
+              >
+                {scopeIndex === 0 ? '▶ ' : '  '}Global (all projects)
+              </Text>
+            </Box>
+            <Box>
+              <Text
+                color={scopeIndex === 1 ? POPUP_CONFIG.titleColor : 'white'}
+                bold={scopeIndex === 1}
+              >
+                {scopeIndex === 1 ? '▶ ' : '  '}Project only
+              </Text>
+            </Box>
 
-          <Box marginTop={1}>
-            <Text dimColor>↑↓ to navigate • Enter to save • ESC to back</Text>
-          </Box>
-        </>
-      )}
+            <Box marginTop={1}>
+              <Text dimColor>↑↓ to navigate • Enter to save • ESC to back</Text>
+            </Box>
+          </>
+        )}
       </Box>
     </PopupWrapper>
   );
@@ -703,7 +738,7 @@ function main() {
       projectRoot={data.projectRoot}
       controlPaneId={data.controlPaneId}
       selectedIndex={data.selectedIndex}
-    />
+    />,
   );
 }
 

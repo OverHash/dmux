@@ -13,7 +13,7 @@ import { SIDEBAR_WIDTH } from './layoutManager.js';
  */
 export async function createWelcomePane(
   controlPaneId: string,
-  cwd?: string
+  cwd?: string,
 ): Promise<string | undefined> {
   const logService = LogService.getInstance();
   const tmuxService = TmuxService.getInstance();
@@ -30,13 +30,13 @@ export async function createWelcomePane(
 
     // Set pane title
     try {
-      await tmuxService.setPaneTitle(welcomePaneId, "Welcome");
+      await tmuxService.setPaneTitle(welcomePaneId, 'Welcome');
     } catch {
       // Ignore title errors
     }
 
     // Wait for the shell to initialize in the new pane
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Render the ASCII art in the pane
     await renderAsciiArt({
@@ -45,7 +45,7 @@ export async function createWelcomePane(
     });
 
     // Give the script time to start
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     // Welcome pane uses full terminal dimensions
     // CRITICAL: Use main-vertical layout to lock sidebar at fixed width
@@ -73,7 +73,12 @@ export async function createWelcomePane(
 
     return welcomePaneId;
   } catch (error) {
-    logService.error('Failed to create welcome pane', 'WelcomePane', undefined, error instanceof Error ? error : undefined);
+    logService.error(
+      'Failed to create welcome pane',
+      'WelcomePane',
+      undefined,
+      error instanceof Error ? error : undefined,
+    );
     return undefined;
   }
 }

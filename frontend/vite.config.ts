@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [vue()],
   root: 'src',
   build: {
-    outDir: '../../dist',  // Build to root dist/
-    emptyOutDir: false,     // Don't empty - TypeScript also uses this dir
+    outDir: '../../dist', // Build to root dist/
+    emptyOutDir: false, // Don't empty - TypeScript also uses this dir
     rollupOptions: {
       input: {
         dashboard: resolve(__dirname, 'src/dashboard.html'),

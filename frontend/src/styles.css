@@ -38,7 +38,7 @@
   --idle-badge-border: rgba(255, 255, 255, 0.1);
 }
 
-[data-theme="light"] {
+[data-theme='light'] {
   /* Light theme */
   --bg-gradient-start: #f0f4f8;
   --bg-gradient-mid: #e6eef5;
@@ -73,23 +73,47 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes slideInFromTop {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(
+    135deg,
+    var(--bg-gradient-start) 0%,
+    var(--bg-gradient-mid) 50%,
+    var(--bg-gradient-end) 100%
+  );
   background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
@@ -97,7 +121,9 @@ body {
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
 }
 
 .container {
@@ -221,12 +247,24 @@ main {
   overflow: hidden;
 }
 
-.pane-card:nth-child(1) { animation-delay: 0.1s; }
-.pane-card:nth-child(2) { animation-delay: 0.15s; }
-.pane-card:nth-child(3) { animation-delay: 0.2s; }
-.pane-card:nth-child(4) { animation-delay: 0.25s; }
-.pane-card:nth-child(5) { animation-delay: 0.3s; }
-.pane-card:nth-child(6) { animation-delay: 0.35s; }
+.pane-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.pane-card:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.pane-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.pane-card:nth-child(4) {
+  animation-delay: 0.25s;
+}
+.pane-card:nth-child(5) {
+  animation-delay: 0.3s;
+}
+.pane-card:nth-child(6) {
+  animation-delay: 0.35s;
+}
 
 .pane-header {
   margin-bottom: 16px;
@@ -368,7 +406,7 @@ main {
 .pane-agent.claude {
   background: rgba(217, 119, 87, 0.15);
   border-color: rgba(217, 119, 87, 0.3);
-  color: #D97757;
+  color: #d97757;
 }
 
 .pane-agent.opencode {
@@ -665,7 +703,9 @@ main {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .prompt-input-wrapper {
@@ -878,38 +918,96 @@ footer {
 }
 
 /* Terminal text colors */
-.term-fg-black { color: #000000; }
-.term-fg-red { color: #cd3131; }
-.term-fg-green { color: #0dbc79; }
-.term-fg-yellow { color: #e5e510; }
-.term-fg-blue { color: #2472c8; }
-.term-fg-magenta { color: #bc3fbc; }
-.term-fg-cyan { color: #11a8cd; }
-.term-fg-white { color: #e5e5e5; }
+.term-fg-black {
+  color: #000000;
+}
+.term-fg-red {
+  color: #cd3131;
+}
+.term-fg-green {
+  color: #0dbc79;
+}
+.term-fg-yellow {
+  color: #e5e510;
+}
+.term-fg-blue {
+  color: #2472c8;
+}
+.term-fg-magenta {
+  color: #bc3fbc;
+}
+.term-fg-cyan {
+  color: #11a8cd;
+}
+.term-fg-white {
+  color: #e5e5e5;
+}
 
-.term-fg-bright-black { color: #666666; }
-.term-fg-bright-red { color: #f14c4c; }
-.term-fg-bright-green { color: #23d18b; }
-.term-fg-bright-yellow { color: #f5f543; }
-.term-fg-bright-blue { color: #3b8eea; }
-.term-fg-bright-magenta { color: #d670d6; }
-.term-fg-bright-cyan { color: #29b8db; }
-.term-fg-bright-white { color: #ffffff; }
+.term-fg-bright-black {
+  color: #666666;
+}
+.term-fg-bright-red {
+  color: #f14c4c;
+}
+.term-fg-bright-green {
+  color: #23d18b;
+}
+.term-fg-bright-yellow {
+  color: #f5f543;
+}
+.term-fg-bright-blue {
+  color: #3b8eea;
+}
+.term-fg-bright-magenta {
+  color: #d670d6;
+}
+.term-fg-bright-cyan {
+  color: #29b8db;
+}
+.term-fg-bright-white {
+  color: #ffffff;
+}
 
-.term-bg-black { background-color: #000000; }
-.term-bg-red { background-color: #cd3131; }
-.term-bg-green { background-color: #0dbc79; }
-.term-bg-yellow { background-color: #e5e510; }
-.term-bg-blue { background-color: #2472c8; }
-.term-bg-magenta { background-color: #bc3fbc; }
-.term-bg-cyan { background-color: #11a8cd; }
-.term-bg-white { background-color: #e5e5e5; }
+.term-bg-black {
+  background-color: #000000;
+}
+.term-bg-red {
+  background-color: #cd3131;
+}
+.term-bg-green {
+  background-color: #0dbc79;
+}
+.term-bg-yellow {
+  background-color: #e5e510;
+}
+.term-bg-blue {
+  background-color: #2472c8;
+}
+.term-bg-magenta {
+  background-color: #bc3fbc;
+}
+.term-bg-cyan {
+  background-color: #11a8cd;
+}
+.term-bg-white {
+  background-color: #e5e5e5;
+}
 
-.term-bold { font-weight: bold; }
-.term-dim { opacity: 0.7; }
-.term-italic { font-style: italic; }
-.term-underline { text-decoration: underline; }
-.term-strikethrough { text-decoration: line-through; }
+.term-bold {
+  font-weight: bold;
+}
+.term-dim {
+  opacity: 0.7;
+}
+.term-italic {
+  font-style: italic;
+}
+.term-underline {
+  text-decoration: underline;
+}
+.term-strikethrough {
+  text-decoration: line-through;
+}
 
 /* Cursor styling - disabled by default for Ink apps */
 .term-cursor {
@@ -976,7 +1074,8 @@ footer {
   font-size: 14px;
   line-height: 1.5;
   white-space: pre-wrap;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family:
+    'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
 }
 
 .action-dialog label {
@@ -995,7 +1094,9 @@ footer {
   border: 2px solid var(--input-border);
   border-radius: 10px;
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto,
+    sans-serif;
   font-size: 15px;
   line-height: 1.5;
   resize: vertical;
@@ -1057,7 +1158,9 @@ footer {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .dialog-input {
@@ -1067,7 +1170,9 @@ footer {
   border: 2px solid var(--input-border);
   border-radius: 10px;
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto,
+    sans-serif;
   font-size: 15px;
   line-height: 1.5;
   transition: all 0.2s ease;
@@ -1613,7 +1718,9 @@ footer {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 /* Settings dialog styles */
 .settings-button {

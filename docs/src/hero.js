@@ -40,7 +40,9 @@ const REFETCH_INTERVAL = 60000; // don't fetch more than once per minute
 
 export function fetchStars(onUpdate) {
   // Clear old cache key
-  try { sessionStorage.removeItem('dmux_gh_stars'); } catch {}
+  try {
+    sessionStorage.removeItem('dmux_gh_stars');
+  } catch {}
 
   let cached = null;
   try {
@@ -71,7 +73,9 @@ async function fetchFresh() {
     if (res.ok) {
       const data = await res.json();
       const count = data.stars;
-      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ count, ts: Date.now() })); } catch {}
+      try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ count, ts: Date.now() }));
+      } catch {}
       return count;
     }
   } catch {}
@@ -81,7 +85,9 @@ async function fetchFresh() {
     if (!res.ok) return null;
     const data = await res.json();
     const count = data.stargazers_count;
-    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ count, ts: Date.now() })); } catch {}
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ count, ts: Date.now() }));
+    } catch {}
     return count;
   } catch {
     return null;

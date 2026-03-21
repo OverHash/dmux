@@ -18,6 +18,7 @@ Hooks allow you to run custom scripts at key lifecycle events in dmux. They enab
 Hooks are executable scripts stored in `.dmux/hooks/` within your project. When certain events occur (like creating a worktree or merging branches), dmux automatically executes the corresponding hook script if it exists.
 
 **Key Features:**
+
 - **Convention-based**: Just create an executable file with the hook name
 - **Non-blocking**: Hooks run in the background and don't freeze the UI
 - **Environment-based**: Receive context via environment variables
@@ -29,11 +30,13 @@ Hooks are executable scripts stored in `.dmux/hooks/` within your project. When 
 ### Basic Setup
 
 1. Create the hooks directory (if it doesn't exist):
+
    ```bash
    mkdir -p .dmux/hooks
    ```
 
 2. Create a hook script:
+
    ```bash
    touch .dmux/hooks/worktree_created
    chmod +x .dmux/hooks/worktree_created
@@ -68,16 +71,19 @@ chmod +x .dmux/hooks/run_dev
 ### Pane Lifecycle Hooks
 
 #### `before_pane_create`
+
 **When**: Before any pane creation steps begin
 **Use case**: Validate conditions, prepare resources, send notifications
 
 **Available variables:**
+
 - `DMUX_ROOT` - Project root directory
 - `DMUX_SERVER_PORT` - dmux HTTP server port
 - `DMUX_PROMPT` - User's prompt for the agent
 - `DMUX_AGENT` - Agent type (claude or opencode)
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/before_pane_create
@@ -93,16 +99,19 @@ curl -X POST https://hooks.slack.com/... \
 ---
 
 #### `pane_created`
+
 **When**: After tmux pane is created, before worktree creation
 **Use case**: Setup pane environment, configure tmux settings
 
 **Available variables:**
+
 - All from `before_pane_create`, plus:
 - `DMUX_PANE_ID` - dmux pane identifier (e.g., dmux-1234567890)
 - `DMUX_SLUG` - Generated slug for branch/worktree name
 - `DMUX_TMUX_PANE_ID` - tmux pane ID (e.g., %38)
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/pane_created
@@ -115,15 +124,18 @@ tmux set-option -p -t "$DMUX_TMUX_PANE_ID" pane-border-style "fg=blue"
 ---
 
 #### `worktree_created`
+
 **When**: After worktree is created and agent is launched
 **Use case**: Setup worktree environment, install dependencies, configure git
 
 **Available variables:**
+
 - All from `pane_created`, plus:
 - `DMUX_WORKTREE_PATH` - Full path to the worktree directory
 - `DMUX_BRANCH` - Branch name (same as slug)
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/worktree_created
@@ -147,10 +159,12 @@ fi
 ---
 
 #### `before_pane_close`
+
 **When**: Before closing a pane (user initiated)
 **Use case**: Cleanup operations, save state, create backups
 
 **Available variables:**
+
 - `DMUX_ROOT`
 - `DMUX_SERVER_PORT`
 - `DMUX_PANE_ID`
@@ -160,6 +174,7 @@ fi
 - `DMUX_BRANCH` (if worktree exists)
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/before_pane_close
@@ -176,14 +191,17 @@ fi
 ---
 
 #### `pane_closed`
+
 **When**: After pane is closed (pane no longer exists)
 **Use case**: Cleanup external resources, notifications, analytics
 
 **Available variables:**
+
 - Same as `before_pane_close`
 - Note: The pane is already closed, but variables contain its last state
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/pane_closed
@@ -201,10 +219,12 @@ curl -X POST https://api.yourservice.com/panes/close \
 ### Worktree Hooks
 
 #### `before_worktree_remove`
+
 **When**: Before removing a worktree directory
 **Use case**: Backup work, save analysis results, cleanup resources
 
 **Available variables:**
+
 - `DMUX_ROOT`
 - `DMUX_SERVER_PORT`
 - `DMUX_PANE_ID`
@@ -213,6 +233,7 @@ curl -X POST https://api.yourservice.com/panes/close \
 - `DMUX_BRANCH`
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/before_worktree_remove
@@ -230,14 +251,17 @@ fi
 ---
 
 #### `worktree_removed`
+
 **When**: After worktree is removed (directory no longer exists)
 **Use case**: Cleanup external references, update indexes
 
 **Available variables:**
+
 - Same as `before_worktree_remove`
 - Note: Worktree is gone, but variables contain its last path
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/worktree_removed
@@ -255,14 +279,17 @@ sqlite3 "$DMUX_ROOT/.dmux/worktrees.db" \
 ### Merge Hooks
 
 #### `pre_merge`
+
 **When**: After user confirms merge, before merge operation starts
 **Use case**: Pre-merge validation, create backups, notify team
 
 **Available variables:**
+
 - All standard pane variables, plus:
 - `DMUX_TARGET_BRANCH` - Branch being merged into (e.g., main)
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/pre_merge
@@ -281,14 +308,17 @@ curl -X POST https://hooks.slack.com/... \
 ---
 
 #### `post_merge`
+
 **When**: After successful merge, before cleanup prompt
 **Use case**: Deploy changes, trigger CI, update issue trackers
 
 **Available variables:**
+
 - All standard pane variables, plus:
 - `DMUX_TARGET_BRANCH` - Branch that was merged into
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/post_merge
@@ -317,15 +347,18 @@ fi
 These hooks can update dmux state via HTTP callbacks, enabling real-time status updates in the UI.
 
 #### `run_test`
+
 **When**: User triggers test command for a pane
 **Use case**: Run tests, report status back to dmux
 
 **Available variables:**
+
 - All standard pane variables
 
 **HTTP Callback**: `PUT http://localhost:$DMUX_SERVER_PORT/api/panes/$DMUX_PANE_ID/test`
 
 **Request body:**
+
 ```json
 {
   "status": "running" | "passed" | "failed",
@@ -334,6 +367,7 @@ These hooks can update dmux state via HTTP callbacks, enabling real-time status 
 ```
 
 **Example:**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/run_test
@@ -365,15 +399,18 @@ rm /tmp/test-output-$DMUX_PANE_ID.txt
 ---
 
 #### `run_dev`
+
 **When**: User triggers dev server command for a pane
 **Use case**: Start dev server, optionally tunnel it, report URL back to dmux
 
 **Available variables:**
+
 - All standard pane variables
 
 **HTTP Callback**: `PUT http://localhost:$DMUX_SERVER_PORT/api/panes/$DMUX_PANE_ID/dev`
 
 **Request body:**
+
 ```json
 {
   "status": "running" | "stopped",
@@ -382,6 +419,7 @@ rm /tmp/test-output-$DMUX_PANE_ID.txt
 ```
 
 **Example (Basic):**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/run_dev
@@ -408,6 +446,7 @@ curl -X PUT "http://localhost:$DMUX_SERVER_PORT/api/panes/$DMUX_PANE_ID/dev" \
 ```
 
 **Example (With Tunneling):**
+
 ```bash
 #!/bin/bash
 # .dmux/hooks/run_dev
@@ -446,37 +485,38 @@ fi
 
 ### Always Available
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DMUX_ROOT` | Project root directory | `/Users/you/projects/myapp` |
-| `DMUX_SERVER_PORT` | HTTP server port | `3142` |
+| Variable           | Description            | Example                     |
+| ------------------ | ---------------------- | --------------------------- |
+| `DMUX_ROOT`        | Project root directory | `/Users/you/projects/myapp` |
+| `DMUX_SERVER_PORT` | HTTP server port       | `3142`                      |
 
 ### Pane-Specific (most hooks)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DMUX_PANE_ID` | dmux pane identifier | `dmux-1234567890` |
-| `DMUX_SLUG` | Branch/worktree name | `fix-auth-bug` |
-| `DMUX_PROMPT` | User's initial prompt | `Fix authentication bug` |
-| `DMUX_AGENT` | Agent type | `claude` or `opencode` |
-| `DMUX_TMUX_PANE_ID` | tmux pane ID | `%38` |
+| Variable            | Description           | Example                  |
+| ------------------- | --------------------- | ------------------------ |
+| `DMUX_PANE_ID`      | dmux pane identifier  | `dmux-1234567890`        |
+| `DMUX_SLUG`         | Branch/worktree name  | `fix-auth-bug`           |
+| `DMUX_PROMPT`       | User's initial prompt | `Fix authentication bug` |
+| `DMUX_AGENT`        | Agent type            | `claude` or `opencode`   |
+| `DMUX_TMUX_PANE_ID` | tmux pane ID          | `%38`                    |
 
 ### Worktree-Specific
 
-| Variable | Description | Example |
-|----------|-------------|---------|
+| Variable             | Description        | Example                                                  |
+| -------------------- | ------------------ | -------------------------------------------------------- |
 | `DMUX_WORKTREE_PATH` | Full worktree path | `/Users/you/projects/myapp/.dmux/worktrees/fix-auth-bug` |
-| `DMUX_BRANCH` | Branch name | `fix-auth-bug` |
+| `DMUX_BRANCH`        | Branch name        | `fix-auth-bug`                                           |
 
 ### Merge-Specific
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DMUX_TARGET_BRANCH` | Target branch for merge | `main` |
+| Variable             | Description             | Example |
+| -------------------- | ----------------------- | ------- |
+| `DMUX_TARGET_BRANCH` | Target branch for merge | `main`  |
 
 ### Parent Environment
 
 All hooks also inherit the parent shell's environment, so you have access to:
+
 - `PATH`, `HOME`, `USER`, etc.
 - Any custom environment variables (e.g., `VERCEL_TOKEN`, `SLACK_WEBHOOK`)
 
@@ -487,6 +527,7 @@ All hooks also inherit the parent shell's environment, so you have access to:
 ### Overview
 
 The `run_test` and `run_dev` hooks can communicate back to dmux via HTTP to update pane state in real-time. This enables:
+
 - Live test status indicators in the UI
 - Displaying dev server URLs (including tunneled URLs)
 - Better visibility into background operations
@@ -504,9 +545,11 @@ You can get the port from the `DMUX_SERVER_PORT` environment variable.
 Update test status for a pane.
 
 **Parameters:**
+
 - `:paneId` - The `DMUX_PANE_ID` value
 
 **Request Body:**
+
 ```json
 {
   "status": "running" | "passed" | "failed",
@@ -515,6 +558,7 @@ Update test status for a pane.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -531,9 +575,11 @@ Update test status for a pane.
 Update dev server status and URL for a pane.
 
 **Parameters:**
+
 - `:paneId` - The `DMUX_PANE_ID` value
 
 **Request Body:**
+
 ```json
 {
   "status": "running" | "stopped",
@@ -542,6 +588,7 @@ Update dev server status and URL for a pane.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -661,13 +708,17 @@ curl -X POST "$SLACK_WEBHOOK" \
 ## Best Practices
 
 ### 1. Make Scripts Executable
+
 Always set execute permissions on your hook scripts:
+
 ```bash
 chmod +x .dmux/hooks/*
 ```
 
 ### 2. Use Shebang Lines
+
 Start every hook with a proper shebang:
+
 ```bash
 #!/bin/bash
 # or
@@ -677,7 +728,9 @@ Start every hook with a proper shebang:
 ```
 
 ### 3. Handle Errors Gracefully
+
 Don't let hook errors crash your scripts:
+
 ```bash
 #!/bin/bash
 set -e  # Exit on error
@@ -691,14 +744,18 @@ pnpm install || echo "Install failed, continuing anyway"
 ```
 
 ### 4. Run Long Operations in Background
+
 For hooks that trigger long-running processes, use `&` to background them:
+
 ```bash
 #!/bin/bash
 pnpm install &  # Don't block dmux
 ```
 
 ### 5. Log Hook Output
+
 For debugging, log to a file:
+
 ```bash
 #!/bin/bash
 {
@@ -710,7 +767,9 @@ For debugging, log to a file:
 ```
 
 ### 6. Check for Required Tools
+
 Verify dependencies before using them:
+
 ```bash
 #!/bin/bash
 if ! command -v ngrok &> /dev/null; then
@@ -720,7 +779,9 @@ fi
 ```
 
 ### 7. Use Environment Variables for Config
+
 Store sensitive data in environment variables, not in hook scripts:
+
 ```bash
 #!/bin/bash
 if [ -z "$SLACK_WEBHOOK" ]; then
@@ -732,13 +793,17 @@ curl -X POST "$SLACK_WEBHOOK" -d '{"text": "..."}'
 ```
 
 ### 8. Keep Hooks Fast
+
 Hooks should complete quickly or run in the background. Avoid:
+
 - Large file downloads
 - Long-running synchronous operations
 - Blocking user input
 
 ### 9. Document Your Hooks
+
 Add comments explaining what each hook does:
+
 ```bash
 #!/bin/bash
 # This hook installs dependencies when a worktree is created
@@ -764,11 +829,13 @@ tail -f dmux-hooks.log | grep '\[Hooks\]'
 ### Common Issues
 
 #### Hook Not Running
+
 1. Check if file exists: `ls -la .dmux/hooks/`
 2. Verify it's executable: `ls -l .dmux/hooks/worktree_created`
 3. Look for error logs: `grep '\[Hooks\]' dmux-hooks.log`
 
 #### Hook Runs But Fails
+
 1. Test the script manually:
    ```bash
    export DMUX_ROOT="$(pwd)"
@@ -780,6 +847,7 @@ tail -f dmux-hooks.log | grep '\[Hooks\]'
 3. Review script syntax: `bash -n .dmux/hooks/worktree_created`
 
 #### HTTP Callbacks Not Working
+
 1. Verify server is running: `curl http://localhost:$DMUX_SERVER_PORT/api/health`
 2. Check pane ID is correct: `echo $DMUX_PANE_ID`
 3. Test endpoint manually:
@@ -790,12 +858,15 @@ tail -f dmux-hooks.log | grep '\[Hooks\]'
    ```
 
 #### Permission Denied
+
 ```bash
 chmod +x .dmux/hooks/*
 ```
 
 #### Shebang Issues
+
 Make sure your shebang line is correct:
+
 - `#!/bin/bash` - Use bash
 - `#!/usr/bin/env node` - Use Node.js
 - `#!/usr/bin/env python3` - Use Python 3
@@ -831,6 +902,7 @@ fi
 ```
 
 Then place individual hook scripts in `.dmux/hooks/worktree_created.d/`:
+
 ```
 .dmux/hooks/
 ├── worktree_created          # Meta-hook that runs all .d/ scripts

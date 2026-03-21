@@ -44,11 +44,7 @@ export function createMockGitRepo(mainBranch: string = 'main'): MockGitRepo {
 /**
  * Add a worktree to the mock repo
  */
-export function addWorktree(
-  repo: MockGitRepo,
-  path: string,
-  branch: string
-): MockGitRepo {
+export function addWorktree(repo: MockGitRepo, path: string, branch: string): MockGitRepo {
   return {
     ...repo,
     worktrees: [
@@ -66,9 +62,7 @@ export function addWorktree(
  * Generate git worktree list output
  */
 export function mockWorktreeListOutput(repo: MockGitRepo): string {
-  return repo.worktrees
-    .map((wt) => `${wt.path} ${wt.commit} [${wt.branch}]`)
-    .join('\n');
+  return repo.worktrees.map((wt) => `${wt.path} ${wt.commit} [${wt.branch}]`).join('\n');
 }
 
 /**

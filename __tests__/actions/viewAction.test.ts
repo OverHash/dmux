@@ -37,10 +37,7 @@ describe('viewAction', () => {
     const result = await viewPane(mockPane, mockContext);
 
     // Verify tmux command was called correctly
-    expect(execSync).toHaveBeenCalledWith(
-      `tmux select-pane -t '%42'`,
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith(`tmux select-pane -t '%42'`, { stdio: 'pipe' });
 
     // Verify result
     expectNavigation(result, 'dmux-1');
@@ -54,7 +51,7 @@ describe('viewAction', () => {
 
     // Mock tmux command failure
     vi.mocked(execSync).mockImplementation(() => {
-      throw new Error('can\'t find pane %99');
+      throw new Error("can't find pane %99");
     });
 
     const result = await viewPane(mockPane, mockContext);
@@ -85,10 +82,9 @@ describe('viewAction', () => {
     await viewPane(mockPane, mockContext);
 
     // Verify pane ID is properly quoted in tmux command
-    expect(execSync).toHaveBeenCalledWith(
-      expect.stringContaining("'%$special'"),
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith(expect.stringContaining("'%$special'"), {
+      stdio: 'pipe',
+    });
   });
 
   it('should include pane slug in success message', async () => {

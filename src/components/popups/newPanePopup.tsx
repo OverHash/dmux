@@ -5,78 +5,73 @@
  * Runs in a tmux popup modal and writes result to a file
  */
 
-import React, { useState, useEffect, useRef } from "react"
-import { render, Box, Text, useApp, useInput } from "ink"
-import {
-  PopupContainer,
-  PopupWrapper,
-  writeSuccessAndExit,
-  FileList,
-} from "./shared/index.js"
-import { PopupFooters, POPUP_CONFIG } from "./config.js"
-import CleanTextInput from "../inputs/CleanTextInput.js"
-import { scanProjectFiles, fuzzyMatchFiles } from "../../utils/fileScanner.js"
-import fs from "fs"
-import path from "path"
-import { pathToFileURL } from "url"
+import React, { useState, useEffect, useRef } from 'react';
+import { render, Box, Text, useApp, useInput } from 'ink';
+import { PopupContainer, PopupWrapper, writeSuccessAndExit, FileList } from './shared/index.js';
+import { PopupFooters, POPUP_CONFIG } from './config.js';
+import CleanTextInput from '../inputs/CleanTextInput.js';
+import { scanProjectFiles, fuzzyMatchFiles } from '../../utils/fileScanner.js';
+import fs from 'fs';
+import path from 'path';
+import { pathToFileURL } from 'url';
 
-const PROJECT_PATH_ARG = process.argv[3]
-const FILE_SCAN_ROOT = PROJECT_PATH_ARG || process.cwd()
-const PROJECT_NAME = path.basename(FILE_SCAN_ROOT)
-const ESC_CLEAR_CONFIRMATION_MS = 500
+const PROJECT_PATH_ARG = process.argv[3];
+const FILE_SCAN_ROOT = PROJECT_PATH_ARG || process.cwd();
+const PROJECT_NAME = path.basename(FILE_SCAN_ROOT);
+const ESC_CLEAR_CONFIRMATION_MS = 500;
 
 // Debug logging to file
-const DEBUG_LOG = path.join(FILE_SCAN_ROOT, '.dmux', 'file-picker-debug.log')
+const DEBUG_LOG = path.join(FILE_SCAN_ROOT, '.dmux', 'file-picker-debug.log');
 function debugLog(message: string, data?: any) {
-  const timestamp = new Date().toISOString()
-  const logLine = `[${timestamp}] ${message} ${data ? JSON.stringify(data, null, 2) : ''}\n`
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] ${message} ${data ? JSON.stringify(data, null, 2) : ''}\n`;
   try {
-    fs.appendFileSync(DEBUG_LOG, logLine)
+    fs.appendFileSync(DEBUG_LOG, logLine);
   } catch (e) {
     // Ignore write errors
   }
 }
 
 export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }) => {
-  const [prompt, setPrompt] = useState("")
-  const [pendingClearEsc, setPendingClearEsc] = useState(false)
-  const { exit } = useApp()
-  const clearEscTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [prompt, setPrompt] = useState('');
+  const [pendingClearEsc, setPendingClearEsc] = useState(false);
+  const { exit } = useApp();
+  const clearEscTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // File autocomplete state
-  const [isFileListActive, setIsFileListActive] = useState(false)
-  const [filteredFiles, setFilteredFiles] = useState<string[]>([])
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0)
-  const [atPosition, setAtPosition] = useState(-1) // Position of @ in text
-  const [cursorPosition, setCursorPosition] = useState<number | undefined>(undefined)
-  const [currentCursor, setCurrentCursor] = useState(0) // Track cursor position from CleanTextInput
+  const [isFileListActive, setIsFileListActive] = useState(false);
+  const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [atPosition, setAtPosition] = useState(-1); // Position of @ in text
+  const [cursorPosition, setCursorPosition] = useState<number | undefined>(undefined);
+  const [currentCursor, setCurrentCursor] = useState(0); // Track cursor position from CleanTextInput
 
   const resetPendingClearEsc = () => {
     if (clearEscTimeoutRef.current) {
-      clearTimeout(clearEscTimeoutRef.current)
-      clearEscTimeoutRef.current = null
+      clearTimeout(clearEscTimeoutRef.current);
+      clearEscTimeoutRef.current = null;
     }
-    setPendingClearEsc(false)
-  }
+    setPendingClearEsc(false);
+  };
 
   const armPendingClearEsc = () => {
     if (clearEscTimeoutRef.current) {
-      clearTimeout(clearEscTimeoutRef.current)
+      clearTimeout(clearEscTimeoutRef.current);
     }
 
-    setPendingClearEsc(true)
+    setPendingClearEsc(true);
     clearEscTimeoutRef.current = setTimeout(() => {
-      clearEscTimeoutRef.current = null
-      setPendingClearEsc(false)
-    }, ESC_CLEAR_CONFIRMATION_MS)
-  }
+      clearEscTimeoutRef.current = null;
+      setPendingClearEsc(false);
+    }, ESC_CLEAR_CONFIRMATION_MS);
+  };
 
   const updatePrompt = (nextPrompt: string) => {
     if (pendingClearEsc) {
-      resetPendingClearEsc()
+      resetPendingClearEsc();
     }
-    setPrompt(nextPrompt)
-  }
+    setPrompt(nextPrompt);
+  };
 
   // Reset cursor position override after it's been applied
   useEffect(() => {
@@ -90,52 +85,56 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
   useEffect(() => {
     return () => {
       if (clearEscTimeoutRef.current) {
-        clearTimeout(clearEscTimeoutRef.current)
+        clearTimeout(clearEscTimeoutRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   // Detect @ and scan files (cursor-aware)
   useEffect(() => {
     debugLog('[@Detection] Running with:', {
       prompt,
       currentCursor,
-      promptLength: prompt.length
-    })
+      promptLength: prompt.length,
+    });
 
     // Find the @ symbol that is before the cursor position
     // Cursor position N means cursor is BETWEEN index N-1 and N
     // So we search backwards from index N-1
-    let atBeforeCursor = -1
+    let atBeforeCursor = -1;
     for (let i = currentCursor - 1; i >= 0; i--) {
       if (prompt[i] === '@') {
-        atBeforeCursor = i
-        debugLog('[@Detection] Found @ at position:', { position: i })
-        break
+        atBeforeCursor = i;
+        debugLog('[@Detection] Found @ at position:', { position: i });
+        break;
       }
     }
 
     if (atBeforeCursor !== -1) {
       // Get the text after @ (until space or end of string)
-      const afterAt = prompt.slice(atBeforeCursor + 1)
-      const match = afterAt.match(/^([^\s]*)/)
-      const query = match ? match[1] : ''
-      const endOfQuery = atBeforeCursor + 1 + query.length
+      const afterAt = prompt.slice(atBeforeCursor + 1);
+      const match = afterAt.match(/^([^\s]*)/);
+      const query = match ? match[1] : '';
+      const endOfQuery = atBeforeCursor + 1 + query.length;
 
       debugLog('[@Detection] After @:', {
         afterAt,
         query,
         atBeforeCursor,
         endOfQuery,
-        cursorInRange: currentCursor >= atBeforeCursor && currentCursor <= endOfQuery
-      })
+        cursorInRange: currentCursor >= atBeforeCursor && currentCursor <= endOfQuery,
+      });
 
       // Only show file list if cursor is within the @ reference
       if (currentCursor >= atBeforeCursor && currentCursor <= endOfQuery) {
         // Check if there's a space after the query (means reference is complete)
-        const charAfterQuery = afterAt[query.length]
-        const spacePosition = atBeforeCursor + 1 + query.length
-        debugLog('[@Detection] charAfterQuery:', { char: charAfterQuery, spacePosition, currentCursor })
+        const charAfterQuery = afterAt[query.length];
+        const spacePosition = atBeforeCursor + 1 + query.length;
+        debugLog('[@Detection] charAfterQuery:', {
+          char: charAfterQuery,
+          spacePosition,
+          currentCursor,
+        });
 
         // Only hide if:
         // 1. Query is not empty (has actual text)
@@ -144,43 +143,43 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
         // This prevents hiding when user is still typing (cursor before/at the space)
         if (charAfterQuery === ' ' && query.length > 0 && currentCursor > spacePosition) {
           // Reference is complete (e.g., "@BUG.md "), and cursor has moved past it
-          debugLog('[@Detection] Reference complete (cursor past space), hiding file list')
-          setIsFileListActive(false)
-          setFilteredFiles([])
-          setAtPosition(-1)
-          return
+          debugLog('[@Detection] Reference complete (cursor past space), hiding file list');
+          setIsFileListActive(false);
+          setFilteredFiles([]);
+          setAtPosition(-1);
+          return;
         }
 
         // User is actively typing a query, show file list
-        debugLog('[@Detection] Showing file list for query:', { query })
+        debugLog('[@Detection] Showing file list for query:', { query });
         try {
-          const { files } = scanProjectFiles(FILE_SCAN_ROOT)
-          const matches = fuzzyMatchFiles(query, files)
+          const { files } = scanProjectFiles(FILE_SCAN_ROOT);
+          const matches = fuzzyMatchFiles(query, files);
 
-          setFilteredFiles(matches)
-          setAtPosition(atBeforeCursor)
-          setIsFileListActive(true)
-          setSelectedFileIndex(0) // Reset selection when files change
+          setFilteredFiles(matches);
+          setAtPosition(atBeforeCursor);
+          setIsFileListActive(true);
+          setSelectedFileIndex(0); // Reset selection when files change
         } catch (error) {
-          debugLog('[@Detection] Failed to scan files:', error)
-          setFilteredFiles([])
-          setIsFileListActive(false)
+          debugLog('[@Detection] Failed to scan files:', error);
+          setFilteredFiles([]);
+          setIsFileListActive(false);
         }
       } else {
         // Cursor is outside the @ reference, hide file list
-        debugLog('[@Detection] Cursor outside reference, hiding file list')
-        setIsFileListActive(false)
-        setFilteredFiles([])
-        setAtPosition(-1)
+        debugLog('[@Detection] Cursor outside reference, hiding file list');
+        setIsFileListActive(false);
+        setFilteredFiles([]);
+        setAtPosition(-1);
       }
     } else {
       // No @ found before cursor, hide file list
-      debugLog('[@Detection] No @ found before cursor')
-      setIsFileListActive(false)
-      setFilteredFiles([])
-      setAtPosition(-1)
+      debugLog('[@Detection] No @ found before cursor');
+      setIsFileListActive(false);
+      setFilteredFiles([]);
+      setAtPosition(-1);
     }
-  }, [prompt, currentCursor])
+  }, [prompt, currentCursor]);
 
   // Handle keyboard navigation - runs BEFORE other handlers
   // This is critical: we need to intercept ESC for progressive behavior
@@ -220,13 +219,13 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
 
     // Arrow up - move selection up
     if (key.upArrow) {
-      setSelectedFileIndex(prev => Math.max(0, prev - 1));
+      setSelectedFileIndex((prev) => Math.max(0, prev - 1));
       return;
     }
 
     // Arrow down - move selection down
     if (key.downArrow) {
-      setSelectedFileIndex(prev => Math.min(filteredFiles.length - 1, prev + 1));
+      setSelectedFileIndex((prev) => Math.min(filteredFiles.length - 1, prev + 1));
       return;
     }
 
@@ -244,7 +243,8 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
 
         // Insert @filepath (with space after if there isn't one)
         const fileReference = '@' + selectedFile;
-        const newPrompt = beforeAt + fileReference + (afterQuery.startsWith(' ') ? '' : ' ') + afterQuery;
+        const newPrompt =
+          beforeAt + fileReference + (afterQuery.startsWith(' ') ? '' : ' ') + afterQuery;
         updatePrompt(newPrompt);
 
         // Set cursor position to end of the inserted file reference
@@ -266,8 +266,8 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
       return;
     }
 
-    writeSuccessAndExit(resultFile, value || prompt, exit)
-  }
+    writeSuccessAndExit(resultFile, value || prompt, exit);
+  };
 
   const shouldAllowCancel = () => {
     // Block cancel (ESC key) if:
@@ -289,7 +289,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
     // Only allow cancel if no file list and no text
     debugLog('[shouldAllowCancel] Allowing cancel');
     return true;
-  }
+  };
 
   return (
     <PopupWrapper
@@ -301,8 +301,10 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
         {/* Project context */}
         <Box marginBottom={0}>
           <Text dimColor>Project: </Text>
-          <Text bold color="cyan">{PROJECT_NAME}</Text>
-          <Text dimColor>  ({FILE_SCAN_ROOT})</Text>
+          <Text bold color="cyan">
+            {PROJECT_NAME}
+          </Text>
+          <Text dimColor> ({FILE_SCAN_ROOT})</Text>
         </Box>
 
         {/* Instructions */}
@@ -341,30 +343,26 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
 
         {/* File list (shown when @ is detected) */}
         {isFileListActive && (
-          <FileList
-            files={filteredFiles}
-            selectedIndex={selectedFileIndex}
-            maxVisible={10}
-          />
+          <FileList files={filteredFiles} selectedIndex={selectedFileIndex} maxVisible={10} />
         )}
       </PopupContainer>
     </PopupWrapper>
-  )
-}
+  );
+};
 
 // Entry point
 function main() {
-  const resultFile = process.argv[2]
+  const resultFile = process.argv[2];
 
   if (!resultFile) {
-    console.error("Error: Result file path required")
-    process.exit(1)
+    console.error('Error: Result file path required');
+    process.exit(1);
   }
 
-  render(<NewPanePopupApp resultFile={resultFile} />)
+  render(<NewPanePopupApp resultFile={resultFile} />);
 }
 
-const entryPointHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : ""
+const entryPointHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';
 if (import.meta.url === entryPointHref) {
-  main()
+  main();
 }

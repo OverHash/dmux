@@ -45,13 +45,18 @@ vi.mock('../../../src/services/LogService.js', () => ({
 // Mock the modules that conflict resolution and merge execution will import
 vi.mock('../../../src/actions/merge/conflictResolution.js', () => ({
   createConflictResolutionPaneForMerge: vi.fn(() =>
-    Promise.resolve({ type: 'navigation', message: 'Created conflict pane', targetPaneId: 'test', dismissable: true })
+    Promise.resolve({
+      type: 'navigation',
+      message: 'Created conflict pane',
+      targetPaneId: 'test',
+      dismissable: true,
+    }),
   ),
 }));
 
 vi.mock('../../../src/actions/merge/mergeExecution.js', () => ({
   executeMergeWithConflictHandling: vi.fn(() =>
-    Promise.resolve({ type: 'success', message: 'Merge complete', dismissable: true })
+    Promise.resolve({ type: 'success', message: 'Merge complete', dismissable: true }),
   ),
 }));
 
@@ -92,7 +97,7 @@ describe('Issue Handlers', () => {
     };
 
     const mockRetryMerge = vi.fn(() =>
-      Promise.resolve({ type: 'success', message: 'Merged', dismissable: true })
+      Promise.resolve({ type: 'success', message: 'Merged', dismissable: true }),
     );
 
     it('should present commit options', async () => {
@@ -102,7 +107,7 @@ describe('Issue Handlers', () => {
         '/test/main',
         mockPane,
         mockContext,
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       expect(result.type).toBe('choice');
@@ -115,7 +120,7 @@ describe('Issue Handlers', () => {
         files: ['file1.ts', 'file2.ts'],
         diffMode: 'working-tree',
       });
-      expect(result.options?.map(o => o.id)).toEqual([
+      expect(result.options?.map((o) => o.id)).toEqual([
         'commit_automatic',
         'commit_ai_editable',
         'commit_manual',
@@ -131,7 +136,7 @@ describe('Issue Handlers', () => {
         '/test/main',
         mockPane,
         mockContext,
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       if (result.type === 'choice' && result.onSelect) {
@@ -151,7 +156,7 @@ describe('Issue Handlers', () => {
         '/test/main',
         mockPane,
         mockContext,
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       if (result.type === 'choice' && result.onSelect) {
@@ -171,7 +176,7 @@ describe('Issue Handlers', () => {
         '/test/main',
         mockPane,
         mockContext,
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       if (result.type === 'choice' && result.onSelect) {
@@ -188,7 +193,7 @@ describe('Issue Handlers', () => {
         '/test/main',
         mockPane,
         mockContext,
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       if (result.type === 'choice' && result.onSelect) {
@@ -207,7 +212,7 @@ describe('Issue Handlers', () => {
     };
 
     const mockRetryMerge = vi.fn(() =>
-      Promise.resolve({ type: 'success', message: 'Merged', dismissable: true })
+      Promise.resolve({ type: 'success', message: 'Merged', dismissable: true }),
     );
 
     it('should present commit options', async () => {
@@ -216,7 +221,7 @@ describe('Issue Handlers', () => {
         mockPane,
         mockContext,
         'main',
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       expect(result.type).toBe('choice');
@@ -229,7 +234,7 @@ describe('Issue Handlers', () => {
         files: ['file1.ts', 'file2.ts'],
         diffMode: 'target-branch',
       });
-      expect(result.options?.map(o => o.id)).toEqual([
+      expect(result.options?.map((o) => o.id)).toEqual([
         'commit_automatic',
         'commit_ai_editable',
         'commit_manual',
@@ -243,7 +248,7 @@ describe('Issue Handlers', () => {
         mockPane,
         mockContext,
         'main',
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       if (result.type === 'choice' && result.onSelect) {
@@ -259,7 +264,7 @@ describe('Issue Handlers', () => {
         mockPane,
         mockContext,
         'main',
-        mockRetryMerge
+        mockRetryMerge,
       );
 
       if (result.type === 'choice' && result.onSelect) {
@@ -277,16 +282,28 @@ describe('Issue Handlers', () => {
     };
 
     it('should present conflict resolution options', async () => {
-      const result = await handleMergeConflict(mockIssue, 'main', '/test/main', mockPane, mockContext);
+      const result = await handleMergeConflict(
+        mockIssue,
+        'main',
+        '/test/main',
+        mockPane,
+        mockContext,
+      );
 
       expect(result.type).toBe('choice');
       expect(result.title).toBe('Merge Conflicts Detected');
       expect(result.options).toHaveLength(3);
-      expect(result.options?.map(o => o.id)).toEqual(['ai_merge', 'manual_merge', 'cancel']);
+      expect(result.options?.map((o) => o.id)).toEqual(['ai_merge', 'manual_merge', 'cancel']);
     });
 
     it('should handle cancel option', async () => {
-      const result = await handleMergeConflict(mockIssue, 'main', '/test/main', mockPane, mockContext);
+      const result = await handleMergeConflict(
+        mockIssue,
+        'main',
+        '/test/main',
+        mockPane,
+        mockContext,
+      );
 
       if (result.type === 'choice' && result.onSelect) {
         const cancelResult = await result.onSelect('cancel');
@@ -296,9 +313,16 @@ describe('Issue Handlers', () => {
     });
 
     it('should handle manual merge option', async () => {
-      const { executeMergeWithConflictHandling } = await import('../../../src/actions/merge/mergeExecution.js');
+      const { executeMergeWithConflictHandling } =
+        await import('../../../src/actions/merge/mergeExecution.js');
 
-      const result = await handleMergeConflict(mockIssue, 'main', '/test/main', mockPane, mockContext);
+      const result = await handleMergeConflict(
+        mockIssue,
+        'main',
+        '/test/main',
+        mockPane,
+        mockContext,
+      );
 
       if (result.type === 'choice' && result.onSelect) {
         await result.onSelect('manual_merge');
@@ -307,17 +331,22 @@ describe('Issue Handlers', () => {
           mockContext,
           'main',
           '/test/main',
-          'manual'
+          'manual',
         );
       }
     });
 
     it('should handle AI merge option', async () => {
-      const { createConflictResolutionPaneForMerge } = await import(
-        '../../../src/actions/merge/conflictResolution.js'
-      );
+      const { createConflictResolutionPaneForMerge } =
+        await import('../../../src/actions/merge/conflictResolution.js');
 
-      const result = await handleMergeConflict(mockIssue, 'main', '/test/main', mockPane, mockContext);
+      const result = await handleMergeConflict(
+        mockIssue,
+        'main',
+        '/test/main',
+        mockPane,
+        mockContext,
+      );
 
       if (result.type === 'choice' && result.onSelect) {
         await result.onSelect('ai_merge');
@@ -325,7 +354,7 @@ describe('Issue Handlers', () => {
           mockPane,
           mockContext,
           'main',
-          '/test/main'
+          '/test/main',
         );
       }
     });

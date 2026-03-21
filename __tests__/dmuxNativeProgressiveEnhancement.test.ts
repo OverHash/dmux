@@ -62,7 +62,7 @@ describe('dmux native helper progressive enhancement', () => {
         subtitle: 'linux',
         body: 'should not use the helper',
         tmuxPaneId: '%1',
-      })
+      }),
     ).resolves.toBe(false);
   });
 });

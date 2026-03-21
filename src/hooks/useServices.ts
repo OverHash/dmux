@@ -1,26 +1,26 @@
-import { useMemo } from "react"
-import { PopupManager, type PopupManagerConfig } from "../services/PopupManager.js"
-import type { ProjectSettings } from "../types.js"
-import type { AgentName } from "../utils/agentLaunch.js"
-import type { TrackProjectActivity } from "../types/activity.js"
+import { useMemo } from 'react';
+import { PopupManager, type PopupManagerConfig } from '../services/PopupManager.js';
+import type { ProjectSettings } from '../types.js';
+import type { AgentName } from '../utils/agentLaunch.js';
+import type { TrackProjectActivity } from '../types/activity.js';
 
 interface UseServicesProps {
   // PopupManager config
-  sidebarWidth: number
-  projectRoot: string
-  popupsSupported: boolean
-  isDevMode: boolean
-  terminalWidth: number
-  terminalHeight: number
-  controlPaneId?: string
-  availableAgents: AgentName[]
-  settingsManager: any
-  projectSettings: ProjectSettings
+  sidebarWidth: number;
+  projectRoot: string;
+  popupsSupported: boolean;
+  isDevMode: boolean;
+  terminalWidth: number;
+  terminalHeight: number;
+  controlPaneId?: string;
+  availableAgents: AgentName[];
+  settingsManager: any;
+  projectSettings: ProjectSettings;
 
   // Callbacks
-  setStatusMessage: (msg: string) => void
-  setIgnoreInput: (ignore: boolean) => void
-  trackProjectActivity: TrackProjectActivity
+  setStatusMessage: (msg: string) => void;
+  setIgnoreInput: (ignore: boolean) => void;
+  trackProjectActivity: TrackProjectActivity;
 }
 
 export function useServices(props: UseServicesProps) {
@@ -38,13 +38,9 @@ export function useServices(props: UseServicesProps) {
       settingsManager: props.settingsManager,
       projectSettings: props.projectSettings,
       trackProjectActivity: props.trackProjectActivity,
-    }
+    };
 
-    return new PopupManager(
-      config,
-      props.setStatusMessage,
-      props.setIgnoreInput
-    )
+    return new PopupManager(config, props.setStatusMessage, props.setIgnoreInput);
   }, [
     props.sidebarWidth,
     props.projectRoot,
@@ -59,9 +55,9 @@ export function useServices(props: UseServicesProps) {
     props.setStatusMessage,
     props.setIgnoreInput,
     props.trackProjectActivity,
-  ])
+  ]);
 
   return {
     popupManager,
-  }
+  };
 }

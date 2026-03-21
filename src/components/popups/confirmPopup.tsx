@@ -24,7 +24,7 @@ const ConfirmPopupApp: React.FC<ConfirmPopupProps> = ({
   title,
   message,
   yesLabel = 'Yes',
-  noLabel = 'No'
+  noLabel = 'No',
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { exit } = useApp();
@@ -55,7 +55,9 @@ const ConfirmPopupApp: React.FC<ConfirmPopupProps> = ({
         {/* Message */}
         <Box marginBottom={1} flexDirection="column">
           {message.split('\n').map((line, idx) => (
-            <Text key={idx} wrap="wrap">{line}</Text>
+            <Text key={idx} wrap="wrap">
+              {line}
+            </Text>
           ))}
         </Box>
 
@@ -117,7 +119,7 @@ function main() {
       message={data.message}
       yesLabel={data.yesLabel}
       noLabel={data.noLabel}
-    />
+    />,
   );
 }
 

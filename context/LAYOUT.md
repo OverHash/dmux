@@ -1,6 +1,7 @@
 # Layout System Refactor Plan
 
 ## Table of Contents
+
 1. [Current State Analysis](#current-state-analysis)
 2. [Problems with Current Approach](#problems-with-current-approach)
 3. [Desired Layout Behavior](#desired-layout-behavior)
@@ -16,11 +17,13 @@
 Layout logic is currently **spread across 9+ files** with inconsistent approaches:
 
 #### 1. **src/index.ts**
+
 - **Line 148**: `const SIDEBAR_WIDTH = 40` (duplicate definition)
 - **Line 165**: Initial sidebar resize: `tmux resize-pane -t '${controlPaneId}' -x ${SIDEBAR_WIDTH}`
 - **Problem**: Only resizes sidebar, doesn't set window max-width
 
 #### 2. **src/utils/paneCreation.ts**
+
 - **Line 112**: `const SIDEBAR_WIDTH = 40` (duplicate definition)
 - **Line 155**: First pane: `setupSidebarLayout(controlPaneId)`
 - **Lines 160-174**: Subsequent panes: alternating split logic
@@ -32,6 +35,7 @@ Layout logic is currently **spread across 9+ files** with inconsistent approache
 - **Problem**: Alternating splits create unbalanced layouts; enforcement happens **after** split (visual flicker)
 
 #### 3. **src/utils/tmux.ts** (Main Layout Logic)
+
 - **Lines 6-9**: Layout constants
   ```typescript
   export const SIDEBAR_WIDTH = 40;
@@ -51,29 +55,35 @@ Layout logic is currently **spread across 9+ files** with inconsistent approache
   - **3+ panes** (lines 365-409): `calculateOptimalColumns()` → custom layout string
 
 #### 4. **src/utils/welcomePane.ts**
+
 - **Line 19**: Creates welcome pane: `tmux split-window -h -t '${controlPaneId}'`
 - **Problem**: Doesn't coordinate with layout system
 
 #### 5. **src/utils/conflictResolutionPane.ts**
+
 - **Line 50**: Creates conflict pane: `tmux split-window -h -P -F '#{pane_id}'`
 - **Line 67**: `const SIDEBAR_WIDTH = 40` (duplicate definition)
 - **Line 70**: `enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH)`
 - **Problem**: Another ad-hoc pane creation without layout coordination
 
 #### 6. **src/hooks/usePanes.ts**
+
 - **Line 117**: Restores missing panes: `tmux split-window -h -P -F '#{pane_id}'`
 - **Line 145**: `tmux select-layout even-horizontal` (ad-hoc layout fix)
 - **Problem**: Bypasses layout system entirely
 
 #### 7. **src/hooks/usePaneRunner.ts**
+
 - **Line 139**: `const SIDEBAR_WIDTH = 40` (duplicate definition)
 - **Line 142**: `enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH)`
 
 #### 8. **src/hooks/useWorktreeActions.ts**
+
 - **Line 36**: `const SIDEBAR_WIDTH = 40` (duplicate definition)
 - **Line 39**: `enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH)`
 
 #### 9. **src/DmuxApp.tsx**
+
 - **Lines 1431, 1465, 1568, 2219**: Multiple `enforceControlPaneSize()` calls
 - **Line 1550**: Debug dialog creates pane: `tmux split-window -h -P -F '#{pane_id}'`
 - **Problem**: Reactive layout enforcement, not proactive
@@ -93,7 +103,9 @@ Layout logic is currently **spread across 9+ files** with inconsistent approache
 ## Problems with Current Approach
 
 ### 1. Startup Flash
+
 When dmux starts, the sidebar is initially full-width until first `resize-pane` command executes:
+
 ```
 Initial:                    After 100ms:
 ┌───────────────────────┐   ┌──────────┬────────────┐
@@ -103,7 +115,9 @@ Initial:                    After 100ms:
 ```
 
 ### 2. Post-Split Layout Flicker
+
 Panes are created with alternating splits, then `enforceControlPaneSize()` moves them:
+
 ```
 After split-window:         After enforceControlPaneSize():
 ┌──────────┬──────────┐     ┌──────────┬─────────┬─────────┐
@@ -114,7 +128,9 @@ After split-window:         After enforceControlPaneSize():
 ```
 
 ### 3. No Width Constraints
+
 dmux window always spans full terminal width, even when content doesn't need it:
+
 ```
 Terminal = 300 cols, 3 panes:
 ┌──────────┬──────────────────────────────────────────────────┐
@@ -133,7 +149,9 @@ Result: Panes are actually 86 cols each (see Phase 4)
 ```
 
 ### 4. Uneven Pane Distribution
+
 Current custom layout string distributes panes left-to-right, top-to-bottom:
+
 ```
 5 panes, 3 columns:
 ┌──────────┬────────┬────────┬────────┐
@@ -166,6 +184,7 @@ Desired (span orphan panes):
 ### Layout Phases
 
 #### Phase 0: No Panes (Initial Startup)
+
 ```
 Terminal width = any
 ┌──────────┐
@@ -176,6 +195,7 @@ Max Width = 40
 ```
 
 #### Phase 1: Welcome Pane Only
+
 ```
 Terminal width = any
 ┌──────────┬──────────────────────────────────┐
@@ -186,6 +206,7 @@ Max Width = terminal width (unlimited)
 ```
 
 #### Phase 2: Single Content Pane
+
 ```
 Terminal = 300 cols
 
@@ -201,6 +222,7 @@ Max Width = 160
 ```
 
 #### Phase 3: Two Content Panes
+
 ```
 Terminal = 300 cols
 
@@ -220,6 +242,7 @@ Max Width = 281
 ```
 
 #### Phase 4: Three Content Panes (Same Terminal Size)
+
 ```
 Terminal = 300 cols (keeping consistent with Phase 3)
 
@@ -238,6 +261,7 @@ Max Width = 300 (NO empty space - all 3 panes as columns, equal width)
 ```
 
 #### Phase 5: Three Content Panes (Narrow Terminal)
+
 ```
 Terminal = 200 cols
 
@@ -262,6 +286,7 @@ Note: Panes 1 and 2 share left column (2 rows), Pane 3 is in right column (1 row
 ```
 
 #### Phase 6: Five Content Panes with Spanning
+
 ```
 Terminal = 300 cols
 
@@ -289,6 +314,7 @@ Note: Panes 2-4 span full height since they have only 1 pane each
 ```
 
 #### Phase 7: Terminal Resize (Expand)
+
 ```
 Initial (Terminal = 200 cols, 5 panes, 2 columns):
 ┌──────────┬──────────┬──────────┐
@@ -317,6 +343,7 @@ Action: Debounce 500ms → recalculateAndApplyLayout()
 ```
 
 #### Phase 8: Terminal Resize (Shrink)
+
 ```
 Initial (Terminal = 300 cols, 5 panes, 4 columns from Phase 6):
 ┌──────────┬──────────┬──────────┬──────────┬──────────┐
@@ -353,28 +380,26 @@ Action: Debounce 500ms → recalculateAndApplyLayout() → reduce from 4 to 2 co
 ### Layout Calculation Algorithm
 
 **Configurable Layout Constants:**
+
 ```typescript
 // These should be configurable (via settings or environment)
-const SIDEBAR_WIDTH = 40;              // Fixed sidebar width
-const MIN_COMFORTABLE_WIDTH = 60;      // Minimum pane width before creating rows
-const MAX_COMFORTABLE_WIDTH = 120;     // Maximum pane width (cap for readability)
-const MIN_COMFORTABLE_HEIGHT = 15;     // Minimum pane height
+const SIDEBAR_WIDTH = 40; // Fixed sidebar width
+const MIN_COMFORTABLE_WIDTH = 60; // Minimum pane width before creating rows
+const MAX_COMFORTABLE_WIDTH = 120; // Maximum pane width (cap for readability)
+const MIN_COMFORTABLE_HEIGHT = 15; // Minimum pane height
 ```
 
 **Core Algorithm:**
+
 ```typescript
 function calculateOptimalLayout(
   numContentPanes: number,
   terminalWidth: number,
   terminalHeight: number,
-  config: LayoutConfig = DEFAULT_LAYOUT_CONFIG  // Pass in configurable values
+  config: LayoutConfig = DEFAULT_LAYOUT_CONFIG, // Pass in configurable values
 ): LayoutConfiguration {
-  const {
-    SIDEBAR_WIDTH,
-    MIN_COMFORTABLE_WIDTH,
-    MAX_COMFORTABLE_WIDTH,
-    MIN_COMFORTABLE_HEIGHT
-  } = config;
+  const { SIDEBAR_WIDTH, MIN_COMFORTABLE_WIDTH, MAX_COMFORTABLE_WIDTH, MIN_COMFORTABLE_HEIGHT } =
+    config;
 
   // Special case: welcome pane or no panes
   if (numContentPanes === 0) {
@@ -383,19 +408,19 @@ function calculateOptimalLayout(
       rows: 0,
       windowWidth: terminalWidth, // Unlimited width for welcome pane
       paneDistribution: [],
-      actualPaneWidth: 0
+      actualPaneWidth: 0,
     };
   }
 
   // Try column counts from max down to 1 (prioritize columns > rows)
   for (let cols = numContentPanes; cols >= 1; cols--) {
     const rows = Math.ceil(numContentPanes / cols);
-    const columnBorders = cols - 1;  // Vertical borders between columns
-    const rowBorders = rows - 1;     // Horizontal borders between rows
+    const columnBorders = cols - 1; // Vertical borders between columns
+    const rowBorders = rows - 1; // Horizontal borders between rows
 
     // Calculate minimum required dimensions (can we fit at MIN width?)
-    const minRequiredWidth = SIDEBAR_WIDTH + (cols * MIN_COMFORTABLE_WIDTH) + columnBorders;
-    const minRequiredHeight = (rows * MIN_COMFORTABLE_HEIGHT) + rowBorders;
+    const minRequiredWidth = SIDEBAR_WIDTH + cols * MIN_COMFORTABLE_WIDTH + columnBorders;
+    const minRequiredHeight = rows * MIN_COMFORTABLE_HEIGHT + rowBorders;
 
     // Check if this layout fits in terminal at minimum comfortable size
     if (minRequiredWidth <= terminalWidth && minRequiredHeight <= terminalHeight) {
@@ -403,7 +428,7 @@ function calculateOptimalLayout(
 
       // Calculate ideal window max-width (cap each pane at MAX_COMFORTABLE_WIDTH)
       // Window should be: sidebar + (columns * MAX width) + borders OR terminal width, whichever is smaller
-      const idealMaxWidth = SIDEBAR_WIDTH + (cols * MAX_COMFORTABLE_WIDTH) + columnBorders;
+      const idealMaxWidth = SIDEBAR_WIDTH + cols * MAX_COMFORTABLE_WIDTH + columnBorders;
       const windowWidth = Math.min(idealMaxWidth, terminalWidth);
 
       // Calculate actual pane width using the constrained windowWidth (not terminalWidth)
@@ -419,7 +444,7 @@ function calculateOptimalLayout(
         rows,
         windowWidth,
         paneDistribution: distribution,
-        actualPaneWidth  // The width panes will actually be (between MIN and MAX)
+        actualPaneWidth, // The width panes will actually be (between MIN and MAX)
       };
     }
   }
@@ -430,7 +455,7 @@ function calculateOptimalLayout(
     rows: numContentPanes,
     windowWidth: terminalWidth,
     paneDistribution: [numContentPanes],
-    actualPaneWidth: terminalWidth - SIDEBAR_WIDTH
+    actualPaneWidth: terminalWidth - SIDEBAR_WIDTH,
   };
 }
 
@@ -479,6 +504,7 @@ function distributePanes(numPanes: number, cols: number): number[] {
 **File**: `src/utils/layoutManager.ts` (NEW)
 
 **Tasks**:
+
 1. Create `LayoutConfiguration` interface
 2. Implement `calculateOptimalLayout()` with column prioritization
 3. Implement `distributePanes()` for even distribution with spanning
@@ -488,6 +514,7 @@ function distributePanes(numPanes: number, cols: number): number[] {
 7. Export `recalculateAndApplyLayout()` as the **single entry point**
 
 **Code Structure**:
+
 ```typescript
 // src/utils/layoutManager.ts
 
@@ -587,8 +614,10 @@ function applyPaneLayout(
 **File**: `src/utils/paneCreation.ts`
 
 **Changes**:
+
 1. **Line 112**: Remove `const SIDEBAR_WIDTH = 40` (use import)
 2. **Lines 152-174**: Replace alternating split logic:
+
    ```typescript
    // OLD: Alternating splits
    const splitDirection = dmuxPaneIds.length % 2 === 1 ? '-h' : '-v';
@@ -597,7 +626,9 @@ function applyPaneLayout(
    // NEW: Always split horizontally, let layout manager organize
    paneInfo = execSync(`tmux split-window -h -t '${targetPane}' ...`);
    ```
+
 3. **Line 190**: Replace `enforceControlPaneSize()` with `recalculateAndApplyLayout()`:
+
    ```typescript
    // OLD:
    enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH);
@@ -606,9 +637,9 @@ function applyPaneLayout(
    const dimensions = getWindowDimensions();
    recalculateAndApplyLayout(
      controlPaneId,
-     [...existingPanes, newPane].map(p => p.paneId),
+     [...existingPanes, newPane].map((p) => p.paneId),
      dimensions.width,
-     dimensions.height
+     dimensions.height,
    );
    ```
 
@@ -617,8 +648,10 @@ function applyPaneLayout(
 **File**: `src/index.ts`
 
 **Changes**:
+
 1. **Line 148**: Remove `const SIDEBAR_WIDTH = 40`
 2. **Lines 164-168**: Replace with layout manager call:
+
    ```typescript
    // OLD:
    execSync(`tmux resize-pane -t '${controlPaneId}' -x ${SIDEBAR_WIDTH}`, { stdio: 'pipe' });
@@ -629,9 +662,9 @@ function applyPaneLayout(
    try {
      const output = execSync('tmux display-message -p "#{window_width} #{window_height}"', {
        encoding: 'utf-8',
-       stdio: 'pipe'
+       stdio: 'pipe',
      }).trim();
-     const [w, h] = output.split(' ').map(n => parseInt(n));
+     const [w, h] = output.split(' ').map((n) => parseInt(n));
      dimensions.width = w;
      dimensions.height = h;
    } catch {}
@@ -646,7 +679,9 @@ function applyPaneLayout(
 **File**: `src/utils/welcomePane.ts`
 
 **Changes**:
+
 1. **After line 23** (after creating welcome pane): Set window width to unlimited
+
    ```typescript
    // After: const welcomePaneId = result;
 
@@ -658,7 +693,9 @@ function applyPaneLayout(
 **File**: `src/utils/welcomePaneManager.ts`
 
 **Changes**:
+
 1. **After line 66** (after destroying welcome pane): Recalculate layout
+
    ```typescript
    // After: destroyWelcomePane(config.welcomePaneId);
 
@@ -668,9 +705,9 @@ function applyPaneLayout(
      const dimensions = getWindowDimensions();
      recalculateAndApplyLayout(
        config.controlPaneId,
-       contentPanes.map(p => p.paneId),
+       contentPanes.map((p) => p.paneId),
        dimensions.width,
-       dimensions.height
+       dimensions.height,
      );
    }
    ```
@@ -678,6 +715,7 @@ function applyPaneLayout(
 ### Phase 5: Replace All enforceControlPaneSize Calls
 
 **Files to Update**:
+
 - `src/DmuxApp.tsx` (lines 1431, 1465, 1568, 2219)
 - `src/hooks/usePaneRunner.ts` (line 142)
 - `src/hooks/useWorktreeActions.ts` (line 39)
@@ -685,6 +723,7 @@ function applyPaneLayout(
 - `src/utils/tmux.ts` (line 111 - inside `setupSidebarLayout`)
 
 **Pattern**:
+
 ```typescript
 // OLD:
 enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH);
@@ -694,13 +733,14 @@ import { recalculateAndApplyLayout } from './utils/layoutManager.js';
 import { getWindowDimensions } from './utils/tmux.js';
 
 const dimensions = getWindowDimensions();
-const contentPaneIds = panes.map(p => p.paneId); // Get from context
+const contentPaneIds = panes.map((p) => p.paneId); // Get from context
 recalculateAndApplyLayout(controlPaneId, contentPaneIds, dimensions.width, dimensions.height);
 ```
 
 ### Phase 6: Remove Duplicate SIDEBAR_WIDTH Definitions
 
 **Files to Update**:
+
 - `src/index.ts:148` → REMOVE, import from layoutManager
 - `src/utils/paneCreation.ts:112` → REMOVE, import from layoutManager
 - `src/utils/conflictResolutionPane.ts:67` → REMOVE, import from layoutManager
@@ -708,6 +748,7 @@ recalculateAndApplyLayout(controlPaneId, contentPaneIds, dimensions.width, dimen
 - `src/hooks/useWorktreeActions.ts:36` → REMOVE, import from layoutManager
 
 **Keep Only**:
+
 - `src/utils/layoutManager.ts` (or `src/utils/tmux.ts` if layoutManager re-exports it)
 
 ### Phase 7: Add Terminal Resize Detection
@@ -715,11 +756,13 @@ recalculateAndApplyLayout(controlPaneId, contentPaneIds, dimensions.width, dimen
 **File**: `src/DmuxApp.tsx`
 
 **Add After Line 21** (imports):
+
 ```typescript
 import { debounce } from 'lodash'; // Or implement simple debounce
 ```
 
 **Add in Component Body** (around line 100):
+
 ```typescript
 // Terminal resize handler
 useEffect(() => {
@@ -727,14 +770,9 @@ useEffect(() => {
     if (!controlPaneId) return;
 
     const dimensions = getWindowDimensions();
-    const contentPaneIds = panes.map(p => p.paneId);
+    const contentPaneIds = panes.map((p) => p.paneId);
 
-    recalculateAndApplyLayout(
-      controlPaneId,
-      contentPaneIds,
-      dimensions.width,
-      dimensions.height
-    );
+    recalculateAndApplyLayout(controlPaneId, contentPaneIds, dimensions.width, dimensions.height);
   }, 500); // Debounce 500ms
 
   // Listen for terminal resize via stdout
@@ -753,18 +791,20 @@ useEffect(() => {
 **Task**: Rewrite `generateSidebarGridLayout()` to support pane spanning
 
 **Key Changes**:
+
 1. Accept `paneDistribution: number[]` parameter
 2. Build columns with variable pane counts
 3. Panes in shorter columns get extra height
 
 **Pseudo-code**:
+
 ```typescript
 function generateLayoutStringWithSpanning(
   controlPaneId: string,
   contentPanes: string[],
   layout: LayoutConfiguration,
   windowWidth: number,
-  windowHeight: number
+  windowHeight: number,
 ): string {
   const { cols, paneDistribution } = layout;
 
@@ -803,6 +843,7 @@ function generateLayoutStringWithSpanning(
 **File**: `src/utils/tmux.ts`
 
 **Tasks**:
+
 1. **Deprecate `enforceControlPaneSize()`** - mark as deprecated, redirect to layoutManager
 2. **Keep `setupSidebarLayout()`** - still useful for initial sidebar creation
 3. **Keep `calculateOptimalColumns()`** - move to layoutManager
@@ -813,6 +854,7 @@ function generateLayoutStringWithSpanning(
 **File**: `tests/layout.test.ts`
 
 **Tasks**:
+
 1. Update imports to use `layoutManager.ts`
 2. Add tests for new layout scenarios:
    - Welcome pane unlimited width
@@ -820,6 +862,7 @@ function generateLayoutStringWithSpanning(
    - Pane spanning in uneven distributions
    - Terminal resize triggers
 3. Add tests for pane distribution:
+
    ```typescript
    it('distributes 5 panes across 3 columns as [2, 2, 1]', () => {
      const dist = distributePanes(5, 3);
@@ -838,12 +881,14 @@ function generateLayoutStringWithSpanning(
 ## Testing Scenarios
 
 ### Scenario 1: Fresh Startup
+
 1. Start dmux in 200-col terminal
 2. **Expected**: Sidebar appears immediately at 40 cols (no flash)
 3. **Expected**: Welcome pane uses all remaining 159 cols
 4. **Expected**: Window max-width = 200
 
 ### Scenario 2: First Content Pane Creation
+
 1. Create first content pane with prompt
 2. **Expected**: Welcome pane destroyed smoothly
 3. **Expected**: Content pane appears at ≤120 cols
@@ -851,6 +896,7 @@ function generateLayoutStringWithSpanning(
 5. **Expected**: Empty space visible on right
 
 ### Scenario 3: Multiple Panes in Wide Terminal
+
 1. Terminal = 400 cols
 2. Create 5 content panes
 3. **Expected**: Panes arranged in 3-4 columns (not single column)
@@ -858,6 +904,7 @@ function generateLayoutStringWithSpanning(
 5. **Expected**: Last column panes span full height if fewer panes
 
 ### Scenario 4: Multiple Panes in Narrow Terminal
+
 1. Terminal = 180 cols
 2. Create 5 content panes
 3. **Expected**: Panes arranged in 2 columns (3 would be too cramped)
@@ -865,6 +912,7 @@ function generateLayoutStringWithSpanning(
 5. **Expected**: Distribution like [3, 2] or [2, 2, 1] depending on height
 
 ### Scenario 5: Terminal Resize (Expand)
+
 1. Start with terminal = 180 cols, 5 panes (2 columns)
 2. Resize terminal to 350 cols
 3. **Expected**: After 500ms debounce, layout recalculates to 3 columns
@@ -872,6 +920,7 @@ function generateLayoutStringWithSpanning(
 5. **Expected**: Window max-width increases
 
 ### Scenario 6: Terminal Resize (Shrink)
+
 1. Start with terminal = 350 cols, 5 panes (3 columns)
 2. Resize terminal to 180 cols
 3. **Expected**: After 500ms debounce, layout recalculates to 2 columns
@@ -879,6 +928,7 @@ function generateLayoutStringWithSpanning(
 5. **Expected**: Window max-width decreases
 
 ### Scenario 7: Pane Closure Triggers Reflow
+
 1. Terminal = 300 cols, 6 panes (3 columns, 2 rows)
 2. Close 3 panes
 3. **Expected**: Remaining 3 panes spread across 3 columns (1 row)
@@ -886,17 +936,20 @@ function generateLayoutStringWithSpanning(
 5. **Expected**: Window max-width adjusts
 
 ### Scenario 8: Welcome Pane Recreation
+
 1. Start with 3 content panes
 2. Close all panes
 3. **Expected**: Welcome pane recreated automatically
 4. **Expected**: Window max-width becomes unlimited (terminal width)
 
 ### Scenario 9: Conflict Resolution Pane
+
 1. Create conflict resolution pane during merge
 2. **Expected**: Layout system handles it like any other pane
 3. **Expected**: No ad-hoc layout commands bypass layout manager
 
 ### Scenario 10: Pane Restoration (from usePanes.ts)
+
 1. Restart dmux session with saved panes
 2. **Expected**: Panes restored with correct layout
 3. **Expected**: No `even-horizontal` hack applied
@@ -907,6 +960,7 @@ function generateLayoutStringWithSpanning(
 ## Migration Checklist
 
 ### Critical Path (Must Do First)
+
 - [ ] Create `src/utils/layoutManager.ts` with core functions
 - [ ] Implement `calculateOptimalLayout()` with tests
 - [ ] Implement `setWindowMaxWidth()` and test with tmux
@@ -914,6 +968,7 @@ function generateLayoutStringWithSpanning(
 - [ ] Update `src/utils/paneCreation.ts` to use layoutManager
 
 ### Secondary Tasks
+
 - [ ] Update welcome pane creation/destruction to call layoutManager
 - [ ] Replace all `enforceControlPaneSize()` calls (9 locations)
 - [ ] Remove duplicate `SIDEBAR_WIDTH` definitions (5 locations)
@@ -921,6 +976,7 @@ function generateLayoutStringWithSpanning(
 - [ ] Fix `usePanes.ts` pane restoration to use layoutManager
 
 ### Polish & Testing
+
 - [ ] Implement pane spanning in layout string generator
 - [ ] Update layout tests with new scenarios
 - [ ] Test all scenarios listed above
@@ -951,6 +1007,7 @@ function generateLayoutStringWithSpanning(
 ## Success Metrics
 
 After implementation, we should achieve:
+
 - ✅ **No startup flash** - sidebar locked to 40 cols immediately
 - ✅ **Empty space visible** - window constrained to needed width
 - ✅ **Responsive layouts** - adapts to terminal resize within 500ms

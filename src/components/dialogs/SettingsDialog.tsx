@@ -26,12 +26,14 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
   scopeIndex = 0,
 }) => {
   // Get the current setting definition being edited
-  const currentDef = editingKey ? settingDefinitions.find(d => d.key === editingKey) : null;
+  const currentDef = editingKey ? settingDefinitions.find((d) => d.key === editingKey) : null;
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} marginTop={1}>
       <Box marginBottom={1}>
-        <Text bold color="cyan">Settings</Text>
+        <Text bold color="cyan">
+          Settings
+        </Text>
       </Box>
 
       {mode === 'list' && (
@@ -48,7 +50,8 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     {def.label}
                   </Text>
                   <Text color={isSelected ? 'cyan' : 'gray'} dimColor={!isSelected}>
-                    {' '}(press Enter)
+                    {' '}
+                    (press Enter)
                   </Text>
                 </Box>
               );
@@ -68,13 +71,17 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               if (def.type === 'boolean') {
                 displayValue = currentValue ? 'on' : 'off';
               } else if (def.type === 'select' && def.options) {
-                const option = def.options.find(o => o.value === currentValue);
+                const option = def.options.find((o) => o.value === currentValue);
                 displayValue = option?.label || 'none';
               } else {
                 displayValue = String(currentValue) || 'none';
               }
 
-              scopeLabel = isProjectOverride ? ' - project setting' : (isGlobalSetting ? ' - global setting' : '');
+              scopeLabel = isProjectOverride
+                ? ' - project setting'
+                : isGlobalSetting
+                  ? ' - global setting'
+                  : '';
             }
 
             return (
@@ -84,7 +91,9 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
                   {def.label}
                 </Text>
                 <Text color={isSelected ? 'cyan' : 'gray'} dimColor={!isSelected}>
-                  {' '}({displayValue}{scopeLabel})
+                  {' '}
+                  ({displayValue}
+                  {scopeLabel})
                 </Text>
               </Box>
             );
@@ -107,12 +116,18 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
           {currentDef.type === 'boolean' && (
             <>
               <Box>
-                <Text color={editingValueIndex === 0 ? 'cyan' : 'white'} bold={editingValueIndex === 0}>
+                <Text
+                  color={editingValueIndex === 0 ? 'cyan' : 'white'}
+                  bold={editingValueIndex === 0}
+                >
                   {editingValueIndex === 0 ? '▶ ' : '  '}Enable
                 </Text>
               </Box>
               <Box>
-                <Text color={editingValueIndex === 1 ? 'cyan' : 'white'} bold={editingValueIndex === 1}>
+                <Text
+                  color={editingValueIndex === 1 ? 'cyan' : 'white'}
+                  bold={editingValueIndex === 1}
+                >
                   {editingValueIndex === 1 ? '▶ ' : '  '}Disable
                 </Text>
               </Box>
@@ -123,8 +138,12 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
             <>
               {currentDef.options.map((option, index) => (
                 <Box key={option.value}>
-                  <Text color={editingValueIndex === index ? 'cyan' : 'white'} bold={editingValueIndex === index}>
-                    {editingValueIndex === index ? '▶ ' : '  '}{option.label}
+                  <Text
+                    color={editingValueIndex === index ? 'cyan' : 'white'}
+                    bold={editingValueIndex === index}
+                  >
+                    {editingValueIndex === index ? '▶ ' : '  '}
+                    {option.label}
                   </Text>
                 </Box>
               ))}

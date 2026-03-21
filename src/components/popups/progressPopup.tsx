@@ -21,7 +21,7 @@ const ProgressPopupApp: React.FC<ProgressPopupProps> = ({
   resultFile,
   message,
   type = 'info',
-  timeout = 0 // 0 means no auto-close
+  timeout = 0, // 0 means no auto-close
 }) => {
   const { exit } = useApp();
 
@@ -48,7 +48,9 @@ const ProgressPopupApp: React.FC<ProgressPopupProps> = ({
       {/* Message */}
       <Box flexDirection="column">
         {message.split('\n').map((line, idx) => (
-          <Text key={idx} wrap="truncate-end">{line}</Text>
+          <Text key={idx} wrap="truncate-end">
+            {line}
+          </Text>
         ))}
       </Box>
     </Box>
@@ -85,7 +87,7 @@ function main() {
       message={data.message}
       type={data.type}
       timeout={data.timeout}
-    />
+    />,
   );
 }
 

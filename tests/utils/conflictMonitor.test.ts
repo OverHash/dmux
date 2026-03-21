@@ -68,7 +68,7 @@ describe('Conflict Monitor', () => {
       // Should check pane existence
       expect(vi.mocked(mockExecSync)).toHaveBeenCalledWith(
         expect.stringContaining('display-message -t'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 

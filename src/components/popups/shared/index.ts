@@ -11,5 +11,5 @@ export {
   writeSuccessAndExit,
   writeErrorAndExit,
   writeCancelAndExit,
-  type PopupResult
+  type PopupResult,
 } from './PopupWrapper.js';

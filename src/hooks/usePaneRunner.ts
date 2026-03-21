@@ -13,14 +13,21 @@ interface Params {
   setRunningCommand: (v: boolean) => void;
 }
 
-export default function usePaneRunner({ panes, savePanes, projectSettings, setStatusMessage, setRunningCommand }: Params) {
+export default function usePaneRunner({
+  panes,
+  savePanes,
+  projectSettings,
+  setStatusMessage,
+  setRunningCommand,
+}: Params) {
   const copyNonGitFiles = async (worktreePath: string, sourceProjectRoot?: string) => {
     try {
       setStatusMessage('Copying non-git files from main...');
       const derivedRoot = worktreePath.replace(/[\\\/]\.dmux[\\\/]worktrees[\\\/][^\\\/]+$/, '');
-      const projectRoot = sourceProjectRoot
-        || (derivedRoot !== worktreePath ? derivedRoot : undefined)
-        || execSync('git rev-parse --show-toplevel', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      const projectRoot =
+        sourceProjectRoot ||
+        (derivedRoot !== worktreePath ? derivedRoot : undefined) ||
+        execSync('git rev-parse --show-toplevel', { encoding: 'utf-8', stdio: 'pipe' }).trim();
       const rsyncCmd = `rsync -avz --exclude='.git' --exclude='.dmux' --exclude='node_modules' --exclude='dist' --exclude='build' --exclude='.next' --exclude='.turbo' "${projectRoot}/" "${worktreePath}/"`;
       execSync(rsyncCmd, { stdio: 'pipe' });
       setStatusMessage('Non-git files copied successfully');
@@ -53,7 +60,9 @@ export default function usePaneRunner({ panes, savePanes, projectSettings, setSt
 
       const existingWindowId = type === 'test' ? pane.testWindowId : pane.devWindowId;
       if (existingWindowId) {
-        try { await tmuxService.killWindow(existingWindowId); } catch {}
+        try {
+          await tmuxService.killWindow(existingWindowId);
+        } catch {}
       }
 
       const windowName = `${pane.slug}-${type}`;
@@ -65,10 +74,10 @@ export default function usePaneRunner({ panes, savePanes, projectSettings, setSt
       const updatedPane: DmuxPane = {
         ...pane,
         [type === 'test' ? 'testWindowId' : 'devWindowId']: windowId,
-        [type === 'test' ? 'testStatus' : 'devStatus']: 'running'
+        [type === 'test' ? 'testStatus' : 'devStatus']: 'running',
       } as DmuxPane;
 
-      const updatedPanes = panes.map(p => p.id === pane.id ? updatedPane : p);
+      const updatedPanes = panes.map((p) => (p.id === pane.id ? updatedPane : p));
       await savePanes(updatedPanes);
 
       if (type === 'test') setTimeout(() => monitorTestOutput(pane.id, logFile), 2000);
@@ -88,17 +97,28 @@ export default function usePaneRunner({ panes, savePanes, projectSettings, setSt
     try {
       const content = await fs.readFile(logFile, 'utf-8');
       let status: 'passed' | 'failed' | 'running' = 'running';
-      if (content.match(/(?:tests?|specs?) (?:passed|✓|succeeded)/i) || content.match(/\b0 fail(?:ing|ed|ures?)\b/i)) {
+      if (
+        content.match(/(?:tests?|specs?) (?:passed|✓|succeeded)/i) ||
+        content.match(/\b0 fail(?:ing|ed|ures?)\b/i)
+      ) {
         status = 'passed';
-      } else if (content.match(/(?:tests?|specs?) (?:failed|✗|✖)/i) || content.match(/\d+ fail(?:ing|ed|ures?)/i) || content.match(/error:/i)) {
+      } else if (
+        content.match(/(?:tests?|specs?) (?:failed|✗|✖)/i) ||
+        content.match(/\d+ fail(?:ing|ed|ures?)/i) ||
+        content.match(/error:/i)
+      ) {
         status = 'failed';
       }
 
-      const pane = panes.find(p => p.id === paneId);
+      const pane = panes.find((p) => p.id === paneId);
       if (pane?.testWindowId) {
         try {
-          execSync(`tmux list-windows -F '#{window_id}' | rg -q '${pane.testWindowId}'`, { stdio: 'pipe' });
-          const paneOutput = execSync(`tmux capture-pane -t '${pane.testWindowId}' -p | tail -5`, { encoding: 'utf-8' });
+          execSync(`tmux list-windows -F '#{window_id}' | rg -q '${pane.testWindowId}'`, {
+            stdio: 'pipe',
+          });
+          const paneOutput = execSync(`tmux capture-pane -t '${pane.testWindowId}' -p | tail -5`, {
+            encoding: 'utf-8',
+          });
           if (paneOutput.includes('$') || paneOutput.includes('#')) {
             if (status === 'running') status = 'passed';
           }
@@ -107,7 +127,9 @@ export default function usePaneRunner({ panes, savePanes, projectSettings, setSt
         }
       }
 
-      const updatedPanes = panes.map(p => p.id === paneId ? { ...p, testStatus: status, testOutput: content.slice(-5000) } : p);
+      const updatedPanes = panes.map((p) =>
+        p.id === paneId ? { ...p, testStatus: status, testOutput: content.slice(-5000) } : p,
+      );
       await savePanes(updatedPanes);
       if (status === 'running') setTimeout(() => monitorTestOutput(paneId, logFile), 2000);
     } catch {}
@@ -116,18 +138,29 @@ export default function usePaneRunner({ panes, savePanes, projectSettings, setSt
   const monitorDevOutput = async (paneId: string, logFile: string) => {
     try {
       const content = await fs.readFile(logFile, 'utf-8');
-      const urlMatch = content.match(/https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0):\d+/i) || content.match(/Local:\s+(https?:\/\/[^\s]+)/i) || content.match(/listening on port (\d+)/i);
+      const urlMatch =
+        content.match(/https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0):\d+/i) ||
+        content.match(/Local:\s+(https?:\/\/[^\s]+)/i) ||
+        content.match(/listening on port (\d+)/i);
       let devUrl = '';
       if (urlMatch) {
         if (urlMatch[0].startsWith('http')) devUrl = urlMatch[0];
         else if ((urlMatch as any)[1]) devUrl = `http://localhost:${(urlMatch as any)[1]}`;
       }
-      const pane = panes.find(p => p.id === paneId);
+      const pane = panes.find((p) => p.id === paneId);
       let status: 'running' | 'stopped' = 'running';
       if (pane?.devWindowId) {
-        try { execSync(`tmux list-windows -F '#{window_id}' | rg -q '${pane.devWindowId}'`, { stdio: 'pipe' }); } catch { status = 'stopped'; }
+        try {
+          execSync(`tmux list-windows -F '#{window_id}' | rg -q '${pane.devWindowId}'`, {
+            stdio: 'pipe',
+          });
+        } catch {
+          status = 'stopped';
+        }
       }
-      const updatedPanes = panes.map(p => p.id === paneId ? { ...p, devStatus: status, devUrl: devUrl || p.devUrl } : p);
+      const updatedPanes = panes.map((p) =>
+        p.id === paneId ? { ...p, devStatus: status, devUrl: devUrl || p.devUrl } : p,
+      );
       await savePanes(updatedPanes);
       if (status === 'running') setTimeout(() => monitorDevOutput(paneId, logFile), 2000);
     } catch {}
@@ -157,5 +190,11 @@ export default function usePaneRunner({ panes, savePanes, projectSettings, setSt
     }
   };
 
-  return { copyNonGitFiles, runCommandInternal, monitorTestOutput, monitorDevOutput, attachBackgroundWindow } as const;
+  return {
+    copyNonGitFiles,
+    runCommandInternal,
+    monitorTestOutput,
+    monitorDevOutput,
+    attachBackgroundWindow,
+  } as const;
 }

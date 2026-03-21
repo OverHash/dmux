@@ -11,10 +11,7 @@ import { atomicWriteJson } from '../utils/atomicWrite.js';
 import { buildAgentResumeOrLaunchCommand } from '../utils/agentLaunch.js';
 import { ensureGeminiFolderTrusted } from '../utils/geminiTrust.js';
 import { getPaneTmuxTitle } from '../utils/paneTitle.js';
-import {
-  getVisiblePanes,
-  syncHiddenStateFromCurrentWindow,
-} from '../utils/paneVisibility.js';
+import { getVisiblePanes, syncHiddenStateFromCurrentWindow } from '../utils/paneVisibility.js';
 import { normalizeSidebarProjects } from '../utils/sidebarProjects.js';
 
 // Separate config structure to match new format
@@ -38,7 +35,7 @@ interface PaneLoadResult {
 async function restoreAgentSessionForPane(
   tmuxService: TmuxService,
   pane: DmuxPane,
-  paneId: string
+  paneId: string,
 ): Promise<void> {
   if (!pane.agent) {
     return;
@@ -51,7 +48,7 @@ async function restoreAgentSessionForPane(
   await new Promise((resolve) => setTimeout(resolve, 200));
   await tmuxService.sendShellCommand(
     paneId,
-    buildAgentResumeOrLaunchCommand(pane.agent, pane.permissionMode)
+    buildAgentResumeOrLaunchCommand(pane.agent, pane.permissionMode),
   );
   await tmuxService.sendTmuxKeys(paneId, 'Enter');
 }
@@ -90,11 +87,11 @@ export async function fetchTmuxPaneIds(maxRetries = 2): Promise<{
       }
     } catch (error) {
       // Retry on tmux command failure (common during rapid pane creation/destruction)
-  //       LogService.getInstance().debug(
-  //         `Tmux fetch failed (attempt ${retryCount + 1}/${maxRetries}): ${error instanceof Error ? error.message : String(error)}`,
-  //         'usePaneLoading'
-  //       );
-      if (retryCount < maxRetries) await new Promise(r => setTimeout(r, TMUX_RETRY_DELAY));
+      //       LogService.getInstance().debug(
+      //         `Tmux fetch failed (attempt ${retryCount + 1}/${maxRetries}): ${error instanceof Error ? error.message : String(error)}`,
+      //         'usePaneLoading'
+      //       );
+      if (retryCount < maxRetries) await new Promise((r) => setTimeout(r, TMUX_RETRY_DELAY));
     }
     retryCount++;
   }
@@ -120,26 +117,24 @@ export async function loadPanesFromFile(panesFile: string): Promise<DmuxPane[]> 
   } catch (error) {
     // Return empty array if config file doesn't exist or is invalid
     // This is expected on first run
-  //     LogService.getInstance().debug(
-  //       `Config file not found or invalid: ${error instanceof Error ? error.message : String(error)}`,
-  //       'usePaneLoading'
-  //     );
+    //     LogService.getInstance().debug(
+    //       `Config file not found or invalid: ${error instanceof Error ? error.message : String(error)}`,
+    //       'usePaneLoading'
+    //     );
     return [];
   }
 }
 
 export async function loadSidebarProjectsFromFile(
   panesFile: string,
-  panes?: DmuxPane[]
+  panes?: DmuxPane[],
 ): Promise<SidebarProject[]> {
   const fallbackProjectRoot = path.dirname(path.dirname(panesFile));
 
   try {
     const content = await fs.readFile(panesFile, 'utf-8');
     const parsed: any = JSON.parse(content);
-    const config = Array.isArray(parsed)
-      ? { panes: parsed as DmuxPane[] }
-      : parsed as DmuxConfig;
+    const config = Array.isArray(parsed) ? { panes: parsed as DmuxPane[] } : (parsed as DmuxConfig);
     const configPanes = Array.isArray(config.panes) ? config.panes : [];
     const effectivePanes = panes || configPanes;
     const projectRoot = config.projectRoot || fallbackProjectRoot;
@@ -149,14 +144,14 @@ export async function loadSidebarProjectsFromFile(
       config.sidebarProjects,
       effectivePanes,
       projectRoot,
-      projectName
+      projectName,
     );
   } catch {
     return normalizeSidebarProjects(
       undefined,
       panes || [],
       fallbackProjectRoot,
-      path.basename(fallbackProjectRoot)
+      path.basename(fallbackProjectRoot),
     );
   }
 }
@@ -167,7 +162,7 @@ export async function loadSidebarProjectsFromFile(
  */
 export async function recreateMissingPanes(
   missingPanes: DmuxPane[],
-  panesFile: string
+  panesFile: string,
 ): Promise<void> {
   if (missingPanes.length === 0) return;
 
@@ -188,8 +183,14 @@ export async function recreateMissingPanes(
       // Send a message to the pane indicating it was restored
       await tmuxService.sendKeys(newPaneId, `"echo '# Pane restored: ${missingPane.slug}'" Enter`);
       const promptPreview = missingPane.prompt?.substring(0, 50) || '';
-      await tmuxService.sendKeys(newPaneId, `"echo '# Original prompt: ${promptPreview}...'" Enter`);
-      await tmuxService.sendKeys(newPaneId, `"cd ${missingPane.worktreePath || process.cwd()}" Enter`);
+      await tmuxService.sendKeys(
+        newPaneId,
+        `"echo '# Original prompt: ${promptPreview}...'" Enter`,
+      );
+      await tmuxService.sendKeys(
+        newPaneId,
+        `"cd ${missingPane.worktreePath || process.cwd()}" Enter`,
+      );
       await restoreAgentSessionForPane(tmuxService, missingPane, newPaneId);
     } catch (error) {
       // If we can't create the pane, skip it
@@ -213,13 +214,13 @@ export async function recreateMissingPanes(
 export async function recreateKilledWorktreePanes(
   panes: DmuxPane[],
   allPaneIds: string[],
-  panesFile: string
+  panesFile: string,
 ): Promise<DmuxPane[]> {
   const lifecycleManager = PaneLifecycleManager.getInstance();
   const sessionProjectRoot = path.dirname(path.dirname(panesFile));
 
   // Filter out panes that are being intentionally closed
-  const worktreePanesToRecreate = panes.filter(pane => {
+  const worktreePanesToRecreate = panes.filter((pane) => {
     // Pane must be missing from tmux and have a worktree path
     if (allPaneIds.includes(pane.paneId) || !pane.worktreePath) {
       return false;
@@ -231,7 +232,7 @@ export async function recreateKilledWorktreePanes(
     if (lifecycleManager.isClosing(pane.id) || lifecycleManager.isClosing(pane.paneId)) {
       LogService.getInstance().debug(
         `Skipping recreation of pane ${pane.id} (${pane.slug}) - intentionally being closed`,
-        'shellDetection'
+        'shellDetection',
       );
       return false;
     }
@@ -259,7 +260,7 @@ export async function recreateKilledWorktreePanes(
       await tmuxService.setPaneTitle(newPaneId, getPaneTmuxTitle(pane, sessionProjectRoot));
 
       // Update the pane with new ID
-      const paneIndex = updatedPanes.findIndex(p => p.id === pane.id);
+      const paneIndex = updatedPanes.findIndex((p) => p.id === pane.id);
       if (paneIndex !== -1) {
         updatedPanes[paneIndex] = { ...pane, paneId: newPaneId };
       }
@@ -268,20 +269,23 @@ export async function recreateKilledWorktreePanes(
       await tmuxService.sendKeys(newPaneId, `"echo '# Pane restored: ${pane.slug}'" Enter`);
       if (pane.prompt) {
         const promptPreview = pane.prompt.substring(0, 50) || '';
-        await tmuxService.sendKeys(newPaneId, `"echo '# Original prompt: ${promptPreview}...'" Enter`);
+        await tmuxService.sendKeys(
+          newPaneId,
+          `"echo '# Original prompt: ${promptPreview}...'" Enter`,
+        );
       }
       await tmuxService.sendKeys(newPaneId, `"cd ${pane.worktreePath}" Enter`);
       await restoreAgentSessionForPane(tmuxService, pane, newPaneId);
 
-  //       LogService.getInstance().debug(
-  //         `Recreated worktree pane ${pane.id} (${pane.slug}) with new ID ${newPaneId}`,
-  //         'shellDetection'
-  //       );
+      //       LogService.getInstance().debug(
+      //         `Recreated worktree pane ${pane.id} (${pane.slug}) with new ID ${newPaneId}`,
+      //         'shellDetection'
+      //       );
     } catch (error) {
-  //       LogService.getInstance().debug(
-  //         `Failed to recreate worktree pane ${pane.id} (${pane.slug})`,
-  //         'shellDetection'
-  //       );
+      //       LogService.getInstance().debug(
+      //         `Failed to recreate worktree pane ${pane.id} (${pane.slug})`,
+      //         'shellDetection'
+      //       );
     }
   }
 
@@ -294,24 +298,24 @@ export async function recreateKilledWorktreePanes(
       const { getTerminalDimensions } = await import('../utils/tmux.js');
       const dimensions = getTerminalDimensions();
 
-      const contentPaneIds = getVisiblePanes(updatedPanes).map(p => p.paneId);
+      const contentPaneIds = getVisiblePanes(updatedPanes).map((p) => p.paneId);
       recalculateAndApplyLayout(
         config.controlPaneId,
         contentPaneIds,
         dimensions.width,
-        dimensions.height
+        dimensions.height,
       );
 
-  //       LogService.getInstance().debug(
-  //         `Recalculated layout after recreating worktree panes`,
-  //         'shellDetection'
-  //       );
+      //       LogService.getInstance().debug(
+      //         `Recalculated layout after recreating worktree panes`,
+      //         'shellDetection'
+      //       );
     }
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       'Failed to recalculate layout after recreating worktree panes',
-  //       'shellDetection'
-  //     );
+    //     LogService.getInstance().debug(
+    //       'Failed to recalculate layout after recreating worktree panes',
+    //       'shellDetection'
+    //     );
   }
 
   return updatedPanes;
@@ -327,15 +331,15 @@ export async function recreateKilledWorktreePanes(
  */
 export async function loadAndProcessPanes(
   panesFile: string,
-  isInitialLoad: boolean
+  isInitialLoad: boolean,
 ): Promise<PaneLoadResult> {
   const loadedPanes = await loadPanesFromFile(panesFile);
   let { allPaneIds, titleToId, currentWindowPaneIds } = await fetchTmuxPaneIds();
 
   // Attempt to rebind panes whose IDs changed by matching on their stable tmux title.
   let reboundPanes = syncHiddenStateFromCurrentWindow(
-    loadedPanes.map(p => rebindPaneByTitle(p, titleToId, allPaneIds)),
-    currentWindowPaneIds
+    loadedPanes.map((p) => rebindPaneByTitle(p, titleToId, allPaneIds)),
+    currentWindowPaneIds,
   );
 
   // CRITICAL FIX: On initial load, immediately filter out shell panes with stale IDs
@@ -345,16 +349,16 @@ export async function loadAndProcessPanes(
   // 3. "Invalid layout" errors when applying layouts with stale pane IDs
   if (isInitialLoad && allPaneIds.length > 0) {
     const staleShellPanes = reboundPanes.filter(
-      p => p.type === 'shell' && !allPaneIds.includes(p.paneId)
+      (p) => p.type === 'shell' && !allPaneIds.includes(p.paneId),
     );
 
     if (staleShellPanes.length > 0) {
       LogService.getInstance().info(
-        `Removing ${staleShellPanes.length} stale shell pane(s) on startup: ${staleShellPanes.map(p => p.slug).join(', ')}`,
-        'usePaneLoading'
+        `Removing ${staleShellPanes.length} stale shell pane(s) on startup: ${staleShellPanes.map((p) => p.slug).join(', ')}`,
+        'usePaneLoading',
       );
       reboundPanes = reboundPanes.filter(
-        p => !(p.type === 'shell' && !allPaneIds.includes(p.paneId))
+        (p) => !(p.type === 'shell' && !allPaneIds.includes(p.paneId)),
       );
 
       // Save the cleaned config immediately to prevent these panes from reappearing
@@ -369,26 +373,28 @@ export async function loadAndProcessPanes(
           config.sidebarProjects,
           reboundPanes,
           projectRoot,
-          projectName
+          projectName,
         );
         config.lastUpdated = new Date().toISOString();
         await atomicWriteJson(panesFile, config);
-        LogService.getInstance().debug('Saved cleaned config after removing stale shell panes', 'usePaneLoading');
+        LogService.getInstance().debug(
+          'Saved cleaned config after removing stale shell panes',
+          'usePaneLoading',
+        );
       } catch (saveError) {
         LogService.getInstance().debug(
           `Failed to save cleaned config: ${saveError}`,
-          'usePaneLoading'
+          'usePaneLoading',
         );
       }
     }
   }
 
   // Only attempt to recreate missing panes on initial load (only worktree panes, not shell)
-  const missingPanes = (allPaneIds.length > 0 && reboundPanes.length > 0 && isInitialLoad)
-    ? reboundPanes.filter(pane =>
-        !allPaneIds.includes(pane.paneId) && pane.type !== 'shell'
-      )
-    : [];
+  const missingPanes =
+    allPaneIds.length > 0 && reboundPanes.length > 0 && isInitialLoad
+      ? reboundPanes.filter((pane) => !allPaneIds.includes(pane.paneId) && pane.type !== 'shell')
+      : [];
 
   // Recreate missing panes (only on initial load)
   await recreateMissingPanes(missingPanes, panesFile);
@@ -402,8 +408,8 @@ export async function loadAndProcessPanes(
 
     // Re-rebind after recreation
     reboundPanes = syncHiddenStateFromCurrentWindow(
-      reboundPanes.map(p => rebindPaneByTitle(p, titleToId, allPaneIds)),
-      currentWindowPaneIds
+      reboundPanes.map((p) => rebindPaneByTitle(p, titleToId, allPaneIds)),
+      currentWindowPaneIds,
     );
   }
 

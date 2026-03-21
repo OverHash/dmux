@@ -22,9 +22,7 @@ let AGENTS_MD: string;
 const GENERATED_AGENTS_DOC_MODULE = './generated-agents-doc' + '.js';
 try {
   const docsModule = await import(GENERATED_AGENTS_DOC_MODULE);
-  AGENTS_MD = typeof docsModule.AGENTS_MD === 'string'
-    ? docsModule.AGENTS_MD
-    : AGENTS_MD_FALLBACK;
+  AGENTS_MD = typeof docsModule.AGENTS_MD === 'string' ? docsModule.AGENTS_MD : AGENTS_MD_FALLBACK;
 } catch {
   AGENTS_MD = AGENTS_MD_FALLBACK;
 }

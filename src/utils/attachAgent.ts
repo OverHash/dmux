@@ -37,9 +37,7 @@ export function generateSiblingSlugForTargetPane(
 ): string {
   // Always anchor attached-agent slugs to the real worktree directory name.
   // This avoids repeated suffixes when attaching from an already attached pane.
-  const worktreeSlug = targetPane.worktreePath
-    ? path.basename(targetPane.worktreePath)
-    : '';
+  const worktreeSlug = targetPane.worktreePath ? path.basename(targetPane.worktreePath) : '';
   const baseSlug = worktreeSlug || targetPane.slug;
 
   const siblingPrefix = `${baseSlug}-a`;
@@ -56,16 +54,10 @@ export function generateSiblingSlugForTargetPane(
 }
 
 export async function attachAgentToWorktree(
-  options: AttachAgentOptions
+  options: AttachAgentOptions,
 ): Promise<{ pane: DmuxPane }> {
-  const {
-    targetPane,
-    prompt,
-    agent,
-    existingPanes,
-    sessionProjectRoot,
-    sessionConfigPath,
-  } = options;
+  const { targetPane, prompt, agent, existingPanes, sessionProjectRoot, sessionConfigPath } =
+    options;
 
   if (!targetPane.worktreePath) {
     throw new Error('Target pane has no worktree to attach to');
@@ -92,23 +84,24 @@ export async function attachAgentToWorktree(
   }
 
   // Split from the last existing pane (standard grid placement)
-  const dmuxPaneIds = existingPanes.map(p => p.paneId);
+  const dmuxPaneIds = existingPanes.map((p) => p.paneId);
   const splitTarget = dmuxPaneIds[dmuxPaneIds.length - 1];
   const paneInfo = splitPane({ targetPane: splitTarget, cwd: projectRoot });
 
   // Wait for pane to be ready
   const start = Date.now();
-  while ((Date.now() - start) < 600) {
+  while (Date.now() - start < 600) {
     if (await tmuxService.paneExists(paneInfo)) break;
-    await new Promise(r => setTimeout(r, 30));
+    await new Promise((r) => setTimeout(r, 30));
   }
 
   // Set pane title
   try {
     const paneProjectName = targetPane.projectName || path.basename(projectRoot);
-    const paneTitle = projectRoot === sessionProjectRoot
-      ? slug
-      : buildWorktreePaneTitle(slug, projectRoot, paneProjectName);
+    const paneTitle =
+      projectRoot === sessionProjectRoot
+        ? slug
+        : buildWorktreePaneTitle(slug, projectRoot, paneProjectName);
     await tmuxService.setPaneTitle(paneInfo, paneTitle);
   } catch {
     // Ignore title errors
@@ -117,7 +110,7 @@ export async function attachAgentToWorktree(
   // Recalculate layout
   if (controlPaneId) {
     const dimensions = getTerminalDimensions();
-    const allContentPaneIds = [...existingPanes.map(p => p.paneId), paneInfo];
+    const allContentPaneIds = [...existingPanes.map((p) => p.paneId), paneInfo];
     await recalculateAndApplyLayout(
       controlPaneId,
       allContentPaneIds,
@@ -133,7 +126,7 @@ export async function attachAgentToWorktree(
   await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
 
   // Small delay for cd to complete
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 300));
 
   // Launch the agent
   await launchAgentInPane({
@@ -175,7 +168,7 @@ export async function attachAgentToWorktree(
 
   // Re-set the dmux sidebar title
   try {
-    await tmuxService.setPaneTitle(originalPaneId, "dmux");
+    await tmuxService.setPaneTitle(originalPaneId, 'dmux');
   } catch {
     // Ignore title errors
   }

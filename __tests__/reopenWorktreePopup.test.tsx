@@ -17,9 +17,8 @@ describe('ReopenWorktreePopupApp', () => {
   it('filters and scrolls the resumable branch list', async () => {
     const worktrees = Array.from({ length: 10 }, (_, index) => ({
       branchName: `task-${index}`,
-      lastModified: index < 5
-        ? `2026-03-${String(index + 1).padStart(2, '0')}T12:00:00.000Z`
-        : undefined,
+      lastModified:
+        index < 5 ? `2026-03-${String(index + 1).padStart(2, '0')}T12:00:00.000Z` : undefined,
       hasUncommittedChanges: index % 2 === 0,
       hasWorktree: index % 2 === 0,
       hasLocalBranch: true,
@@ -39,7 +38,7 @@ describe('ReopenWorktreePopupApp', () => {
           remoteLoaded: false,
           filterQuery: '',
         }}
-      />
+      />,
     );
 
     await sleep(20);
@@ -120,7 +119,7 @@ describe('ReopenWorktreePopupApp', () => {
           remoteLoaded: true,
           filterQuery: '',
         }}
-      />
+      />,
     );
 
     await sleep(20);
@@ -172,7 +171,7 @@ describe('ReopenWorktreePopupApp', () => {
           remoteLoaded: true,
           filterQuery: '',
         }}
-      />
+      />,
     );
 
     await sleep(20);
@@ -212,7 +211,7 @@ describe('ReopenWorktreePopupApp', () => {
           remoteLoaded: false,
           filterQuery: '',
         }}
-      />
+      />,
     );
 
     const initialOutput = stripAnsi(lastFrame() ?? '');
@@ -277,7 +276,7 @@ describe('ReopenWorktreePopupApp', () => {
           remoteLoaded: false,
           filterQuery: '',
         }}
-      />
+      />,
     );
 
     await sleep(50);

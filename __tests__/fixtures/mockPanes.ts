@@ -35,9 +35,11 @@ export function createWorktreePane(overrides?: Partial<DmuxPane>): DmuxPane {
 }
 
 export function createMultiplePanes(count: number): DmuxPane[] {
-  return Array.from({ length: count }, (_, i) => createMockPane({
-    id: `dmux-${i + 1}`,
-    slug: `test-pane-${i + 1}`,
-    paneId: `%${40 + i}`,
-  }));
+  return Array.from({ length: count }, (_, i) =>
+    createMockPane({
+      id: `dmux-${i + 1}`,
+      slug: `test-pane-${i + 1}`,
+      paneId: `%${40 + i}`,
+    }),
+  );
 }

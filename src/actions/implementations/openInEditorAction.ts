@@ -12,7 +12,7 @@ import type { ActionResult, ActionContext } from '../types.js';
 export async function openInEditor(
   pane: DmuxPane,
   context: ActionContext,
-  params?: { editor?: string }
+  params?: { editor?: string },
 ): Promise<ActionResult> {
   if (!pane.worktreePath) {
     return {

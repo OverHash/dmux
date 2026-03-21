@@ -6,10 +6,7 @@ import {
   type PaneUserInteractionEvent,
   type StatusUpdateEvent,
 } from './StatusDetector.js';
-import {
-  DmuxFocusService,
-  type DmuxFocusChangedEvent,
-} from './DmuxFocusService.js';
+import { DmuxFocusService, type DmuxFocusChangedEvent } from './DmuxFocusService.js';
 import { LogService } from './LogService.js';
 import { supportsNativeDmuxHelper } from '../utils/focusDetection.js';
 
@@ -138,7 +135,7 @@ export class DmuxAttentionService extends EventEmitter {
         this.logger.debug(
           `Suppressing startup attention notification for ${paneId} until activity is observed`,
           'attentionService',
-          paneId
+          paneId,
         );
         return;
       }
@@ -151,7 +148,9 @@ export class DmuxAttentionService extends EventEmitter {
       this.armedPanes.add(paneId);
     }
 
-    const attentionSurface = await this.options.focusService.getPaneAttentionSurface(candidate.tmuxPaneId);
+    const attentionSurface = await this.options.focusService.getPaneAttentionSurface(
+      candidate.tmuxPaneId,
+    );
     if (attentionSurface === 'fully-focused') {
       return;
     }
@@ -190,7 +189,7 @@ export class DmuxAttentionService extends EventEmitter {
       this.logger.debug(
         `Attention notification skipped for ${paneId} because the helper notification send failed`,
         'attentionService',
-        paneId
+        paneId,
       );
       return;
     }
@@ -211,7 +210,7 @@ export class DmuxAttentionService extends EventEmitter {
   private setPaneAttention(
     paneId: string,
     tmuxPaneId: string | undefined,
-    needsAttention: boolean
+    needsAttention: boolean,
   ): void {
     const currentTmuxPaneId = this.activeAttentionPanes.get(paneId);
 

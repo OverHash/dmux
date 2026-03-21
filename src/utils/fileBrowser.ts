@@ -96,7 +96,7 @@ const STATUS_RANK: Record<string, number> = {
 function runGitText(
   rootPath: string,
   args: string[],
-  options?: { allowFailure?: boolean }
+  options?: { allowFailure?: boolean },
 ): string {
   const result = spawnSync('git', args, {
     cwd: rootPath,
@@ -155,9 +155,7 @@ function getStatusRank(label: string): number {
     return STATUS_RANK[label];
   }
 
-  return label
-    .split('')
-    .reduce((highest, code) => Math.max(highest, STATUS_RANK[code] || 0), 0);
+  return label.split('').reduce((highest, code) => Math.max(highest, STATUS_RANK[code] || 0), 0);
 }
 
 function pickDominantStatus(labels: string[]): string {
@@ -176,19 +174,14 @@ function pickDominantStatus(labels: string[]): string {
 }
 
 function hasDependencySegment(relativePath: string): boolean {
-  return relativePath
-    .split('/')
-    .some((segment) => DEPENDENCY_DIR_NAMES.has(segment));
+  return relativePath.split('/').some((segment) => DEPENDENCY_DIR_NAMES.has(segment));
 }
 
-function shouldIncludeDependencyPaths(
-  filterQuery?: string,
-  activePath?: string | null
-): boolean {
+function shouldIncludeDependencyPaths(filterQuery?: string, activePath?: string | null): boolean {
   const normalizedQuery = (filterQuery || '').toLowerCase();
   if (
-    normalizedQuery
-    && Array.from(DEPENDENCY_DIR_NAMES).some((name) => normalizedQuery.includes(name.toLowerCase()))
+    normalizedQuery &&
+    Array.from(DEPENDENCY_DIR_NAMES).some((name) => normalizedQuery.includes(name.toLowerCase()))
   ) {
     return true;
   }
@@ -215,7 +208,11 @@ function parseGitStatus(rootPath: string): Map<string, string> {
     }
 
     const normalizedPath = decodeGitPath(filePath);
-    if (!normalizedPath || normalizedPath.startsWith('.git/') || normalizedPath.startsWith('.dmux/')) {
+    if (
+      !normalizedPath ||
+      normalizedPath.startsWith('.git/') ||
+      normalizedPath.startsWith('.dmux/')
+    ) {
       continue;
     }
 
@@ -226,9 +223,13 @@ function parseGitStatus(rootPath: string): Map<string, string> {
 }
 
 function listRepositoryFiles(rootPath: string): string[] {
-  const output = runGitText(rootPath, ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
-    allowFailure: true,
-  });
+  const output = runGitText(
+    rootPath,
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+    {
+      allowFailure: true,
+    },
+  );
 
   return output
     .split('\0')
@@ -271,7 +272,7 @@ export function loadBrowserSnapshot(rootPath: string): BrowserSnapshot {
 
 export function computeModifiedTimes(
   rootPath: string,
-  relativePaths: string[]
+  relativePaths: string[],
 ): Map<string, number> {
   const times = new Map<string, number>();
 
@@ -304,7 +305,7 @@ function makeDirectoryNode(relativePath: string): BrowserTreeNode {
 
 function ensureDirectory(
   relativePath: string,
-  nodeMap: Map<string, BrowserTreeNode>
+  nodeMap: Map<string, BrowserTreeNode>,
 ): BrowserTreeNode {
   const existing = nodeMap.get(relativePath);
   if (existing) {
@@ -325,7 +326,7 @@ function ensureDirectory(
 function compareNodes(
   left: BrowserTreeNode,
   right: BrowserTreeNode,
-  sortMode: BrowserSortMode
+  sortMode: BrowserSortMode,
 ): number {
   if (left.type !== right.type) {
     return left.type === 'directory' ? -1 : 1;
@@ -354,7 +355,7 @@ function compareNodes(
 function compareSearchEntries(
   left: BrowserSearchEntryRecord,
   right: BrowserSearchEntryRecord,
-  sortMode: BrowserSortMode
+  sortMode: BrowserSortMode,
 ): number {
   if (left.type !== right.type) {
     return left.type === 'directory' ? -1 : 1;
@@ -380,10 +381,7 @@ function compareSearchEntries(
   });
 }
 
-function finalizeTree(
-  node: BrowserTreeNode,
-  sortMode: BrowserSortMode
-): BrowserTreeNode {
+function finalizeTree(node: BrowserTreeNode, sortMode: BrowserSortMode): BrowserTreeNode {
   if (node.type === 'file') {
     return node;
   }
@@ -393,7 +391,7 @@ function finalizeTree(
   node.statusLabel = pickDominantStatus(node.children.map((child) => child.statusLabel));
   node.sortModifiedAt = node.children.reduce(
     (highest, child) => Math.max(highest, child.sortModifiedAt),
-    0
+    0,
   );
   node.children.sort((left, right) => compareNodes(left, right, sortMode));
 
@@ -424,10 +422,7 @@ function isFuzzyMatch(query: string, candidate: string): boolean {
   return false;
 }
 
-function filterTreeNodes(
-  nodes: BrowserTreeNode[],
-  query: string
-): BrowserTreeNode[] {
+function filterTreeNodes(nodes: BrowserTreeNode[], query: string): BrowserTreeNode[] {
   const filtered: BrowserTreeNode[] = [];
 
   for (const node of nodes) {
@@ -459,16 +454,13 @@ function filterTreeNodes(
 
 export function buildBrowserTree(
   snapshot: BrowserSnapshot,
-  options: BrowserTreeOptions
+  options: BrowserTreeOptions,
 ): BrowserTreeNode[] {
   const rootNode = makeDirectoryNode('');
   const nodeMap = new Map<string, BrowserTreeNode>([['', rootNode]]);
   const modifiedTimes = options.modifiedTimes || new Map<string, number>();
   const filterQuery = options.filterQuery?.trim() || '';
-  const includeDependencyPaths = shouldIncludeDependencyPaths(
-    filterQuery,
-    options.activePath
-  );
+  const includeDependencyPaths = shouldIncludeDependencyPaths(filterQuery, options.activePath);
 
   for (const file of snapshot.files) {
     if (options.filterMode === 'diffed' && !file.changed) {
@@ -506,7 +498,7 @@ export function buildBrowserTree(
 
 export function buildBrowserSearchEntries(
   snapshot: BrowserSnapshot,
-  options: BrowserTreeOptions
+  options: BrowserTreeOptions,
 ): BrowserVisibleEntry[] {
   const filterQuery = options.filterQuery?.trim() || '';
   if (!filterQuery) {
@@ -514,10 +506,7 @@ export function buildBrowserSearchEntries(
   }
 
   const modifiedTimes = options.modifiedTimes || new Map<string, number>();
-  const includeDependencyPaths = shouldIncludeDependencyPaths(
-    filterQuery,
-    options.activePath
-  );
+  const includeDependencyPaths = shouldIncludeDependencyPaths(filterQuery, options.activePath);
   const directoryEntries = new Map<string, BrowserSearchEntryRecord>();
   const fileEntries: BrowserSearchEntryRecord[] = [];
 
@@ -570,7 +559,9 @@ export function buildBrowserSearchEntries(
   }
 
   const matches = [
-    ...Array.from(directoryEntries.values()).filter((entry) => isFuzzyMatch(filterQuery, entry.path)),
+    ...Array.from(directoryEntries.values()).filter((entry) =>
+      isFuzzyMatch(filterQuery, entry.path),
+    ),
     ...fileEntries,
   ].sort((left, right) => compareSearchEntries(left, right, options.sortMode));
 
@@ -591,11 +582,9 @@ function buildDisplayLabel(
   node: BrowserTreeNode,
   ancestorsHaveNext: boolean[],
   isLast: boolean,
-  isExpanded: boolean
+  isExpanded: boolean,
 ): string {
-  const branchPrefix = ancestorsHaveNext
-    .map((hasNext) => (hasNext ? '│  ' : '   '))
-    .join('');
+  const branchPrefix = ancestorsHaveNext.map((hasNext) => (hasNext ? '│  ' : '   ')).join('');
   const connector = isLast ? '└─' : '├─';
 
   if (node.type === 'directory') {
@@ -611,14 +600,14 @@ function flattenNodes(
   nodes: BrowserTreeNode[],
   expandedPaths: Set<string>,
   ancestorsHaveNext: boolean[] = [],
-  options: FlattenBrowserTreeOptions = {}
+  options: FlattenBrowserTreeOptions = {},
 ): BrowserVisibleEntry[] {
   const rows: BrowserVisibleEntry[] = [];
 
   nodes.forEach((node, index) => {
     const isLast = index === nodes.length - 1;
-    const isExpanded = node.type === 'directory'
-      && (options.forceExpandDirectories || expandedPaths.has(node.path));
+    const isExpanded =
+      node.type === 'directory' && (options.forceExpandDirectories || expandedPaths.has(node.path));
 
     rows.push({
       path: node.path,
@@ -634,12 +623,7 @@ function flattenNodes(
 
     if (node.type === 'directory' && isExpanded && node.children.length > 0) {
       rows.push(
-        ...flattenNodes(
-          node.children,
-          expandedPaths,
-          [...ancestorsHaveNext, !isLast],
-          options
-        )
+        ...flattenNodes(node.children, expandedPaths, [...ancestorsHaveNext, !isLast], options),
       );
     }
   });
@@ -650,7 +634,7 @@ function flattenNodes(
 export function flattenBrowserTree(
   nodes: BrowserTreeNode[],
   expandedPaths: Set<string>,
-  options: FlattenBrowserTreeOptions = {}
+  options: FlattenBrowserTreeOptions = {},
 ): BrowserVisibleEntry[] {
   return flattenNodes(nodes, expandedPaths, [], options);
 }
@@ -676,9 +660,7 @@ export function getAncestorPaths(relativePath: string): string[] {
   return ancestors;
 }
 
-function readPreviewChunk(
-  fullPath: string
-): { buffer: Buffer; truncated: boolean } {
+function readPreviewChunk(fullPath: string): { buffer: Buffer; truncated: boolean } {
   const stats = fs.statSync(fullPath);
   const fileSize = stats.size;
   const bytesToRead = Math.min(fileSize, MAX_PREVIEW_BYTES);
@@ -726,10 +708,7 @@ export function loadCodePreview(rootPath: string, relativePath: string): string[
   }
 }
 
-function runGitPreview(
-  rootPath: string,
-  args: string[]
-): string {
+function runGitPreview(rootPath: string, args: string[]): string {
   const result = spawnSync('git', args, {
     cwd: rootPath,
     encoding: 'utf-8',
@@ -746,7 +725,7 @@ function runGitPreview(
 export function loadDiffPreview(
   rootPath: string,
   relativePath: string,
-  statusLabel: string
+  statusLabel: string,
 ): string[] {
   const fullPath = path.join(rootPath, relativePath);
 
@@ -810,7 +789,7 @@ export function getStatusColor(statusLabel: string): string | undefined {
 
 export function getCurrentDirectoryPath(
   rootPath: string,
-  entry?: Pick<BrowserVisibleEntry, 'type' | 'path' | 'parentPath'>
+  entry?: Pick<BrowserVisibleEntry, 'type' | 'path' | 'parentPath'>,
 ): string {
   if (!entry) {
     return rootPath;

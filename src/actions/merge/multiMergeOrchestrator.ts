@@ -23,9 +23,7 @@ import {
  * - Filters to only those with changes to merge
  * - Already sorted by depth (deepest first from detectAllWorktrees)
  */
-export async function buildMergeQueue(
-  worktrees: WorktreeInfo[]
-): Promise<MergeQueueItem[]> {
+export async function buildMergeQueue(worktrees: WorktreeInfo[]): Promise<MergeQueueItem[]> {
   const { validateMerge } = await import('../../utils/mergeValidation.js');
   const queue: MergeQueueItem[] = [];
 
@@ -33,15 +31,17 @@ export async function buildMergeQueue(
     const validation = validateMerge(
       worktree.parentRepoPath,
       worktree.worktreePath,
-      worktree.branch
+      worktree.branch,
     );
 
     // Include if there's something to merge (has issues that can be resolved, or can merge)
     // Exclude only if the ONLY issue is 'nothing_to_merge'
-    const hasNothingToMerge = validation.issues.some(i => i.type === 'nothing_to_merge');
+    const hasNothingToMerge = validation.issues.some((i) => i.type === 'nothing_to_merge');
     const hasOnlyNothingToMerge = validation.issues.length === 1 && hasNothingToMerge;
 
-    console.error(`[buildMergeQueue] ${worktree.repoName}: canMerge=${validation.canMerge}, issues=[${validation.issues.map(i => i.type).join(', ')}], included=${!hasOnlyNothingToMerge}`);
+    console.error(
+      `[buildMergeQueue] ${worktree.repoName}: canMerge=${validation.canMerge}, issues=[${validation.issues.map((i) => i.type).join(', ')}], included=${!hasOnlyNothingToMerge}`,
+    );
 
     if (!hasOnlyNothingToMerge) {
       queue.push({
@@ -52,7 +52,9 @@ export async function buildMergeQueue(
     }
   }
 
-  console.error(`[buildMergeQueue] Final queue: ${queue.map(q => q.worktree.repoName).join(', ')}`);
+  console.error(
+    `[buildMergeQueue] Final queue: ${queue.map((q) => q.worktree.repoName).join(', ')}`,
+  );
   return queue;
 }
 
@@ -63,7 +65,7 @@ export async function buildMergeQueue(
 export async function executeMultiMerge(
   pane: DmuxPane,
   context: ActionContext,
-  queue: MergeQueueItem[]
+  queue: MergeQueueItem[],
 ): Promise<ActionResult> {
   // Start with confirmation dialog
   return showMultiMergeConfirmation(pane, context, queue);
@@ -75,7 +77,7 @@ export async function executeMultiMerge(
 function showMultiMergeConfirmation(
   pane: DmuxPane,
   context: ActionContext,
-  queue: MergeQueueItem[]
+  queue: MergeQueueItem[],
 ): ActionResult {
   const worktreeList = queue
     .map((item) => {
@@ -121,7 +123,7 @@ async function processNextInQueue(
   context: ActionContext,
   queue: MergeQueueItem[],
   currentIndex: number,
-  result: MultiMergeResult
+  result: MultiMergeResult,
 ): Promise<ActionResult> {
   // Check if we're done
   if (currentIndex >= queue.length) {
@@ -174,7 +176,7 @@ async function processNextInQueue(
 
       // Process next item
       return processNextInQueue(pane, context, queue, currentIndex + 1, result);
-    }
+    },
   );
 }
 
@@ -188,7 +190,7 @@ async function executeSingleWorktreeMerge(
   currentIndex: number,
   queue: MergeQueueItem[],
   result: MultiMergeResult,
-  onComplete: (success: boolean, error?: string) => Promise<ActionResult>
+  onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { validation, worktree } = item;
   const worktreeLabel = getWorktreeDisplayLabel(worktree);
@@ -204,7 +206,7 @@ async function executeSingleWorktreeMerge(
       queue,
       currentIndex,
       result,
-      onComplete
+      onComplete,
     );
   }
 
@@ -216,7 +218,16 @@ async function executeSingleWorktreeMerge(
     confirmLabel: 'Merge',
     cancelLabel: 'Skip',
     onConfirm: async () => {
-      return performWorktreeMerge(pane, context, item, progressPrefix, onComplete, queue, currentIndex, result);
+      return performWorktreeMerge(
+        pane,
+        context,
+        item,
+        progressPrefix,
+        onComplete,
+        queue,
+        currentIndex,
+        result,
+      );
     },
     onCancel: async () => {
       // Skip this worktree, continue with others
@@ -236,7 +247,7 @@ async function handleWorktreeMergeIssues(
   queue: MergeQueueItem[],
   currentIndex: number,
   result: MultiMergeResult,
-  onComplete: (success: boolean, error?: string) => Promise<ActionResult>
+  onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { validation, worktree } = item;
   const { issues, mainBranch } = validation;
@@ -248,47 +259,54 @@ async function handleWorktreeMergeIssues(
     item.validation = validateMerge(
       worktree.parentRepoPath,
       worktree.worktreePath,
-      worktree.branch
+      worktree.branch,
     );
 
     if (item.validation.canMerge) {
-      return performWorktreeMerge(pane, context, item, progressPrefix, onComplete, queue, currentIndex, result);
+      return performWorktreeMerge(
+        pane,
+        context,
+        item,
+        progressPrefix,
+        onComplete,
+        queue,
+        currentIndex,
+        result,
+      );
     } else {
-      return handleWorktreeMergeIssues(pane, context, item, progressPrefix, queue, currentIndex, result, onComplete);
+      return handleWorktreeMergeIssues(
+        pane,
+        context,
+        item,
+        progressPrefix,
+        queue,
+        currentIndex,
+        result,
+        onComplete,
+      );
     }
   };
 
   // Check for nothing to merge
-  const nothingToMerge = issues.find(i => i.type === 'nothing_to_merge');
+  const nothingToMerge = issues.find((i) => i.type === 'nothing_to_merge');
   if (nothingToMerge && issues.length === 1) {
     return onComplete(false, 'skipped');
   }
 
   // Check for main dirty
-  const mainDirty = issues.find(i => i.type === 'main_dirty');
+  const mainDirty = issues.find((i) => i.type === 'main_dirty');
   if (mainDirty) {
-    return handleMainDirtyForWorktree(
-      item,
-      progressPrefix,
-      mainBranch,
-      retryMerge,
-      onComplete
-    );
+    return handleMainDirtyForWorktree(item, progressPrefix, mainBranch, retryMerge, onComplete);
   }
 
   // Check for worktree uncommitted
-  const worktreeUncommitted = issues.find(i => i.type === 'worktree_uncommitted');
+  const worktreeUncommitted = issues.find((i) => i.type === 'worktree_uncommitted');
   if (worktreeUncommitted) {
-    return handleUncommittedForWorktree(
-      item,
-      progressPrefix,
-      retryMerge,
-      onComplete
-    );
+    return handleUncommittedForWorktree(item, progressPrefix, retryMerge, onComplete);
   }
 
   // Check for merge conflict
-  const mergeConflict = issues.find(i => i.type === 'merge_conflict');
+  const mergeConflict = issues.find((i) => i.type === 'merge_conflict');
   if (mergeConflict) {
     return handleConflictForWorktree(
       pane,
@@ -299,12 +317,12 @@ async function handleWorktreeMergeIssues(
       queue,
       currentIndex,
       result,
-      onComplete
+      onComplete,
     );
   }
 
   // Unknown issue - skip with error
-  return onComplete(false, issues.map(i => i.message).join('; '));
+  return onComplete(false, issues.map((i) => i.message).join('; '));
 }
 
 /**
@@ -315,13 +333,15 @@ async function handleMainDirtyForWorktree(
   progressPrefix: string,
   mainBranch: string,
   retryMerge: () => Promise<ActionResult>,
-  onComplete: (success: boolean, error?: string) => Promise<ActionResult>
+  onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { worktree, validation } = item;
-  const issue = validation.issues.find(i => i.type === 'main_dirty')!;
+  const issue = validation.issues.find((i) => i.type === 'main_dirty')!;
   const files = issue.files || [];
 
-  console.error(`[multiMerge] handleMainDirtyForWorktree - parentRepoPath: ${worktree.parentRepoPath}, worktreePath: ${worktree.worktreePath}`);
+  console.error(
+    `[multiMerge] handleMainDirtyForWorktree - parentRepoPath: ${worktree.parentRepoPath}, worktreePath: ${worktree.worktreePath}`,
+  );
 
   return {
     type: 'choice',
@@ -371,7 +391,7 @@ async function handleMainDirtyForWorktree(
         return handleCommitWithOptions(
           worktree.parentRepoPath,
           optionId as 'commit_automatic' | 'commit_ai_editable' | 'commit_manual',
-          retryMerge
+          retryMerge,
         );
       }
 
@@ -388,13 +408,15 @@ async function handleUncommittedForWorktree(
   item: MergeQueueItem,
   progressPrefix: string,
   retryMerge: () => Promise<ActionResult>,
-  onComplete: (success: boolean, error?: string) => Promise<ActionResult>
+  onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { worktree, validation } = item;
-  const issue = validation.issues.find(i => i.type === 'worktree_uncommitted')!;
+  const issue = validation.issues.find((i) => i.type === 'worktree_uncommitted')!;
   const files = issue.files || [];
 
-  console.error(`[multiMerge] handleUncommittedForWorktree - worktreePath: ${worktree.worktreePath}, parentRepoPath: ${worktree.parentRepoPath}`);
+  console.error(
+    `[multiMerge] handleUncommittedForWorktree - worktreePath: ${worktree.worktreePath}, parentRepoPath: ${worktree.parentRepoPath}`,
+  );
 
   return {
     type: 'choice',
@@ -445,7 +467,7 @@ async function handleUncommittedForWorktree(
         return handleCommitWithOptions(
           worktree.worktreePath,
           optionId as 'commit_automatic' | 'commit_ai_editable' | 'commit_manual',
-          retryMerge
+          retryMerge,
         );
       }
 
@@ -467,17 +489,20 @@ async function handleConflictForWorktree(
   queue: MergeQueueItem[],
   currentIndex: number,
   result: MultiMergeResult,
-  onComplete: (success: boolean, error?: string) => Promise<ActionResult>
+  onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { worktree, validation } = item;
-  const issue = validation.issues.find(i => i.type === 'merge_conflict')!;
+  const issue = validation.issues.find((i) => i.type === 'merge_conflict')!;
   const files = issue.files || [];
 
   // Check for real file list vs fallback message
   const hasRealFiles = files.length > 0 && !files[0].includes('conflict detection incomplete');
 
   const conflictMessage = hasRealFiles
-    ? `Conflicts detected in ${worktree.repoName}:\n${files.slice(0, 3).map(f => ` • ${f}`).join('\n')}${files.length > 3 ? '\n  ...' : ''}`
+    ? `Conflicts detected in ${worktree.repoName}:\n${files
+        .slice(0, 3)
+        .map((f) => ` • ${f}`)
+        .join('\n')}${files.length > 3 ? '\n  ...' : ''}`
     : `Potential conflicts detected in ${worktree.repoName} between ${mainBranch} and ${worktree.branch}.\n\nThe branches have diverged and may have conflicting changes.`;
 
   return {
@@ -522,7 +547,7 @@ async function handleConflictForWorktree(
           queue,
           currentIndex,
           result,
-          onComplete
+          onComplete,
         );
       }
       return onComplete(false, 'Unknown option');
@@ -542,7 +567,7 @@ async function launchConflictResolutionForSubWorktree(
   queue: MergeQueueItem[],
   currentIndex: number,
   result: MultiMergeResult,
-  onComplete: (success: boolean, error?: string) => Promise<ActionResult>
+  onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { worktree, validation } = item;
   const { mainBranch } = validation;
@@ -572,7 +597,7 @@ async function launchConflictResolutionForSubWorktree(
       currentIndex,
       result,
       agent,
-      onComplete
+      onComplete,
     );
   };
 
@@ -582,7 +607,7 @@ async function launchConflictResolutionForSubWorktree(
       type: 'choice',
       title: 'Choose AI Agent for Conflict Resolution',
       message: `Which agent should resolve conflicts in ${worktree.repoName}?`,
-      options: availableAgents.map(agent => ({
+      options: availableAgents.map((agent) => ({
         id: agent,
         label: getAgentLabel(agent),
         description: getAgentDescription(agent),
@@ -617,7 +642,7 @@ async function createAndMonitorConflictPane(
   currentIndex: number,
   result: MultiMergeResult,
   agent: AgentName,
-  onComplete: (success: boolean, error?: string) => Promise<ActionResult>
+  onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { worktree, validation } = item;
   const { mainBranch } = validation;
@@ -654,7 +679,9 @@ async function createAndMonitorConflictPane(
       onResolved: async () => {
         // Conflicts resolved! Clean up and continue with multi-merge
         try {
-          console.error(`[multiMerge] Conflicts resolved for ${worktree.repoName}, cleaning up conflict pane`);
+          console.error(
+            `[multiMerge] Conflicts resolved for ${worktree.repoName}, cleaning up conflict pane`,
+          );
           const tmuxService = TmuxService.getInstance();
 
           // Kill the conflict pane
@@ -664,7 +691,9 @@ async function createAndMonitorConflictPane(
           const { StateManager } = await import('../../shared/StateManager.js');
           const stateManager = StateManager.getInstance();
           const currentPanes = stateManager.getPanes();
-          const panesWithoutConflictPane = currentPanes.filter((p: DmuxPane) => p.id !== conflictPane.id);
+          const panesWithoutConflictPane = currentPanes.filter(
+            (p: DmuxPane) => p.id !== conflictPane.id,
+          );
           await context.savePanes(panesWithoutConflictPane);
 
           // Mark this worktree as completed
@@ -682,7 +711,9 @@ async function createAndMonitorConflictPane(
           const mergeResult = mergeWorktreeIntoMain(worktree.parentRepoPath, worktree.branch);
 
           if (!mergeResult.success) {
-            console.error(`[multiMerge] Failed to merge ${worktree.branch} into ${mainBranch}: ${mergeResult.error}`);
+            console.error(
+              `[multiMerge] Failed to merge ${worktree.branch} into ${mainBranch}: ${mergeResult.error}`,
+            );
             // Update status to failed
             item.status = 'failed';
             item.error = mergeResult.error;
@@ -703,7 +734,13 @@ async function createAndMonitorConflictPane(
           }
 
           // Continue with next item in queue
-          const nextResult = await processNextInQueue(pane, context, queue, currentIndex + 1, result);
+          const nextResult = await processNextInQueue(
+            pane,
+            context,
+            queue,
+            currentIndex + 1,
+            result,
+          );
 
           // Show the result to user if we have the callback
           if (context.onActionResult) {
@@ -742,14 +779,13 @@ async function performWorktreeMerge(
   onComplete: (success: boolean, error?: string) => Promise<ActionResult>,
   queue?: MergeQueueItem[],
   currentIndex?: number,
-  result?: MultiMergeResult
+  result?: MultiMergeResult,
 ): Promise<ActionResult> {
   const { worktree, validation } = item;
   const { mainBranch } = validation;
 
-  const { mergeMainIntoWorktree, mergeWorktreeIntoMain } = await import(
-    '../../utils/mergeExecution.js'
-  );
+  const { mergeMainIntoWorktree, mergeWorktreeIntoMain } =
+    await import('../../utils/mergeExecution.js');
   const { triggerHook } = await import('../../utils/hooks.js');
 
   // Trigger pre_merge hook
@@ -767,7 +803,8 @@ async function performWorktreeMerge(
       // Conflict occurred during merge - offer AI resolution if queue info available
       const hasQueueInfo = queue && typeof currentIndex === 'number' && result;
 
-      const options: Array<{id: string; label: string; description: string; default?: boolean}> = [];
+      const options: Array<{ id: string; label: string; description: string; default?: boolean }> =
+        [];
 
       if (hasQueueInfo) {
         options.push({
@@ -794,7 +831,10 @@ async function performWorktreeMerge(
       return {
         type: 'choice',
         title: `${progressPrefix}: Merge Conflict`,
-        message: `Conflict while merging ${mainBranch} into worktree:\n${step1.conflictFiles.slice(0, 3).map(f => ` • ${f}`).join('\n')}`,
+        message: `Conflict while merging ${mainBranch} into worktree:\n${step1.conflictFiles
+          .slice(0, 3)
+          .map((f) => ` • ${f}`)
+          .join('\n')}`,
         options,
         onSelect: async (optionId: string) => {
           if (optionId === 'ai_merge' && hasQueueInfo) {
@@ -806,7 +846,7 @@ async function performWorktreeMerge(
               queue,
               currentIndex,
               result,
-              onComplete
+              onComplete,
             );
           }
 
@@ -854,9 +894,9 @@ async function performWorktreeMerge(
 function showMultiMergeSummary(
   pane: DmuxPane,
   context: ActionContext,
-  result: MultiMergeResult
+  result: MultiMergeResult,
 ): ActionResult {
-  const summaryLines = result.results.map(r => {
+  const summaryLines = result.results.map((r) => {
     const name = r.worktree.repoName;
     const icon = r.status === 'completed' ? '✓' : r.status === 'skipped' ? '○' : '✗';
     const suffix = r.error && r.status === 'failed' ? `: ${r.error}` : '';

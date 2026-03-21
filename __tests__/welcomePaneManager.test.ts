@@ -37,14 +37,21 @@ describe('welcomePaneManager', () => {
     fs.mkdirSync(dmuxDir, { recursive: true });
     configPath = path.join(dmuxDir, 'dmux.config.json');
 
-    fs.writeFileSync(configPath, JSON.stringify({
-      projectName: 'test-project',
-      projectRoot: tempProjectRoot,
-      panes: [],
-      settings: {},
-      lastUpdated: new Date().toISOString(),
-      controlPaneId: '%1',
-    }, null, 2));
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify(
+        {
+          projectName: 'test-project',
+          projectRoot: tempProjectRoot,
+          panes: [],
+          settings: {},
+          lastUpdated: new Date().toISOString(),
+          controlPaneId: '%1',
+        },
+        null,
+        2,
+      ),
+    );
   });
 
   afterEach(() => {

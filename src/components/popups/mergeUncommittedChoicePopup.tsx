@@ -46,13 +46,12 @@ const DIFF_MAX_BUFFER_BYTES = 10 * 1024 * 1024;
 const DIFF_SCROLL_PAGE_SIZE = 10;
 const QUICKLOOK_MIN_VISIBLE_LINES = 8;
 const QUICKLOOK_HEADER_LINES = 3;
-const QUICKLOOK_LAYOUT_CHROME_LINES = (
-  (POPUP_CONFIG.containerPadding.y * 2)
-  + QUICKLOOK_HEADER_LINES
-  + 1 // header block marginBottom
-  + POPUP_CONFIG.sectionSpacing
-  + 1 // footer text line
-);
+const QUICKLOOK_LAYOUT_CHROME_LINES =
+  POPUP_CONFIG.containerPadding.y * 2 +
+  QUICKLOOK_HEADER_LINES +
+  1 + // header block marginBottom
+  POPUP_CONFIG.sectionSpacing +
+  1; // footer text line
 
 function shellEscape(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
@@ -64,15 +63,12 @@ function getDiffText(data: MergeUncommittedPopupData, filePath: string): string 
   if (data.diffMode === 'target-branch') {
     try {
       const branchArg = shellEscape(data.targetBranch);
-      const output = execSync(
-        `git --no-pager diff --no-color ${branchArg} -- ${fileArg}`,
-        {
-          cwd: data.repoPath,
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          maxBuffer: DIFF_MAX_BUFFER_BYTES,
-        }
-      );
+      const output = execSync(`git --no-pager diff --no-color ${branchArg} -- ${fileArg}`, {
+        cwd: data.repoPath,
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        maxBuffer: DIFF_MAX_BUFFER_BYTES,
+      });
       if (output.trim().length > 0) {
         return output;
       }
@@ -82,15 +78,12 @@ function getDiffText(data: MergeUncommittedPopupData, filePath: string): string 
   }
 
   try {
-    const output = execSync(
-      `git --no-pager diff --no-color -- ${fileArg}`,
-      {
-        cwd: data.repoPath,
-        encoding: 'utf-8',
-        stdio: 'pipe',
-        maxBuffer: DIFF_MAX_BUFFER_BYTES,
-      }
-    );
+    const output = execSync(`git --no-pager diff --no-color -- ${fileArg}`, {
+      cwd: data.repoPath,
+      encoding: 'utf-8',
+      stdio: 'pipe',
+      maxBuffer: DIFF_MAX_BUFFER_BYTES,
+    });
 
     if (output.trim().length > 0) {
       return output;
@@ -107,7 +100,7 @@ function getDiffText(data: MergeUncommittedPopupData, filePath: string): string 
 
 function getVisibleFileWindow(
   files: string[],
-  selectedFileIndex: number
+  selectedFileIndex: number,
 ): { start: number; end: number; visibleFiles: string[] } {
   const total = files.length;
   if (total <= MAX_VISIBLE_FILES) {
@@ -155,8 +148,13 @@ const MergeUncommittedChoicePopupApp: React.FC<MergeUncommittedChoicePopupProps>
   const optionCount = data.options.length;
   const fileCount = data.files.length;
   const totalRows = optionCount + fileCount;
-  const defaultIndex = Math.max(0, data.options.findIndex((option) => option.default));
-  const [selectedRow, setSelectedRow] = useState(Math.min(defaultIndex, Math.max(totalRows - 1, 0)));
+  const defaultIndex = Math.max(
+    0,
+    data.options.findIndex((option) => option.default),
+  );
+  const [selectedRow, setSelectedRow] = useState(
+    Math.min(defaultIndex, Math.max(totalRows - 1, 0)),
+  );
   const [quicklook, setQuicklook] = useState<{
     filePath: string;
     lines: string[];
@@ -169,12 +167,12 @@ const MergeUncommittedChoicePopupApp: React.FC<MergeUncommittedChoicePopupProps>
 
   const fileWindow = useMemo(
     () => getVisibleFileWindow(data.files, selectedFileIndex),
-    [data.files, selectedFileIndex]
+    [data.files, selectedFileIndex],
   );
   const terminalRows = stdout?.rows || process.stdout.rows || 40;
   const maxVisibleDiffLines = Math.max(
     QUICKLOOK_MIN_VISIBLE_LINES,
-    terminalRows - QUICKLOOK_LAYOUT_CHROME_LINES
+    terminalRows - QUICKLOOK_LAYOUT_CHROME_LINES,
   );
 
   const openQuicklook = (filePath: string) => {
@@ -193,38 +191,30 @@ const MergeUncommittedChoicePopupApp: React.FC<MergeUncommittedChoicePopupProps>
       const maxOffset = Math.max(0, quicklook.lines.length - maxVisibleLines);
 
       if (key.upArrow) {
-        setQuicklook((prev) => (
-          prev
-            ? { ...prev, offset: Math.max(0, prev.offset - 1) }
-            : prev
-        ));
+        setQuicklook((prev) => (prev ? { ...prev, offset: Math.max(0, prev.offset - 1) } : prev));
         return;
       }
 
       if (key.downArrow) {
-        setQuicklook((prev) => (
-          prev
-            ? { ...prev, offset: Math.min(maxOffset, prev.offset + 1) }
-            : prev
-        ));
+        setQuicklook((prev) =>
+          prev ? { ...prev, offset: Math.min(maxOffset, prev.offset + 1) } : prev,
+        );
         return;
       }
 
       if (key.pageUp) {
-        setQuicklook((prev) => (
-          prev
-            ? { ...prev, offset: Math.max(0, prev.offset - DIFF_SCROLL_PAGE_SIZE) }
-            : prev
-        ));
+        setQuicklook((prev) =>
+          prev ? { ...prev, offset: Math.max(0, prev.offset - DIFF_SCROLL_PAGE_SIZE) } : prev,
+        );
         return;
       }
 
       if (key.pageDown) {
-        setQuicklook((prev) => (
+        setQuicklook((prev) =>
           prev
             ? { ...prev, offset: Math.min(maxOffset, prev.offset + DIFF_SCROLL_PAGE_SIZE) }
-            : prev
-        ));
+            : prev,
+        );
         return;
       }
 
@@ -289,10 +279,12 @@ const MergeUncommittedChoicePopupApp: React.FC<MergeUncommittedChoicePopupProps>
                 {quicklook.filePath}
               </Text>
               <Text dimColor>
-                Compared to {data.diffMode === 'target-branch' ? data.targetBranch : 'working tree base'}
+                Compared to{' '}
+                {data.diffMode === 'target-branch' ? data.targetBranch : 'working tree base'}
               </Text>
               <Text dimColor>
-                Lines {Math.min(quicklook.offset + 1, quicklook.lines.length)}-{quicklookEnd} of {quicklook.lines.length}
+                Lines {Math.min(quicklook.offset + 1, quicklook.lines.length)}-{quicklookEnd} of{' '}
+                {quicklook.lines.length}
               </Text>
             </Box>
             <Box flexDirection="column">
@@ -310,7 +302,9 @@ const MergeUncommittedChoicePopupApp: React.FC<MergeUncommittedChoicePopupProps>
         ) : (
           <>
             <Box marginBottom={1} flexDirection="column">
-              <Text bold color={POPUP_CONFIG.titleColor}>{data.title}</Text>
+              <Text bold color={POPUP_CONFIG.titleColor}>
+                {data.title}
+              </Text>
               <Text dimColor>{data.message}</Text>
             </Box>
 
@@ -410,7 +404,9 @@ function main() {
 
   let data: MergeUncommittedPopupData;
   try {
-    const parsed = JSON.parse(fs.readFileSync(dataFile, 'utf-8')) as Partial<MergeUncommittedPopupData>;
+    const parsed = JSON.parse(
+      fs.readFileSync(dataFile, 'utf-8'),
+    ) as Partial<MergeUncommittedPopupData>;
     data = {
       title: parsed.title || 'Uncommitted Changes',
       message: parsed.message || '',
@@ -428,12 +424,7 @@ function main() {
     process.exit(1);
   }
 
-  render(
-    <MergeUncommittedChoicePopupApp
-      resultFile={resultFile}
-      data={data}
-    />
-  );
+  render(<MergeUncommittedChoicePopupApp resultFile={resultFile} data={data} />);
 }
 
 main();

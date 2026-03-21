@@ -35,7 +35,7 @@ export function getPromptsDir(projectRoot: string): string {
 export async function writePromptFile(
   projectRoot: string,
   slug: string,
-  prompt: string
+  prompt: string,
 ): Promise<string> {
   const promptsDir = getPromptsDir(projectRoot);
   await fs.mkdir(promptsDir, { recursive: true });
@@ -62,7 +62,7 @@ export async function deletePromptFile(promptPath: string): Promise<void> {
 
 export async function cleanupPromptFilesForSlug(
   projectRoot: string,
-  slug: string
+  slug: string,
 ): Promise<number> {
   const promptsDir = getPromptsDir(projectRoot);
   const safeSlug = sanitizeSlugForFilename(slug);

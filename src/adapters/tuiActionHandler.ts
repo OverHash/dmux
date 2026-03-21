@@ -94,7 +94,7 @@ export function createInitialTUIState(): TUIActionState {
 export function handleActionResult(
   result: ActionResult,
   currentState: TUIActionState,
-  setState: (updates: Partial<TUIActionState>) => void
+  setState: (updates: Partial<TUIActionState>) => void,
 ): void {
   // Reset previous dialogs
   const resetState: Partial<TUIActionState> = {
@@ -107,8 +107,12 @@ export function handleActionResult(
 
   // Two-phase update: first clear all dialogs, then show new one
   // This prevents visual artifacts when transitioning between dialogs
-  if (currentState.showConfirmDialog || currentState.showChoiceDialog ||
-      currentState.showInputDialog || currentState.showProgressDialog) {
+  if (
+    currentState.showConfirmDialog ||
+    currentState.showChoiceDialog ||
+    currentState.showInputDialog ||
+    currentState.showProgressDialog
+  ) {
     // First clear all dialogs
     setState(resetState);
 
@@ -128,7 +132,7 @@ export function handleActionResult(
 function applyNewDialogState(
   result: ActionResult,
   resetState: Partial<TUIActionState>,
-  setState: (updates: Partial<TUIActionState>) => void
+  setState: (updates: Partial<TUIActionState>) => void,
 ): void {
   switch (result.type) {
     case 'success':
@@ -137,7 +141,8 @@ function applyNewDialogState(
       setState({
         ...resetState,
         statusMessage: result.message,
-        statusType: result.type === 'error' ? 'error' : result.type === 'success' ? 'success' : 'info',
+        statusType:
+          result.type === 'error' ? 'error' : result.type === 'success' ? 'success' : 'info',
       });
       break;
 
@@ -203,9 +208,7 @@ function applyNewDialogState(
 /**
  * Clear all dialogs and reset state
  */
-export function clearAllDialogs(
-  setState: (updates: Partial<TUIActionState>) => void
-): void {
+export function clearAllDialogs(setState: (updates: Partial<TUIActionState>) => void): void {
   setState({
     showConfirmDialog: false,
     showChoiceDialog: false,

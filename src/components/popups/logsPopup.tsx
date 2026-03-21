@@ -67,7 +67,7 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
   // Extract available panes
   const availablePanes = useMemo(() => {
     const paneIds = new Set<string>();
-    allLogs.forEach(log => {
+    allLogs.forEach((log) => {
       if (log.paneId) {
         paneIds.add(log.paneId);
       }
@@ -81,21 +81,21 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
 
     switch (filterMode) {
       case 'errors':
-        filtered = filtered.filter(log => log.level === 'error');
+        filtered = filtered.filter((log) => log.level === 'error');
         break;
       case 'warnings':
-        filtered = filtered.filter(log => log.level === 'warn');
+        filtered = filtered.filter((log) => log.level === 'warn');
         break;
       case 'info':
-        filtered = filtered.filter(log => log.level === 'info');
+        filtered = filtered.filter((log) => log.level === 'info');
         break;
       case 'pane':
         // When in pane mode, only show logs with pane IDs
         if (selectedPane) {
-          filtered = filtered.filter(log => log.paneId === selectedPane);
+          filtered = filtered.filter((log) => log.paneId === selectedPane);
         } else {
           // No specific pane selected - show only logs with pane IDs
-          filtered = filtered.filter(log => log.paneId);
+          filtered = filtered.filter((log) => log.paneId);
         }
         break;
       default:
@@ -117,7 +117,7 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
 
   // Helper to get friendly pane name from paneId
   const getPaneName = (paneId: string): string => {
-    const pane = panes.find(p => p.id === paneId);
+    const pane = panes.find((p) => p.id === paneId);
     return pane ? getPaneDisplayName(pane) : paneId;
   };
 
@@ -130,25 +130,27 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
     // Copy visible logs to clipboard
     if (input === 'c') {
       // Format visible logs as text
-      const logsText = filteredLogs.map(log => {
-        const date = new Date(log.timestamp);
-        const timestamp = date.toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-        const level = log.level.toUpperCase();
-        const source = log.source || 'unknown';
-        let text = `${timestamp} [${source}] ${level}: ${log.message}`;
-        if (log.paneId) {
-          text += ` (pane: ${log.paneId})`;
-        }
-        if (log.stack) {
-          text += `\n  Stack: ${log.stack}`;
-        }
-        return text;
-      }).join('\n');
+      const logsText = filteredLogs
+        .map((log) => {
+          const date = new Date(log.timestamp);
+          const timestamp = date.toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          });
+          const level = log.level.toUpperCase();
+          const source = log.source || 'unknown';
+          let text = `${timestamp} [${source}] ${level}: ${log.message}`;
+          if (log.paneId) {
+            text += ` (pane: ${log.paneId})`;
+          }
+          if (log.stack) {
+            text += `\n  Stack: ${log.stack}`;
+          }
+          return text;
+        })
+        .join('\n');
 
       try {
         // Try pbcopy (macOS)
@@ -171,25 +173,27 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
     // Open logs in text editor
     if (input === 'o') {
       // Format visible logs as text
-      const logsText = filteredLogs.map(log => {
-        const date = new Date(log.timestamp);
-        const timestamp = date.toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-        const level = log.level.toUpperCase();
-        const source = log.source || 'unknown';
-        let text = `${timestamp} [${source}] ${level}: ${log.message}`;
-        if (log.paneId) {
-          text += ` (pane: ${log.paneId})`;
-        }
-        if (log.stack) {
-          text += `\n  Stack: ${log.stack}`;
-        }
-        return text;
-      }).join('\n');
+      const logsText = filteredLogs
+        .map((log) => {
+          const date = new Date(log.timestamp);
+          const timestamp = date.toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          });
+          const level = log.level.toUpperCase();
+          const source = log.source || 'unknown';
+          let text = `${timestamp} [${source}] ${level}: ${log.message}`;
+          if (log.paneId) {
+            text += ` (pane: ${log.paneId})`;
+          }
+          if (log.stack) {
+            text += `\n  Stack: ${log.stack}`;
+          }
+          return text;
+        })
+        .join('\n');
 
       // Write to temp file
       const tempFile = path.join(os.tmpdir(), `dmux-logs-${Date.now()}.txt`);
@@ -286,20 +290,23 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
     });
   };
 
   // Get color for log level
   const getLevelColor = (level: LogLevel): string => {
     switch (level) {
-      case 'error': return 'red';
-      case 'warn': return 'yellow';
-      case 'info': return 'cyan';
-      case 'debug': return 'gray';
+      case 'error':
+        return 'red';
+      case 'warn':
+        return 'yellow';
+      case 'info':
+        return 'cyan';
+      case 'debug':
+        return 'gray';
     }
   };
-
 
   // Filter tabs
   const renderFilterTabs = () => {
@@ -308,12 +315,17 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
       { key: '2', label: 'Info', mode: 'info' as FilterMode },
       { key: '3', label: 'Warnings', mode: 'warnings' as FilterMode },
       { key: '4', label: 'Errors', mode: 'errors' as FilterMode },
-      { key: '5', label: filterMode === 'pane' && selectedPane ? `Pane: ${getPaneName(selectedPane)}` : 'By Pane', mode: 'pane' as FilterMode },
+      {
+        key: '5',
+        label:
+          filterMode === 'pane' && selectedPane ? `Pane: ${getPaneName(selectedPane)}` : 'By Pane',
+        mode: 'pane' as FilterMode,
+      },
     ];
 
     return (
       <Box flexDirection="row" gap={1}>
-        {tabs.map(tab => (
+        {tabs.map((tab) => (
           <Text
             key={tab.key}
             color={filterMode === tab.mode ? POPUP_CONFIG.titleColor : 'gray'}
@@ -343,10 +355,7 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
             {'] '}
           </Text>
           <Text dimColor>[{log.source || 'dmux'}]</Text>
-          <Text color={color}>
-            {' '}
-            {log.message}
-          </Text>
+          <Text color={color}> {log.message}</Text>
         </Text>
         {log.paneId && (
           <Text dimColor>
@@ -403,13 +412,18 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
     <PopupWrapper resultFile={resultFile} allowEscapeToCancel={false}>
       <Box flexDirection="column">
         {/* Header - Stats and filters */}
-        <Box flexDirection="column" borderStyle="single" borderColor={POPUP_CONFIG.borderColor} paddingX={1}>
+        <Box
+          flexDirection="column"
+          borderStyle="single"
+          borderColor={POPUP_CONFIG.borderColor}
+          paddingX={1}
+        >
           <Box>
-            <Text dimColor>{stats.total} total • {stats.errors} errors • {stats.warnings} warnings</Text>
+            <Text dimColor>
+              {stats.total} total • {stats.errors} errors • {stats.warnings} warnings
+            </Text>
           </Box>
-          <Box marginTop={1}>
-            {renderFilterTabs()}
-          </Box>
+          <Box marginTop={1}>{renderFilterTabs()}</Box>
         </Box>
 
         {/* Logs list - fixed height */}
@@ -433,7 +447,12 @@ const LogsPopupApp: React.FC<LogsPopupAppProps> = ({ allLogs, stats, panes = [],
             {' • [c]: Copy • [o]: Open • [x]: Clear'}
             {' • ESC: Close'}
             {filteredLogs.length > availableLogLines && (
-              <Text dimColor> • Showing {scrollOffset + 1}-{Math.min(scrollOffset + availableLogLines, filteredLogs.length)} of {filteredLogs.length}</Text>
+              <Text dimColor>
+                {' '}
+                • Showing {scrollOffset + 1}-
+                {Math.min(scrollOffset + availableLogLines, filteredLogs.length)} of{' '}
+                {filteredLogs.length}
+              </Text>
             )}
             {copied && <Text color="green"> • ✓ Copied!</Text>}
           </Text>
@@ -463,7 +482,14 @@ function main() {
     process.exit(1);
   }
 
-  render(<LogsPopupApp allLogs={logsData.logs} stats={logsData.stats} panes={logsData.panes} resultFile={resultFile} />);
+  render(
+    <LogsPopupApp
+      allLogs={logsData.logs}
+      stats={logsData.stats}
+      panes={logsData.panes}
+      resultFile={resultFile}
+    />,
+  );
 }
 
 main();

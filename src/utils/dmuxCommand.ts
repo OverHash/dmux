@@ -22,8 +22,6 @@ export function buildFilesOnlyCommand(): string {
   return `${shellQuote(resolveDmuxExecutable())} --files-only`;
 }
 
-export function buildRemotePaneActionCommand(
-  shortcut: RemotePaneActionShortcut
-): string {
+export function buildRemotePaneActionCommand(shortcut: RemotePaneActionShortcut): string {
   return `${shellQuote(resolveDmuxExecutable())} --remote-pane-action ${shortcut}`;
 }

@@ -57,6 +57,7 @@ const handleSuccess = (data) => {
 ```
 
 **Additional issues:**
+
 1. Many popups don't use `PopupContainer` (still using raw `Box` with manual padding)
 2. Inconsistent footer text (some use `PopupFooters`, others hardcode)
 3. ESC handling duplicated in every file
@@ -67,27 +68,32 @@ const handleSuccess = (data) => {
 We've created (but not fully deployed):
 
 ### 1. PopupWrapper Component ✅
+
 **Location**: `src/popups/components/PopupWrapper.tsx`
 
 Handles:
+
 - ESC key cancellation
 - Result file writing
 - Exit logic
 - Common lifecycle
 
 ### 2. Helper Functions ✅
+
 ```typescript
-writeSuccessAndExit(resultFile, data, exit)
-writeErrorAndExit(resultFile, error, exit)
-writeCancelAndExit(resultFile, exit)
+writeSuccessAndExit(resultFile, data, exit);
+writeErrorAndExit(resultFile, error, exit);
+writeCancelAndExit(resultFile, exit);
 ```
 
 ### 3. Layout Components ✅
+
 - `PopupContainer` - Consistent padding, title, footer
 - `PopupInputBox` - Themed input borders
 - `PopupFooters` - Standard footer text
 
 ### 4. Theme Config ✅
+
 - `POPUP_CONFIG` - Colors, dimensions, spacing
 - `TMUX_COLORS` integration
 
@@ -98,6 +104,7 @@ writeCancelAndExit(resultFile, exit)
 Each popup should follow this pattern:
 
 **BEFORE** (~120 lines with boilerplate):
+
 ```typescript
 import React, { useState } from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
@@ -150,6 +157,7 @@ const MyPopup: React.FC<{ resultFile: string }> = ({ resultFile }) => {
 ```
 
 **AFTER** (~40 lines, 66% reduction):
+
 ```typescript
 import React, { useState } from 'react';
 import { render, useApp } from 'ink';
@@ -180,9 +188,11 @@ const MyPopup: React.FC<{ resultFile: string }> = ({ resultFile }) => {
 ### Popup-by-Popup Migration Checklist
 
 #### Completed ✅
+
 - [x] **newPanePopup.tsx** - Fully refactored with PopupWrapper
 
 #### Simple Popups - Ready for Full Refactor
+
 - [ ] **inputPopup.tsx** - Generic input (used by actions)
   - Current: 120 lines
   - Target: ~40 lines
@@ -219,6 +229,7 @@ const MyPopup: React.FC<{ resultFile: string }> = ({ resultFile }) => {
   - Pattern: List + action selection
 
 #### Complex Popups - Partial Refactor (Keep Custom Logic)
+
 - [ ] **mergePopup.tsx** - Multi-step merge workflow
   - Current: 482 lines
   - Target: ~420 lines (remove 62 lines of boilerplate)
@@ -251,16 +262,19 @@ const MyPopup: React.FC<{ resultFile: string }> = ({ resultFile }) => {
 **Current Issue**: The tmux `-s` flag for popup background is not being applied correctly.
 
 **Investigation needed**:
+
 1. Verify the generated tmux command includes `-s 'bg=colour232,border-fg=colour214'`
 2. Check if tmux version supports these style flags
 3. Test manual tmux command: `tmux display-popup -s 'bg=colour232,border-fg=colour214' echo test`
 
 **Files to check**:
+
 - `src/utils/popup.ts` (lines 138, 292, 446) - All three popup launch functions
 
 ### Phase 3: Testing
 
 For each refactored popup:
+
 1. ✅ Builds without TypeScript errors
 2. ⏳ Launches correctly in tmux
 3. ⏳ Orange borders display (both tmux and Ink)
@@ -300,11 +314,13 @@ pnpm build
 ## Expected Outcomes
 
 ### Code Reduction
+
 - **Simple popups**: 60-70% reduction (120 lines → 40 lines)
 - **Complex popups**: 10-15% reduction (retain custom logic)
 - **Total**: ~800 lines eliminated across all popups
 
 ### Benefits
+
 1. **DRY**: ESC handling in one place
 2. **Consistency**: All popups behave identically
 3. **Maintainability**: Fix bugs once, applies to all
@@ -314,6 +330,7 @@ pnpm build
 ## Files Created
 
 ### Foundation (Complete ✅)
+
 - `src/popups/config.ts` - Theme configuration
 - `src/popups/components/PopupContainer.tsx` - Layout wrapper
 - `src/popups/components/PopupInputBox.tsx` - Input wrapper
@@ -321,6 +338,7 @@ pnpm build
 - `src/popups/components/index.ts` - Barrel export
 
 ### Templates (In Progress 🚧)
+
 - `src/popups/templates/SimpleInputPopup.tsx` - Template for input popups
 
 ## Next Actions

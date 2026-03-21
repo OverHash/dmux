@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ============================================
    dmux Documentation — Theme & Custom Styles
@@ -106,8 +106,12 @@ a {
 
 /* Scanline animation */
 @keyframes scanline-drift {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 120px; }
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 120px;
+  }
 }
 
 .hero-scanlines {
@@ -136,13 +140,25 @@ a {
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes content-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ============================================
@@ -225,7 +241,8 @@ a {
   font-weight: 600;
 }
 
-.content ul, .content ol {
+.content ul,
+.content ol {
   margin-bottom: 16px;
   padding-left: 22px;
   color: var(--color-text-secondary);
@@ -235,7 +252,8 @@ a {
   margin-bottom: 6px;
 }
 
-.content li > ul, .content li > ol {
+.content li > ul,
+.content li > ol {
   margin-top: 6px;
   margin-bottom: 0;
 }
@@ -380,11 +398,22 @@ a {
 }
 
 /* Syntax highlighting */
-.hl-keyword { color: #c792ea; }
-.hl-string { color: #c3e88d; }
-.hl-comment { color: #546e7a; font-style: italic; }
-.hl-number { color: #f78c6c; }
-.hl-fn { color: #82aaff; }
+.hl-keyword {
+  color: #c792ea;
+}
+.hl-string {
+  color: #c3e88d;
+}
+.hl-comment {
+  color: #546e7a;
+  font-style: italic;
+}
+.hl-number {
+  color: #f78c6c;
+}
+.hl-fn {
+  color: #82aaff;
+}
 
 /* Tables */
 .content table {
@@ -397,7 +426,8 @@ a {
   border: 1px solid var(--color-border);
 }
 
-.content th, .content td {
+.content th,
+.content td {
   padding: 10px 16px;
   text-align: left;
   border-bottom: 1px solid var(--color-border);
@@ -413,9 +443,15 @@ a {
   background: var(--color-bg-elevated);
 }
 
-.content td { color: var(--color-text-secondary); }
-.content tr:last-child td { border-bottom: none; }
-.content tr:hover td { background: rgba(255, 255, 255, 0.015); }
+.content td {
+  color: var(--color-text-secondary);
+}
+.content tr:last-child td {
+  border-bottom: none;
+}
+.content tr:hover td {
+  background: rgba(255, 255, 255, 0.015);
+}
 
 /* Callouts */
 .callout {
@@ -427,9 +463,18 @@ a {
   color: var(--color-text-secondary);
 }
 
-.callout-info { background: rgba(56, 130, 202, 0.06); border-color: #3882ca; }
-.callout-warning { background: rgba(234, 137, 54, 0.06); border-color: #ea8936; }
-.callout-tip { background: rgba(56, 178, 110, 0.06); border-color: #38b26e; }
+.callout-info {
+  background: rgba(56, 130, 202, 0.06);
+  border-color: #3882ca;
+}
+.callout-warning {
+  background: rgba(234, 137, 54, 0.06);
+  border-color: #ea8936;
+}
+.callout-tip {
+  background: rgba(56, 178, 110, 0.06);
+  border-color: #38b26e;
+}
 
 .callout-title {
   font-family: var(--font-display);
@@ -440,9 +485,15 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.callout-info .callout-title { color: #5ba3d9; }
-.callout-warning .callout-title { color: #ea8936; }
-.callout-tip .callout-title { color: #38b26e; }
+.callout-info .callout-title {
+  color: #5ba3d9;
+}
+.callout-warning .callout-title {
+  color: #ea8936;
+}
+.callout-tip .callout-title {
+  color: #38b26e;
+}
 
 /* Keyboard */
 .content kbd {
@@ -517,7 +568,9 @@ a {
   text-decoration: underline;
   text-decoration-color: var(--color-border-hover);
   text-underline-offset: 2px;
-  transition: color 0.2s, text-decoration-color 0.2s;
+  transition:
+    color 0.2s,
+    text-decoration-color 0.2s;
 }
 .sa-description a:hover {
   color: #818cf8;
@@ -578,7 +631,9 @@ a {
 }
 
 @keyframes sa-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .sa-spinner {
   animation: sa-spin 0.6s linear infinite;

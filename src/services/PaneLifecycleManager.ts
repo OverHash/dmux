@@ -132,7 +132,7 @@ export class PaneLifecycleManager extends EventEmitter {
       if (now - info.timestamp > staleThreshold) {
         this.logger.warn(
           `Cleaning up stale close operation for pane ${paneId} (age: ${(now - info.timestamp) / 1000}s)`,
-          'PaneLifecycle'
+          'PaneLifecycle',
         );
         this.closingPanes.delete(paneId);
         this.emit('pane-close-stale', { paneId, info });

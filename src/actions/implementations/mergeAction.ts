@@ -33,7 +33,7 @@ import { getPaneDisplayName } from '../../utils/paneTitle.js';
 export async function mergePane(
   pane: DmuxPane,
   context: ActionContext,
-  params?: { mainBranch?: string }
+  params?: { mainBranch?: string },
 ): Promise<ActionResult> {
   const paneName = getPaneDisplayName(pane);
   // 1. Validation
@@ -63,12 +63,14 @@ export async function mergePane(
           parentRepoPath: mergeTarget.targetRepoPath,
           mainBranch: mergeTarget.targetBranch,
         }
-      : worktree
+      : worktree,
   );
 
   console.error(`[mergeAction] Detected ${worktrees.length} worktree(s) in ${pane.worktreePath}`);
   for (const wt of worktrees) {
-    console.error(`[mergeAction]   - ${wt.repoName} (${wt.branch}) at ${wt.relativePath} [depth=${wt.depth}, isRoot=${wt.isRoot}]`);
+    console.error(
+      `[mergeAction]   - ${wt.repoName} (${wt.branch}) at ${wt.relativePath} [depth=${wt.depth}, isRoot=${wt.isRoot}]`,
+    );
   }
 
   // 3. Build merge queue (only worktrees with changes)
@@ -113,14 +115,14 @@ async function executeSingleRootMerge(
   pane: DmuxPane,
   context: ActionContext,
   params: { mainBranch?: string } | undefined,
-  mergeTarget: MergeTargetResolution
+  mergeTarget: MergeTargetResolution,
 ): Promise<ActionResult> {
   const paneName = getPaneDisplayName(pane);
   const { validateMerge } = await import('../../utils/mergeValidation.js');
   const validation = validateMerge(
     mergeTarget.targetRepoPath,
     pane.worktreePath!,
-    getPaneBranchName(pane)
+    getPaneBranchName(pane),
   );
 
   // Handle detected issues
@@ -130,7 +132,7 @@ async function executeSingleRootMerge(
 
   // Check for sibling panes sharing the same worktree
   const siblingPanes = context.panes.filter(
-    p => p.id !== pane.id && p.worktreePath === pane.worktreePath
+    (p) => p.id !== pane.id && p.worktreePath === pane.worktreePath,
   );
 
   // Helper to kill sibling tmux panes and remove them from config
@@ -143,9 +145,7 @@ async function executeSingleRootMerge(
       }
     }
     // Remove siblings from saved panes
-    const withoutSiblings = context.panes.filter(
-      p => !siblingPanes.some(s => s.id === p.id)
-    );
+    const withoutSiblings = context.panes.filter((p) => !siblingPanes.some((s) => s.id === p.id));
     await context.savePanes(withoutSiblings);
     LogService.getInstance().info(
       `Closed ${siblingPanes.length} sibling pane(s) for merge of ${paneName}`,
@@ -165,12 +165,7 @@ async function executeSingleRootMerge(
         await triggerHook('pre_merge', mergeTarget.targetRepoPath, pane, {
           DMUX_TARGET_BRANCH: validation.mainBranch,
         });
-        return executeMerge(
-          pane,
-          context,
-          validation.mainBranch,
-          mergeTarget.targetRepoPath
-        );
+        return executeMerge(pane, context, validation.mainBranch, mergeTarget.targetRepoPath);
       },
       onCancel: async () => ({
         type: 'info' as const,
@@ -209,7 +204,7 @@ function buildMergeTargetFallbackConfirmation(
   pane: DmuxPane,
   paneName: string,
   mergeTarget: MergeTargetResolution,
-  onConfirm: () => Promise<ActionResult>
+  onConfirm: () => Promise<ActionResult>,
 ): ActionResult {
   return {
     type: 'confirm',
@@ -233,7 +228,7 @@ async function handleMergeIssues(
   pane: DmuxPane,
   context: ActionContext,
   validation: any,
-  mainRepoPath: string
+  mainRepoPath: string,
 ): Promise<ActionResult> {
   const { issues, mainBranch } = validation;
 
@@ -253,13 +248,7 @@ async function handleMergeIssues(
 
   const worktreeUncommitted = issues.find((i: any) => i.type === 'worktree_uncommitted');
   if (worktreeUncommitted) {
-    return handleWorktreeUncommitted(
-      worktreeUncommitted,
-      pane,
-      context,
-      mainBranch,
-      retryMerge
-    );
+    return handleWorktreeUncommitted(worktreeUncommitted, pane, context, mainBranch, retryMerge);
   }
 
   const mergeConflict = issues.find((i: any) => i.type === 'merge_conflict');

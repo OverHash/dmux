@@ -38,7 +38,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
   onCursorChange,
   disableEscape = false,
   ignoreFocus = false,
-  onCancel
+  onCancel,
 }) => {
   // Use id to maintain focus even when other components mount/unmount
   const { isFocused } = useFocus({ autoFocus: true, id: 'clean-text-input' });
@@ -50,17 +50,18 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
   const [topVisibleLine, setTopVisibleLine] = useState(0);
   // Only ignore first input in production (not in tests)
   // Check for common test environment indicators
-  const isTestEnvironment = process.env.NODE_ENV === 'test' || 
-                           process.env.VITEST === 'true' || 
-                           typeof process.env.VITEST !== 'undefined';
+  const isTestEnvironment =
+    process.env.NODE_ENV === 'test' ||
+    process.env.VITEST === 'true' ||
+    typeof process.env.VITEST !== 'undefined';
   const [ignoreNextInput, setIgnoreNextInput] = useState(!isTestEnvironment);
-  
+
   // Paste buffering state
   const [pasteBuffer, setPasteBuffer] = useState<string>('');
   const [isPasting, setIsPasting] = useState(false);
   const [pasteTimeout, setPasteTimeout] = useState<NodeJS.Timeout | null>(null);
   const [inBracketedPaste, setInBracketedPaste] = useState(false);
-  
+
   // Calculate available width for text (terminal width - borders - padding - prompt)
   // Subtract 2 for borders, 2 for padding, 2 for "> " prompt = 6 total
   // The prompt is always rendered separately, so we need to account for it
@@ -95,13 +96,13 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
   // Enable bracketed paste mode with small delay to avoid blocking UI
   useEffect(() => {
     let bracketedPasteTimer: NodeJS.Timeout | null = null;
-    
+
     if (isFocused) {
       // Small delay to let UI settle before enabling bracketed paste
       bracketedPasteTimer = setTimeout(() => {
         process.stdout.write('\x1b[?2004h');
       }, 10);
-      
+
       // Clear the ignore flag after a short delay to allow normal input
       // In tests, the flag is already false, so no need to clear it
       if (!isTestEnvironment) {
@@ -110,7 +111,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         }, 50);
       }
     }
-    
+
     return () => {
       if (bracketedPasteTimer) {
         clearTimeout(bracketedPasteTimer);
@@ -128,52 +129,55 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
     // Remove ANSI escape sequences (colors, cursor movements, etc)
     let cleaned = input.replace(/\x1b\[[0-9;]*m/g, ''); // Remove color codes
     cleaned = cleaned.replace(/\x1b\[[\d;]*[A-Za-z]/g, ''); // Remove cursor movements
-    
+
     // Normalize line endings
     cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    
+
     // Check if this looks like code/JSON (has braces, brackets, or consistent indentation)
-    const looksLikeCode = cleaned.match(/[{}\[\]]/) || 
-                         cleaned.split('\n').some(line => line.startsWith('  ') || line.startsWith('\t'));
-    
+    const looksLikeCode =
+      cleaned.match(/[{}\[\]]/) ||
+      cleaned.split('\n').some((line) => line.startsWith('  ') || line.startsWith('\t'));
+
     if (looksLikeCode) {
       // For code/JSON, preserve formatting exactly
       return cleaned;
     }
-    
+
     // For regular text, do more aggressive cleaning
     // Remove box drawing characters
     const boxChars = /[╭╮╰╯│─┌┐└┘├┤┬┴┼━┃┏┓┗┛┣┫┳┻╋]/g;
     cleaned = cleaned.replace(boxChars, '');
-    
+
     // Split into lines for processing
     let lines = cleaned.split('\n');
-    
+
     // Remove common prompt patterns and clean each line
-    lines = lines.map(line => {
+    lines = lines.map((line) => {
       // Remove leading prompt indicators
       line = line.replace(/^[>$#]\s+/, '');
       // Trim whitespace
       return line.trim();
     });
-    
+
     // Remove empty lines at start and end
     while (lines.length > 0 && lines[0] === '') lines.shift();
     while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
-    
+
     // Handle wrapped lines (lines that were split by terminal width)
     const unwrappedLines: string[] = [];
     for (let i = 0; i < lines.length; i++) {
       const currentLine = lines[i];
       const nextLine = lines[i + 1];
-      
+
       // If current line doesn't end with punctuation and next line starts lowercase,
       // it's likely a wrapped line
-      if (nextLine && 
-          currentLine.length > 0 &&
-          !currentLine.match(/[.!?;:,]$/) && 
-          nextLine[0] && 
-          nextLine[0] === nextLine[0].toLowerCase()) {
+      if (
+        nextLine &&
+        currentLine.length > 0 &&
+        !currentLine.match(/[.!?;:,]$/) &&
+        nextLine[0] &&
+        nextLine[0] === nextLine[0].toLowerCase()
+      ) {
         // Join wrapped lines
         unwrappedLines.push(currentLine + ' ' + nextLine);
         i++; // Skip next line since we merged it
@@ -181,7 +185,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         unwrappedLines.push(currentLine);
       }
     }
-    
+
     return unwrappedLines.join('\n');
   };
 
@@ -190,16 +194,16 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
     let expanded = text;
     const tagPattern = /\[#(\d+) Pasted, \d+ lines?\]/g;
     let match;
-    
+
     while ((match = tagPattern.exec(text)) !== null) {
       const pasteId = parseInt(match[1]);
       const pastedContent = pastedItems.get(pasteId);
-      
+
       if (pastedContent) {
         expanded = expanded.replace(match[0], pastedContent.content);
       }
     }
-    
+
     return expanded;
   };
 
@@ -208,7 +212,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
     // Always preprocess pasted content
     const cleaned = preprocessPastedContent(fullContent);
     const lines = cleaned.split('\n');
-    
+
     if (lines.length > 15) {
       // Large paste - create reference tag
       const pasteId = nextPasteId;
@@ -216,16 +220,16 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         id: pasteId,
         content: cleaned,
         lineCount: lines.length,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      
-      setPastedItems(prev => {
+
+      setPastedItems((prev) => {
         const newMap = new Map(prev);
         newMap.set(pasteId, pasteRef);
         return newMap;
       });
       setNextPasteId(pasteId + 1);
-      
+
       // Insert reference tag
       const tag = `[#${pasteId} Pasted, ${lines.length} lines]`;
       const before = value.slice(0, cursor);
@@ -239,7 +243,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
       onChange(before + cleaned + after);
       setCursor(cursor + cleaned.length);
     }
-    
+
     // Reset paste state
     setPasteBuffer('');
     setIsPasting(false);
@@ -293,7 +297,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
           setPasteTimeout(null);
         }
       }
-      
+
       if (cursor > 0) {
         const before = value.slice(0, cursor - 1);
         const after = value.slice(cursor);
@@ -311,7 +315,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
     if (key.ctrl && input === 'a') {
       const wrapped = wrapText(value, maxWidth);
       const currentPos = findCursorInWrappedLines(wrapped, cursor);
-      
+
       // Find absolute position of start of current visual line
       let absolutePos = 0;
       for (let i = 0; i < currentPos.line; i++) {
@@ -330,7 +334,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
     if (key.ctrl && input === 'e') {
       const wrapped = wrapText(value, maxWidth);
       const currentPos = findCursorInWrappedLines(wrapped, cursor);
-      
+
       // Find absolute position of end of current visual line
       let absolutePos = 0;
       for (let i = 0; i <= currentPos.line; i++) {
@@ -366,12 +370,12 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
       // Get wrapped lines to understand visual layout
       const wrapped = wrapText(value, maxWidth);
       const currentPos = findCursorInWrappedLines(wrapped, cursor);
-      
+
       if (key.upArrow && currentPos.line > 0) {
         // Move up one visual line
         const targetLine = currentPos.line - 1;
         const targetCol = Math.min(currentPos.col, wrapped[targetLine].line.length);
-        
+
         // Convert back to absolute position
         let absolutePos = 0;
         for (let i = 0; i < targetLine; i++) {
@@ -390,7 +394,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         // Move down one visual line
         const targetLine = currentPos.line + 1;
         const targetCol = Math.min(currentPos.col, wrapped[targetLine].line.length);
-        
+
         // Convert back to absolute position
         let absolutePos = 0;
         for (let i = 0; i < targetLine; i++) {
@@ -416,7 +420,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         setIgnoreNextInput(false);
         return;
       }
-      
+
       // First, check if this looks like a malformed paste sequence we should ignore
       // Pattern: [200- or [201- followed by content (missing the ~)
       if (input.startsWith('[200-') || input.startsWith('[201-')) {
@@ -438,25 +442,25 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         }
         return;
       }
-      
+
       // Detect bracketed paste sequences - handle multiple formats
       const PASTE_START = '\x1b[200~';
       const PASTE_END = '\x1b[201~';
       // Also check for the pattern without escape char (some terminals strip it)
       const PASTE_START_ALT = '[200~';
       const PASTE_END_ALT = '[201~';
-      
+
       // Check for bracketed paste markers (both formats)
       const hasPasteStart = input.includes(PASTE_START) || input.includes(PASTE_START_ALT);
       const hasPasteEnd = input.includes(PASTE_END) || input.includes(PASTE_END_ALT);
-      
+
       // Handle bracketed paste mode
       if (hasPasteStart) {
         setInBracketedPaste(true);
         // Extract content after paste start marker (check both formats)
         let startIdx = -1;
         let markerLength = 0;
-        
+
         if (input.includes(PASTE_START)) {
           startIdx = input.indexOf(PASTE_START);
           markerLength = PASTE_START.length;
@@ -464,7 +468,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
           startIdx = input.indexOf(PASTE_START_ALT);
           markerLength = PASTE_START_ALT.length;
         }
-        
+
         let endIdx = -1;
         if (hasPasteEnd) {
           if (input.includes(PASTE_END)) {
@@ -473,12 +477,12 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
             endIdx = input.indexOf(PASTE_END_ALT);
           }
         }
-        
-        const content = hasPasteEnd ? 
-          input.substring(startIdx + markerLength, endIdx) :
-          input.substring(startIdx + markerLength);
+
+        const content = hasPasteEnd
+          ? input.substring(startIdx + markerLength, endIdx)
+          : input.substring(startIdx + markerLength);
         setPasteBuffer(content);
-        
+
         if (hasPasteEnd) {
           // Complete paste in single chunk
           processPastedContent(pasteBuffer + content);
@@ -487,7 +491,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         }
         return;
       }
-      
+
       if (hasPasteEnd && inBracketedPaste) {
         // End of bracketed paste - check both formats
         let endIdx = -1;
@@ -496,7 +500,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         } else if (input.includes(PASTE_END_ALT)) {
           endIdx = input.indexOf(PASTE_END_ALT);
         }
-        
+
         if (endIdx >= 0) {
           const finalContent = input.substring(0, endIdx);
           processPastedContent(pasteBuffer + finalContent);
@@ -505,39 +509,42 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
           return;
         }
       }
-      
+
       if (inBracketedPaste) {
         // Continue buffering bracketed paste content
-        setPasteBuffer(prev => prev + input);
+        setPasteBuffer((prev) => prev + input);
         return;
       }
-      
+
       // Detect non-bracketed paste (fallback for terminals without bracketed paste mode)
       // Exclude delete/backspace key sequences from paste detection
-      const isDeleteSequence = input === '\x7f' || input === '\x08' || 
-                              input.split('').every(c => c === '\x7f' || c === '\x08');
-      
+      const isDeleteSequence =
+        input === '\x7f' ||
+        input === '\x08' ||
+        input.split('').every((c) => c === '\x7f' || c === '\x08');
+
       // Better heuristics for paste detection:
       // - Must have newlines OR be quite long (>10 chars at once)
       // - Single chars or small groups (2-3) are likely fast typing
       // - Already in paste mode should continue
       const hasNewlines = input.includes('\n');
       const isVeryLong = input.length > 10;
-      const isLikelyPaste = !isDeleteSequence && (
-                           (hasNewlines && input.length > 2) ||  // Multi-line content
-                           isVeryLong ||                          // Very long single chunk
-                           (isPasting && input.length > 0));      // Continue existing paste
-      
+      const isLikelyPaste =
+        !isDeleteSequence &&
+        ((hasNewlines && input.length > 2) || // Multi-line content
+          isVeryLong || // Very long single chunk
+          (isPasting && input.length > 0)); // Continue existing paste
+
       if (isLikelyPaste && !inBracketedPaste) {
         // Clear any existing timeout
         if (pasteTimeout) {
           clearTimeout(pasteTimeout);
         }
-        
+
         // Add to paste buffer
-        setPasteBuffer(prev => prev + input);
+        setPasteBuffer((prev) => prev + input);
         setIsPasting(true);
-        
+
         // Set timeout to detect end of paste (when no more input arrives)
         const timeout = setTimeout(() => {
           // Process the complete buffered paste
@@ -547,11 +554,11 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
           setPasteBuffer('');
           setIsPasting(false);
         }, 100); // 100ms timeout to collect all chunks
-        
+
         setPasteTimeout(timeout);
         return;
       }
-      
+
       // Normal single character input (or fast typing)
       if (!isPasting && !inBracketedPaste) {
         const before = value.slice(0, cursor);
@@ -567,7 +574,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         }
         setPasteBuffer('');
         setIsPasting(false);
-        
+
         // Process as normal input
         const before = value.slice(0, cursor);
         const after = value.slice(cursor);
@@ -583,14 +590,24 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
   const renderTextWithTags = (text: string, isInverse: boolean = false): React.ReactNode[] => {
     const tagPattern = /(\[#\d+ Pasted, \d+ lines?\])/g;
     const parts = text.split(tagPattern);
-    
+
     return parts.map((part, i) => {
       if (part.match(tagPattern)) {
         // Render paste tag with special styling
-        return <Text key={i} color="cyan" dimColor>{part}</Text>;
+        return (
+          <Text key={i} color="cyan" dimColor>
+            {part}
+          </Text>
+        );
       }
       // Regular text
-      return isInverse ? <Text key={i} inverse>{part}</Text> : <Text key={i}>{part}</Text>;
+      return isInverse ? (
+        <Text key={i} inverse>
+          {part}
+        </Text>
+      ) : (
+        <Text key={i}>{part}</Text>
+      );
     });
   };
 
@@ -633,7 +650,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
           <Text>{'> '}</Text>
         </Box>
         <Box>
-          <Text inverse>{' '}</Text>
+          <Text inverse> </Text>
         </Box>
       </Box>
     );
@@ -647,7 +664,9 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
           <Box width={2}>
             <Text dimColor>⋮ </Text>
           </Box>
-          <Text dimColor italic>(scroll up for more)</Text>
+          <Text dimColor italic>
+            (scroll up for more)
+          </Text>
         </Box>
       )}
       {visibleLines.map((wrappedLine, visibleIdx) => {
@@ -655,26 +674,26 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
         const isFirst = idx === 0;
         const hasCursor = idx === cursorPos.line;
         const line = wrappedLine.line;
-        
+
         if (hasCursor) {
           // Ensure cursor position is valid
           const actualCol = Math.min(cursorPos.col, line.length);
           const before = line.slice(0, actualCol);
           const at = line[actualCol] || ' ';
           const after = line.slice(actualCol + 1);
-          
+
           // Check if cursor is within a paste tag
           const tagPattern = /\[#\d+ Pasted, \d+ lines?\]/g;
           let match;
           let cursorInTag = false;
-          
+
           while ((match = tagPattern.exec(line)) !== null) {
             if (actualCol >= match.index && actualCol < match.index + match[0].length) {
               cursorInTag = true;
               break;
             }
           }
-          
+
           return (
             <Box key={idx}>
               <Box width={2}>
@@ -685,7 +704,9 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
                   // Cursor is within a paste tag - render specially
                   <>
                     {renderTextWithTags(before)}
-                    <Text inverse color="cyan">{at}</Text>
+                    <Text inverse color="cyan">
+                      {at}
+                    </Text>
                     {renderTextWithTags(after)}
                   </>
                 ) : (
@@ -700,15 +721,13 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
             </Box>
           );
         }
-        
+
         return (
           <Box key={idx}>
             <Box width={2}>
               <Text>{isFirst ? '> ' : '  '}</Text>
             </Box>
-            <Box>
-              {line ? renderTextWithTags(line) : <Text>{' '}</Text>}
-            </Box>
+            <Box>{line ? renderTextWithTags(line) : <Text> </Text>}</Box>
           </Box>
         );
       })}
@@ -717,7 +736,9 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
           <Box width={2}>
             <Text dimColor>⋮ </Text>
           </Box>
-          <Text dimColor italic>(scroll down for more)</Text>
+          <Text dimColor italic>
+            (scroll down for more)
+          </Text>
         </Box>
       )}
     </Box>

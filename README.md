@@ -51,20 +51,20 @@ dmux creates a tmux pane for each task. Every pane gets its own git worktree and
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `n` | New pane (worktree + agent) |
-| `t` | New terminal pane |
-| `j` / `Enter` | Jump to pane |
-| `m` | Open pane menu |
-| `f` | Browse files in selected pane's worktree |
-| `x` | Close pane |
-| `h` | Hide/show selected pane |
-| `H` | Hide/show all other panes |
-| `p` | New pane in another project |
-| `P` | Show only the selected project's panes, then show all |
-| `s` | Settings |
-| `q` | Quit |
+| Key           | Action                                                |
+| ------------- | ----------------------------------------------------- |
+| `n`           | New pane (worktree + agent)                           |
+| `t`           | New terminal pane                                     |
+| `j` / `Enter` | Jump to pane                                          |
+| `m`           | Open pane menu                                        |
+| `f`           | Browse files in selected pane's worktree              |
+| `x`           | Close pane                                            |
+| `h`           | Hide/show selected pane                               |
+| `H`           | Hide/show all other panes                             |
+| `p`           | New pane in another project                           |
+| `P`           | Show only the selected project's panes, then show all |
+| `s`           | Settings                                              |
+| `q`           | Quit                                                  |
 
 ## Requirements
 

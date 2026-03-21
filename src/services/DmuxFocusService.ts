@@ -54,9 +54,11 @@ export interface DmuxAttentionNotificationRequest {
 export type PaneAttentionSurface = 'fully-focused' | 'same-window' | 'background';
 
 function isTestEnvironment(): boolean {
-  return process.env.NODE_ENV === 'test'
-    || process.env.VITEST === 'true'
-    || typeof process.env.VITEST !== 'undefined';
+  return (
+    process.env.NODE_ENV === 'test' ||
+    process.env.VITEST === 'true' ||
+    typeof process.env.VITEST !== 'undefined'
+  );
 }
 
 function getHelperRuntimePaths(): {
@@ -110,7 +112,8 @@ interface HelperBundleSnapshot {
 }
 
 const HELPER_BUNDLE_BUILD_VERSION = '1';
-const LSREGISTER_PATH = '/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister';
+const LSREGISTER_PATH =
+  '/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister';
 const LEGACY_NOTIFIER_BASE_DIR = path.join(os.homedir(), '.dmux', 'macos-notifier');
 const LEGACY_NOTIFIER_APP_PATH = path.join(LEGACY_NOTIFIER_BASE_DIR, 'dmux-notifier.app');
 
@@ -222,13 +225,15 @@ async function snapshotHelperBundle(bundlePath: string): Promise<HelperBundleSna
 function helperBundleNeedsSync(
   runtimeBundlePath: string,
   snapshot: HelperBundleSnapshot,
-  currentVersion: string
+  currentVersion: string,
 ): boolean {
   if (currentVersion.trim() !== buildHelperVersionHash(snapshot.versionParts)) {
     return true;
   }
 
-  return snapshot.filePaths.some((relativePath) => !existsSync(path.join(runtimeBundlePath, relativePath)));
+  return snapshot.filePaths.some(
+    (relativePath) => !existsSync(path.join(runtimeBundlePath, relativePath)),
+  );
 }
 
 async function removeLegacyMacosNotifierArtifacts(): Promise<void> {
@@ -246,7 +251,7 @@ async function removeLegacyMacosNotifierArtifacts(): Promise<void> {
 }
 
 async function removeHelperRuntimeArtifacts(
-  paths: ReturnType<typeof getHelperRuntimePaths>
+  paths: ReturnType<typeof getHelperRuntimePaths>,
 ): Promise<void> {
   await Promise.all([
     fs.rm(paths.appPath, { recursive: true, force: true }),
@@ -262,7 +267,7 @@ function shiftHexColor(hex: string, delta: number): string | null {
 
   const value = match[1];
   const channels = [0, 2, 4].map((offset) =>
-    Math.max(0, Math.min(255, Number.parseInt(value.slice(offset, offset + 2), 16) + delta))
+    Math.max(0, Math.min(255, Number.parseInt(value.slice(offset, offset + 2), 16) + delta)),
   );
 
   return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
@@ -279,9 +284,8 @@ function buildAttentionFlashWindowStyle(baseStyle: string): string {
     const colourMatch = currentBackground.match(/^colour(\d{1,3})$/i);
     if (colourMatch) {
       const currentValue = Number.parseInt(colourMatch[1], 10);
-      const nextValue = currentValue >= 248
-        ? Math.max(0, currentValue - 1)
-        : Math.min(255, currentValue + 1);
+      const nextValue =
+        currentValue >= 248 ? Math.max(0, currentValue - 1) : Math.min(255, currentValue + 1);
       nextBackground = `colour${nextValue}`;
     } else if (currentBackground === 'default') {
       nextBackground = ATTENTION_FLASH_FALLBACK_BG;
@@ -362,7 +366,7 @@ async function buildHelperBundleIcon(iconSourcePath: string, iconIcnsPath: strin
 }
 
 async function ensureHelperBundle(
-  paths: ReturnType<typeof getHelperRuntimePaths>
+  paths: ReturnType<typeof getHelperRuntimePaths>,
 ): Promise<HelperBinaryStatus> {
   if (existsSync(paths.packagedAppPath) && existsSync(paths.packagedExecutablePath)) {
     const [packagedSnapshot, currentVersion] = await Promise.all([
@@ -373,9 +377,10 @@ async function ensureHelperBundle(
     ]);
 
     const expectedVersion = buildHelperVersionHash(packagedSnapshot.versionParts);
-    const needsSync = !existsSync(paths.executablePath)
-      || !existsSync(paths.infoPlistPath)
-      || helperBundleNeedsSync(paths.appPath, packagedSnapshot, currentVersion);
+    const needsSync =
+      !existsSync(paths.executablePath) ||
+      !existsSync(paths.infoPlistPath) ||
+      helperBundleNeedsSync(paths.appPath, packagedSnapshot, currentVersion);
 
     if (!needsSync) {
       return { ready: true, rebuilt: false };
@@ -412,24 +417,25 @@ async function ensureHelperBundle(
     sourcePath: path.join(paths.soundSourceDir, definition.resourceFileName as string),
   }));
 
-  const [sourceTemplate, infoPlistTemplate, iconBuffer, soundAssets, currentVersion] = await Promise.all([
-    fs.readFile(paths.sourcePath, 'utf-8'),
-    fs.readFile(paths.infoPlistSourcePath, 'utf-8'),
-    existsSync(paths.iconSourcePath)
-      ? fs.readFile(paths.iconSourcePath)
-      : Promise.resolve<Buffer | null>(null),
-    Promise.all(
-      bundledSoundAssets
-        .filter((asset) => existsSync(asset.sourcePath))
-        .map(async (asset) => ({
-          ...asset,
-          buffer: await fs.readFile(asset.sourcePath),
-        }))
-    ),
-    existsSync(paths.versionPath)
-      ? fs.readFile(paths.versionPath, 'utf-8').catch(() => '')
-      : Promise.resolve(''),
-  ]);
+  const [sourceTemplate, infoPlistTemplate, iconBuffer, soundAssets, currentVersion] =
+    await Promise.all([
+      fs.readFile(paths.sourcePath, 'utf-8'),
+      fs.readFile(paths.infoPlistSourcePath, 'utf-8'),
+      existsSync(paths.iconSourcePath)
+        ? fs.readFile(paths.iconSourcePath)
+        : Promise.resolve<Buffer | null>(null),
+      Promise.all(
+        bundledSoundAssets
+          .filter((asset) => existsSync(asset.sourcePath))
+          .map(async (asset) => ({
+            ...asset,
+            buffer: await fs.readFile(asset.sourcePath),
+          })),
+      ),
+      existsSync(paths.versionPath)
+        ? fs.readFile(paths.versionPath, 'utf-8').catch(() => '')
+        : Promise.resolve(''),
+    ]);
 
   const expectedVersion = buildHelperVersionHash([
     sourceTemplate,
@@ -438,11 +444,14 @@ async function ensureHelperBundle(
     ...soundAssets.flatMap((asset) => [asset.resourceFileName, asset.buffer]),
   ]);
 
-  const needsBuild = !existsSync(paths.executablePath)
-    || !existsSync(paths.infoPlistPath)
-    || (iconBuffer !== null && !existsSync(paths.bundleIconPngPath))
-    || soundAssets.some((asset) => !existsSync(path.join(paths.resourcesPath, asset.resourceFileName)))
-    || currentVersion.trim() !== expectedVersion;
+  const needsBuild =
+    !existsSync(paths.executablePath) ||
+    !existsSync(paths.infoPlistPath) ||
+    (iconBuffer !== null && !existsSync(paths.bundleIconPngPath)) ||
+    soundAssets.some(
+      (asset) => !existsSync(path.join(paths.resourcesPath, asset.resourceFileName)),
+    ) ||
+    currentVersion.trim() !== expectedVersion;
 
   if (!needsBuild) {
     return { ready: true, rebuilt: false };
@@ -477,22 +486,26 @@ async function ensureHelperBundle(
     await Promise.all(
       soundAssets.map(async (asset) => {
         await fs.writeFile(path.join(tempResourcesPath, asset.resourceFileName), asset.buffer);
-      })
+      }),
     );
 
-    const result = spawnSync('swiftc', [
-      '-O',
-      paths.sourcePath,
-      '-o',
-      tempExecutablePath,
-      '-framework',
-      'AppKit',
-      '-framework',
-      'ApplicationServices',
-    ], {
-      stdio: 'pipe',
-      encoding: 'utf-8',
-    });
+    const result = spawnSync(
+      'swiftc',
+      [
+        '-O',
+        paths.sourcePath,
+        '-o',
+        tempExecutablePath,
+        '-framework',
+        'AppKit',
+        '-framework',
+        'ApplicationServices',
+      ],
+      {
+        stdio: 'pipe',
+        encoding: 'utf-8',
+      },
+    );
 
     if (result.status !== 0) {
       if (!hasRuntimeBundle) {
@@ -528,12 +541,13 @@ export function parseHelperSocketOwnerProcessIds(
       const match = line.match(/^\S+\s+(\d+)\s+/);
       return match ? Number.parseInt(match[1], 10) : Number.NaN;
     })
-    .filter((value, index, values) => (
-      Number.isFinite(value)
-      && value > 0
-      && value !== currentProcessId
-      && values.indexOf(value) === index
-    ));
+    .filter(
+      (value, index, values) =>
+        Number.isFinite(value) &&
+        value > 0 &&
+        value !== currentProcessId &&
+        values.indexOf(value) === index,
+    );
 }
 
 function findHelperSocketOwnerProcessIds(socketPath: string): number[] {
@@ -609,9 +623,7 @@ async function waitForHelperSocket(socketPath: string, timeoutMs: number): Promi
   return false;
 }
 
-async function ensureHelperRunning(
-  logger: LogService
-): Promise<string | null> {
+async function ensureHelperRunning(logger: LogService): Promise<string | null> {
   await removeLegacyMacosNotifierArtifacts().catch(() => undefined);
   const helperPaths = getHelperRuntimePaths();
   const { executablePath, socketPath } = helperPaths;
@@ -685,7 +697,7 @@ export class DmuxFocusService extends EventEmitter {
   private resolveAttentionNotificationSoundName(): string | undefined {
     const settingsManager = new SettingsManager(this.options.projectRoot ?? process.cwd());
     const selectedSound = pickNotificationSound(
-      settingsManager.getSettings().enabledNotificationSounds
+      settingsManager.getSettings().enabledNotificationSounds,
     );
     return selectedSound.resourceFileName;
   }
@@ -899,9 +911,7 @@ export class DmuxFocusService extends EventEmitter {
     }
   }
 
-  async sendAttentionNotification(
-    request: DmuxAttentionNotificationRequest
-  ): Promise<boolean> {
+  async sendAttentionNotification(request: DmuxAttentionNotificationRequest): Promise<boolean> {
     if (!supportsNativeDmuxHelper() || isTestEnvironment()) {
       return false;
     }
@@ -997,8 +1007,6 @@ export class DmuxFocusService extends EventEmitter {
   }
 
   private writeTerminalTitle(title: string): void {
-    process.stdout.write(
-      buildTerminalTitleSequence(title, Boolean(process.env.TMUX))
-    );
+    process.stdout.write(buildTerminalTitleSequence(title, Boolean(process.env.TMUX)));
   }
 }

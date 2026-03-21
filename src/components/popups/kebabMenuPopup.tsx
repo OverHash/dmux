@@ -18,7 +18,11 @@ interface KebabMenuPopupProps {
   actions: PaneMenuAction[];
 }
 
-export const KebabMenuPopupApp: React.FC<KebabMenuPopupProps> = ({ resultFile, paneName, actions }) => {
+export const KebabMenuPopupApp: React.FC<KebabMenuPopupProps> = ({
+  resultFile,
+  paneName,
+  actions,
+}) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { exit } = useApp();
 
@@ -46,14 +50,15 @@ export const KebabMenuPopupApp: React.FC<KebabMenuPopupProps> = ({ resultFile, p
         {actions.map((action, index) => (
           <Box key={action.id} width="100%">
             <Box flexGrow={1}>
-              <Text color={selectedIndex === index ? POPUP_CONFIG.titleColor : 'white'} bold={selectedIndex === index}>
+              <Text
+                color={selectedIndex === index ? POPUP_CONFIG.titleColor : 'white'}
+                bold={selectedIndex === index}
+              >
                 {selectedIndex === index ? '▶ ' : '  '}
                 {action.label}
               </Text>
             </Box>
-            {action.shortcut ? (
-              <Text color="yellow">[{action.shortcut}]</Text>
-            ) : null}
+            {action.shortcut ? <Text color="yellow">[{action.shortcut}]</Text> : null}
           </Box>
         ))}
       </PopupContainer>

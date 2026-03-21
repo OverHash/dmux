@@ -31,7 +31,7 @@ function expandHomePath(inputPath: string): string {
 
 function resolveProjectPathInput(
   rawPath: string,
-  baseDir: string = process.cwd()
+  baseDir: string = process.cwd(),
 ): { requestedPath: string; absolutePath: string } {
   const requestedPath = rawPath.trim();
   if (!requestedPath) {
@@ -47,7 +47,7 @@ function resolveProjectPathInput(
 
 export function inspectProjectCreationTarget(
   rawPath: string,
-  baseDir: string = process.cwd()
+  baseDir: string = process.cwd(),
 ): ProjectCreationTarget {
   const { requestedPath, absolutePath } = resolveProjectPathInput(rawPath, baseDir);
 
@@ -81,7 +81,7 @@ export function inspectProjectCreationTarget(
  */
 export function resolveProjectRootFromPath(
   rawPath: string,
-  baseDir: string = process.cwd()
+  baseDir: string = process.cwd(),
 ): ResolvedProjectRoot {
   const { requestedPath, absolutePath } = resolveProjectPathInput(rawPath, baseDir);
 
@@ -131,7 +131,7 @@ export function resolveProjectRootFromPath(
 
 export function createEmptyGitProject(
   rawPath: string,
-  baseDir: string = process.cwd()
+  baseDir: string = process.cwd(),
 ): ResolvedProjectRoot {
   const target = inspectProjectCreationTarget(rawPath, baseDir);
 
@@ -141,7 +141,7 @@ export function createEmptyGitProject(
 
   if (target.state === 'directory_not_empty') {
     throw new Error(
-      `Directory is not empty: ${target.absolutePath}. New projects can only be created in an empty directory.`
+      `Directory is not empty: ${target.absolutePath}. New projects can only be created in an empty directory.`,
     );
   }
 

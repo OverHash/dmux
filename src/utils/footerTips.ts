@@ -37,9 +37,7 @@ const DEV_FOOTER_TIPS = [
 export const FOOTER_TIP_ROTATION_INTERVAL = 15000;
 
 export function getFooterTips(isDevMode: boolean): readonly string[] {
-  return isDevMode
-    ? [...BASE_FOOTER_TIPS, ...DEV_FOOTER_TIPS]
-    : BASE_FOOTER_TIPS;
+  return isDevMode ? [...BASE_FOOTER_TIPS, ...DEV_FOOTER_TIPS] : BASE_FOOTER_TIPS;
 }
 
 export function getNextFooterTipIndex(currentIndex: number, totalTips: number): number {
@@ -54,7 +52,10 @@ export function getNextFooterTipIndex(currentIndex: number, totalTips: number): 
   return (currentIndex + 1) % totalTips;
 }
 
-export function getRandomFooterTipIndex(totalTips: number, randomValue: number = Math.random()): number {
+export function getRandomFooterTipIndex(
+  totalTips: number,
+  randomValue: number = Math.random(),
+): number {
   if (totalTips <= 0) {
     return -1;
   }

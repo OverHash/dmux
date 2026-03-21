@@ -104,16 +104,16 @@ describe('closeAction', () => {
       // Verify existence check was called
       expect(execSync).toHaveBeenCalledWith(
         expect.stringContaining('tmux list-panes'),
-        expect.anything()
+        expect.anything(),
       );
       // Verify kill command was called after existence check passed
       expect(execSync).toHaveBeenCalledWith(
         expect.stringContaining('tmux send-keys'),
-        expect.anything()
+        expect.anything(),
       );
       expect(execSync).toHaveBeenCalledWith(
         expect.stringContaining('tmux kill-pane'),
-        expect.anything()
+        expect.anything(),
       );
     });
   });
@@ -129,7 +129,7 @@ describe('closeAction', () => {
       expect(result.title).toBe('Close Pane');
 
       // Verify all 3 options are present
-      const optionIds = result.options!.map(o => o.id);
+      const optionIds = result.options!.map((o) => o.id);
       expect(optionIds).toContain('kill_only');
       expect(optionIds).toContain('kill_and_clean');
       expect(optionIds).toContain('kill_clean_branch');
@@ -141,8 +141,8 @@ describe('closeAction', () => {
 
       const result = await closePane(mockPane, mockContext);
 
-      const killAndClean = result.options!.find(o => o.id === 'kill_and_clean');
-      const killCleanBranch = result.options!.find(o => o.id === 'kill_clean_branch');
+      const killAndClean = result.options!.find((o) => o.id === 'kill_and_clean');
+      const killCleanBranch = result.options!.find((o) => o.id === 'kill_clean_branch');
 
       expect(killAndClean?.danger).toBe(true);
       expect(killCleanBranch?.danger).toBe(true);
@@ -154,14 +154,22 @@ describe('closeAction', () => {
 
       const result = await closePane(mockPane, mockContext);
 
-      const killOnly = result.options!.find(o => o.id === 'kill_only');
+      const killOnly = result.options!.find((o) => o.id === 'kill_only');
       expect(killOnly?.default).toBe(true);
     });
 
     it('should only present kill_only and explain cleanup is unavailable when sibling panes share the worktree', async () => {
       const sharedWorktreePath = '/test/project/.dmux/worktrees/shared';
-      const pane1 = createWorktreePane({ id: 'dmux-1', slug: 'alpha', worktreePath: sharedWorktreePath });
-      const pane2 = createWorktreePane({ id: 'dmux-2', slug: 'bravo', worktreePath: sharedWorktreePath });
+      const pane1 = createWorktreePane({
+        id: 'dmux-1',
+        slug: 'alpha',
+        worktreePath: sharedWorktreePath,
+      });
+      const pane2 = createWorktreePane({
+        id: 'dmux-2',
+        slug: 'bravo',
+        worktreePath: sharedWorktreePath,
+      });
       const mockContext = createMockContext([pane1, pane2]);
 
       const result = await closePane(pane1, mockContext);
@@ -182,9 +190,11 @@ describe('closeAction', () => {
       const savePanesSpy = vi.spyOn(mockContext, 'savePanes');
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(pane1, mockContext);
       await result.onSelect!('kill_only');
@@ -200,9 +210,11 @@ describe('closeAction', () => {
       mockContext.onPaneRemove = onPaneRemoveSpy;
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_only');
@@ -215,9 +227,11 @@ describe('closeAction', () => {
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_only');
@@ -231,9 +245,11 @@ describe('closeAction', () => {
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_only');
@@ -251,9 +267,11 @@ describe('closeAction', () => {
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_and_clean');
@@ -264,7 +282,7 @@ describe('closeAction', () => {
           paneProjectRoot: '/test/project',
           mainRepoPath: '/test/project',
           deleteBranch: false,
-        })
+        }),
       );
     });
 
@@ -273,14 +291,20 @@ describe('closeAction', () => {
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_and_clean');
 
-      expect(triggerHook).toHaveBeenCalledWith('before_worktree_remove', expect.anything(), mockPane);
+      expect(triggerHook).toHaveBeenCalledWith(
+        'before_worktree_remove',
+        expect.anything(),
+        mockPane,
+      );
     });
 
     it('should NOT delete branch when kill_and_clean selected', async () => {
@@ -288,9 +312,11 @@ describe('closeAction', () => {
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_and_clean');
@@ -312,9 +338,11 @@ describe('closeAction', () => {
         }
         return Buffer.from('');
       });
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext); // Fixed: added missing mockContext
       await result.onSelect!('kill_clean_branch');
@@ -342,9 +370,11 @@ describe('closeAction', () => {
         }
         return Buffer.from('');
       });
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_clean_branch');
@@ -355,7 +385,7 @@ describe('closeAction', () => {
           paneProjectRoot: '/test/project-b',
           mainRepoPath: '/test/project-b',
           deleteBranch: true,
-        })
+        }),
       );
     });
   });
@@ -373,9 +403,11 @@ describe('closeAction', () => {
         return Buffer.from('');
       });
 
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       const executeResult = await result.onSelect!('kill_only');
@@ -411,9 +443,11 @@ describe('closeAction', () => {
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        controlPaneId: '%0',
-      }));
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          controlPaneId: '%0',
+        }),
+      );
 
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_only');
@@ -460,16 +494,20 @@ describe('closeAction', () => {
 
       try {
         vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-        vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-          controlPaneId: '%0',
-        }));
+        vi.mocked(fs.readFileSync).mockReturnValue(
+          JSON.stringify({
+            controlPaneId: '%0',
+          }),
+        );
 
         const result = await closePane(closingPane, mockContext);
         await result.onSelect!('kill_only');
 
-        const respawnCalls = vi.mocked(execSync).mock.calls.filter(([cmd]) =>
-          typeof cmd === 'string' && cmd.includes('tmux respawn-pane -k')
-        );
+        const respawnCalls = vi
+          .mocked(execSync)
+          .mock.calls.filter(
+            ([cmd]) => typeof cmd === 'string' && cmd.includes('tmux respawn-pane -k'),
+          );
         expect(respawnCalls).toHaveLength(0);
       } finally {
         cwdSpy.mockRestore();
@@ -493,16 +531,20 @@ describe('closeAction', () => {
 
       try {
         vi.mocked(execSync).mockReturnValue(Buffer.from(''));
-        vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-          controlPaneId: '%0',
-        }));
+        vi.mocked(fs.readFileSync).mockReturnValue(
+          JSON.stringify({
+            controlPaneId: '%0',
+          }),
+        );
 
         const result = await closePane(closingPane, mockContext);
         await result.onSelect!('kill_only');
 
-        const respawnCalls = vi.mocked(execSync).mock.calls.filter(([cmd]) =>
-          typeof cmd === 'string' && cmd.includes('tmux respawn-pane -k')
-        );
+        const respawnCalls = vi
+          .mocked(execSync)
+          .mock.calls.filter(
+            ([cmd]) => typeof cmd === 'string' && cmd.includes('tmux respawn-pane -k'),
+          );
         expect(respawnCalls).toHaveLength(1);
       } finally {
         cwdSpy.mockRestore();

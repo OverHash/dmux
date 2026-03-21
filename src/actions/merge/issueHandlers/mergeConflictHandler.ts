@@ -18,14 +18,18 @@ export async function handleMergeConflict(
   mainBranch: string,
   mainRepoPath: string,
   pane: DmuxPane,
-  context: ActionContext
+  context: ActionContext,
 ): Promise<ActionResult> {
   const paneName = getPaneDisplayName(pane);
   // Check if we have the fallback message
-  const hasRealFiles = issue.files.length > 0 && !issue.files[0].includes('conflict detection incomplete');
+  const hasRealFiles =
+    issue.files.length > 0 && !issue.files[0].includes('conflict detection incomplete');
 
   const message = hasRealFiles
-    ? `Conflicts detected in:\n${issue.files.slice(0, 5).map(f => ` •  ${f}`).join('\n')}${issue.files.length > 5 ? '\n  ...' : ''}`
+    ? `Conflicts detected in:\n${issue.files
+        .slice(0, 5)
+        .map((f) => ` •  ${f}`)
+        .join('\n')}${issue.files.length > 5 ? '\n  ...' : ''}`
     : `Potential conflicts detected between ${mainBranch} and ${paneName}.\n\nThe branches have diverged and may have conflicting changes.\nYou can try AI-assisted merge or resolve manually.`;
 
   return {

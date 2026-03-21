@@ -19,14 +19,14 @@ import { getPaneProjectRoot } from '../utils/paneProject.js';
  * Action result types determine what kind of UI response is needed
  */
 export type ActionResultType =
-  | 'success'           // Action completed successfully, show brief message
-  | 'error'             // Action failed, show error message
-  | 'confirm'           // Need user confirmation (yes/no)
-  | 'choice'            // Need user to select from options
-  | 'input'             // Need user text input
-  | 'info'              // Informational message, no action needed
-  | 'progress'          // Long-running action, show progress
-  | 'navigation';       // Navigate to a different view/pane
+  | 'success' // Action completed successfully, show brief message
+  | 'error' // Action failed, show error message
+  | 'confirm' // Need user confirmation (yes/no)
+  | 'choice' // Need user to select from options
+  | 'input' // Need user text input
+  | 'info' // Informational message, no action needed
+  | 'progress' // Long-running action, show progress
+  | 'navigation'; // Navigate to a different view/pane
 
 /**
  * Standard option for choice dialogs
@@ -35,8 +35,8 @@ export interface ActionOption {
   id: string;
   label: string;
   description?: string;
-  danger?: boolean;      // Highlight as dangerous action (e.g., delete)
-  default?: boolean;     // Mark as default choice
+  danger?: boolean; // Highlight as dangerous action (e.g., delete)
+  default?: boolean; // Mark as default choice
 }
 
 /**
@@ -63,14 +63,14 @@ export interface ActionResult {
   onSubmit?: (value: string) => Promise<ActionResult>;
 
   // For 'progress' type
-  progress?: number;      // 0-100, or undefined for indeterminate
+  progress?: number; // 0-100, or undefined for indeterminate
 
   // For 'navigation' type
   targetPaneId?: string;
 
   // Additional metadata
-  data?: any;             // Action-specific data
-  dismissable?: boolean;  // Can user dismiss without action?
+  data?: any; // Action-specific data
+  dismissable?: boolean; // Can user dismiss without action?
 }
 
 /**
@@ -95,7 +95,7 @@ export interface ActionContext {
 export type ActionFunction = (
   pane: DmuxPane,
   context: ActionContext,
-  params?: any
+  params?: any,
 ) => Promise<ActionResult>;
 
 /**
@@ -292,9 +292,9 @@ const HIDDEN_MENU_ACTIONS = new Set<PaneAction>([
 export function getAvailableActions(
   pane: DmuxPane,
   projectSettings?: any,
-  isDevMode: boolean = false
+  isDevMode: boolean = false,
 ): ActionMetadata[] {
-  return Object.values(ACTION_REGISTRY).filter(action => {
+  return Object.values(ACTION_REGISTRY).filter((action) => {
     if (HIDDEN_MENU_ACTIONS.has(action.id)) return false;
     if (action.id === PaneAction.SET_SOURCE && !isDevMode) return false;
     if (!action.requires) return true;
@@ -310,9 +310,7 @@ export function getAvailableActions(
   });
 }
 
-function getBulkVisibilityMenuAction(
-  action: PaneBulkVisibilityAction
-): PaneMenuAction {
+function getBulkVisibilityMenuAction(action: PaneBulkVisibilityAction): PaneMenuAction {
   return action === 'hide-others'
     ? {
         id: action,
@@ -328,9 +326,7 @@ function getBulkVisibilityMenuAction(
       };
 }
 
-function getProjectVisibilityMenuAction(
-  action: PaneProjectVisibilityAction
-): PaneMenuAction {
+function getProjectVisibilityMenuAction(action: PaneProjectVisibilityAction): PaneMenuAction {
   return action === 'focus-project'
     ? {
         id: action,
@@ -351,7 +347,7 @@ export function getPaneMenuActions(
   panes: DmuxPane[],
   projectSettings?: any,
   isDevMode: boolean = false,
-  projectRoot: string = pane.projectRoot || ''
+  projectRoot: string = pane.projectRoot || '',
 ): PaneMenuAction[] {
   const actions = getAvailableActions(pane, projectSettings, isDevMode);
   const menuActions: PaneMenuAction[] = [];
@@ -381,7 +377,7 @@ export function getPaneMenuActions(
     const projectVisibilityAction = getProjectVisibilityAction(
       panes,
       targetProjectRoot,
-      projectRoot
+      projectRoot,
     );
     if (projectVisibilityAction) {
       menuActions.push(getProjectVisibilityMenuAction(projectVisibilityAction));

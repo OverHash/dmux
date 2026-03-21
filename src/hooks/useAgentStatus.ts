@@ -12,7 +12,11 @@ interface UseAgentStatusParams {
 // Return type: map of pane ID to status
 export type AgentStatusMap = Map<string, AgentStatus | undefined>;
 
-export default function useAgentStatus({ panes, suspend, onPaneRemoved }: UseAgentStatusParams): AgentStatusMap {
+export default function useAgentStatus({
+  panes,
+  suspend,
+  onPaneRemoved,
+}: UseAgentStatusParams): AgentStatusMap {
   const [statuses, setStatuses] = useState<AgentStatusMap>(new Map());
   const statusDetector = useRef(getStatusDetector());
   const panesRef = useRef(panes);
@@ -28,7 +32,7 @@ export default function useAgentStatus({ panes, suspend, onPaneRemoved }: UseAge
 
     // Subscribe to status updates from the detector
     const handleStatusUpdate = (event: any) => {
-      setStatuses(prevStatuses => {
+      setStatuses((prevStatuses) => {
         const existing = prevStatuses.get(event.paneId);
         if (existing === event.status) {
           return prevStatuses;
@@ -42,7 +46,7 @@ export default function useAgentStatus({ panes, suspend, onPaneRemoved }: UseAge
     // Handle pane removal events
     const handlePaneRemoved = (event: any) => {
       // Remove from statuses
-      setStatuses(prevStatuses => {
+      setStatuses((prevStatuses) => {
         const newStatuses = new Map(prevStatuses);
         newStatuses.delete(event.paneId);
         return newStatuses;
@@ -83,10 +87,10 @@ export default function useAgentStatus({ panes, suspend, onPaneRemoved }: UseAge
     lastMonitorSignature.current = paneSignature;
 
     // Update monitoring when panes change or suspend state changes
-    detector.monitorPanes(panes).catch(err => {
+    detector.monitorPanes(panes).catch((err) => {
       LogService.getInstance().debug(
         `Failed to monitor panes: ${err instanceof Error ? err.message : String(err)}`,
-        'useAgentStatus'
+        'useAgentStatus',
       );
     });
   }, [panes, suspend]);

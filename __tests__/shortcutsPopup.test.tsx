@@ -11,7 +11,7 @@ describe('ShortcutsPopupApp', () => {
         resultFile="/tmp/dmux-shortcuts-result.json"
         hasSidebarLayout={true}
         isDevMode={false}
-      />
+      />,
     );
 
     const output = stripAnsi(lastFrame() ?? '');

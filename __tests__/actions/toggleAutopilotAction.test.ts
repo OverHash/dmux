@@ -31,9 +31,7 @@ describe('toggleAutopilotAction', () => {
     ]);
 
     // Verify onPaneUpdate callback
-    expect(onPaneUpdateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ autopilot: true })
-    );
+    expect(onPaneUpdateSpy).toHaveBeenCalledWith(expect.objectContaining({ autopilot: true }));
 
     // Verify success message
     expectSuccess(result, 'enabled');
@@ -106,9 +104,7 @@ describe('toggleAutopilotAction', () => {
     await toggleAutopilot(mockPane, mockContext);
 
     // undefined autopilot should be treated as false, so toggling enables it
-    expect(savePanesSpy).toHaveBeenCalledWith([
-      expect.objectContaining({ autopilot: true }),
-    ]);
+    expect(savePanesSpy).toHaveBeenCalledWith([expect.objectContaining({ autopilot: true })]);
   });
 
   it('should include pane slug in result message', async () => {

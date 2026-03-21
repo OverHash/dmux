@@ -65,7 +65,10 @@ describe('SettingsManager defaults', () => {
     const manager = new SettingsManager('/tmp/test-project');
 
     manager.updateSetting('enabledNotificationSounds', ['default-system-sound', 'harp'], 'project');
-    expect(manager.getSettings().enabledNotificationSounds).toEqual(['default-system-sound', 'harp']);
+    expect(manager.getSettings().enabledNotificationSounds).toEqual([
+      'default-system-sound',
+      'harp',
+    ]);
   });
 
   it('rejects invalid enabledNotificationSounds values', async () => {
@@ -84,7 +87,7 @@ describe('SettingsManager defaults', () => {
     const manager = new SettingsManager('/tmp/test-project');
 
     expect(() =>
-      manager.updateSetting('enabledNotificationSounds', ['invalid-sound'] as any, 'global')
+      manager.updateSetting('enabledNotificationSounds', ['invalid-sound'] as any, 'global'),
     ).toThrow('Invalid enabledNotificationSounds');
   });
 
@@ -123,7 +126,7 @@ describe('SettingsManager defaults', () => {
     const manager = new SettingsManager('/tmp/test-project');
 
     expect(() => manager.updateSetting('permissionMode', 'fullAuto' as any, 'global')).toThrow(
-      'Invalid permissionMode'
+      'Invalid permissionMode',
     );
   });
 
@@ -184,9 +187,15 @@ describe('SettingsManager defaults', () => {
     const { SettingsManager } = await import('../src/utils/settingsManager.js');
     const manager = new SettingsManager('/tmp/test-project');
 
-    expect(() => manager.updateSetting('maxPaneWidth', 10, 'global')).toThrow('Invalid maxPaneWidth');
-    expect(() => manager.updateSetting('maxPaneWidth', 500, 'global')).toThrow('Invalid maxPaneWidth');
-    expect(() => manager.updateSetting('maxPaneWidth', 99.5, 'global')).toThrow('Invalid maxPaneWidth');
+    expect(() => manager.updateSetting('maxPaneWidth', 10, 'global')).toThrow(
+      'Invalid maxPaneWidth',
+    );
+    expect(() => manager.updateSetting('maxPaneWidth', 500, 'global')).toThrow(
+      'Invalid maxPaneWidth',
+    );
+    expect(() => manager.updateSetting('maxPaneWidth', 99.5, 'global')).toThrow(
+      'Invalid maxPaneWidth',
+    );
   });
 
   it('rejects out-of-range minPaneWidth values', async () => {
@@ -204,9 +213,15 @@ describe('SettingsManager defaults', () => {
     const { SettingsManager } = await import('../src/utils/settingsManager.js');
     const manager = new SettingsManager('/tmp/test-project');
 
-    expect(() => manager.updateSetting('minPaneWidth', 10, 'global')).toThrow('Invalid minPaneWidth');
-    expect(() => manager.updateSetting('minPaneWidth', 500, 'global')).toThrow('Invalid minPaneWidth');
-    expect(() => manager.updateSetting('minPaneWidth', 99.5, 'global')).toThrow('Invalid minPaneWidth');
+    expect(() => manager.updateSetting('minPaneWidth', 10, 'global')).toThrow(
+      'Invalid minPaneWidth',
+    );
+    expect(() => manager.updateSetting('minPaneWidth', 500, 'global')).toThrow(
+      'Invalid minPaneWidth',
+    );
+    expect(() => manager.updateSetting('minPaneWidth', 99.5, 'global')).toThrow(
+      'Invalid minPaneWidth',
+    );
   });
 
   it('updateSettings treats pane width bounds as global-only', async () => {

@@ -52,7 +52,7 @@ export class TmuxLayoutApplier {
       // Log but don't fail - some tmux versions may not support this
       LogService.getInstance().warn(
         `Could not set window dimensions to ${width}x${height}: ${error}`,
-        'Layout'
+        'Layout',
       );
     }
   }
@@ -75,7 +75,7 @@ export class TmuxLayoutApplier {
     controlPaneId: string,
     contentPaneIds: string[],
     layout: LayoutConfiguration,
-    terminalHeight: number
+    terminalHeight: number,
   ): void {
     const numContentPanes = contentPaneIds.length;
 
@@ -95,7 +95,7 @@ export class TmuxLayoutApplier {
         layout.windowWidth,
         terminalHeight,
         layout.cols,
-        this.config.MAX_COMFORTABLE_WIDTH
+        this.config.MAX_COMFORTABLE_WIDTH,
       );
 
       if (layoutString) {
@@ -127,14 +127,14 @@ export class TmuxLayoutApplier {
   private resizeControlPane(controlPaneId: string): void {
     try {
       this.tmuxService.resizePaneSync(controlPaneId, {
-        width: this.config.SIDEBAR_WIDTH
+        width: this.config.SIDEBAR_WIDTH,
       });
     } catch (error) {
       LogService.getInstance().error(
         'Error resizing control pane',
         'Layout',
         undefined,
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }

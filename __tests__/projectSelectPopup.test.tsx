@@ -30,13 +30,13 @@ describe('ProjectSelectApp', () => {
     const resultFile = path.join(tempDir, 'result.json');
 
     const { lastFrame, unmount } = render(
-      <ProjectSelectApp resultFile={resultFile} defaultValue={missingPath} />
+      <ProjectSelectApp resultFile={resultFile} defaultValue={missingPath} />,
     );
 
     await sleep(40);
 
     expect(stripAnsi(lastFrame() ?? '')).toContain(
-      'Hit Enter to create a new project at this location.'
+      'Hit Enter to create a new project at this location.',
     );
 
     unmount();
@@ -49,13 +49,13 @@ describe('ProjectSelectApp', () => {
     const resultFile = path.join(tempDir, 'result.json');
 
     const { lastFrame, unmount } = render(
-      <ProjectSelectApp resultFile={resultFile} defaultValue={existingPath} />
+      <ProjectSelectApp resultFile={resultFile} defaultValue={existingPath} />,
     );
 
     await sleep(40);
 
     expect(stripAnsi(lastFrame() ?? '')).not.toContain(
-      'Hit Enter to create a new project at this location.'
+      'Hit Enter to create a new project at this location.',
     );
 
     unmount();

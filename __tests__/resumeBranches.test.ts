@@ -48,33 +48,37 @@ type MockCommandOptions = {
 };
 
 function installGitCommandMock(
-  handler: (command: string, options?: MockCommandOptions) => string | Buffer
+  handler: (command: string, options?: MockCommandOptions) => string | Buffer,
 ): void {
-  execSyncMock.mockImplementation((command: string, options?: MockCommandOptions) => (
-    handler(command, options)
-  ));
+  execSyncMock.mockImplementation((command: string, options?: MockCommandOptions) =>
+    handler(command, options),
+  );
 
-  execMock.mockImplementation((
-    command: string,
-    optionsOrCallback?: MockCommandOptions | ((error: Error | null, stdout?: string, stderr?: string) => void),
-    maybeCallback?: (error: Error | null, stdout?: string, stderr?: string) => void
-  ) => {
-    const callback = typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback;
-    const options = typeof optionsOrCallback === 'function' ? undefined : optionsOrCallback;
+  execMock.mockImplementation(
+    (
+      command: string,
+      optionsOrCallback?:
+        | MockCommandOptions
+        | ((error: Error | null, stdout?: string, stderr?: string) => void),
+      maybeCallback?: (error: Error | null, stdout?: string, stderr?: string) => void,
+    ) => {
+      const callback = typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback;
+      const options = typeof optionsOrCallback === 'function' ? undefined : optionsOrCallback;
 
-    if (!callback) {
-      throw new Error('exec callback is required in test mock');
-    }
+      if (!callback) {
+        throw new Error('exec callback is required in test mock');
+      }
 
-    try {
-      const result = handler(command, options);
-      callback(null, typeof result === 'string' ? result : result.toString('utf-8'), '');
-    } catch (error) {
-      callback(error as Error, '', '');
-    }
+      try {
+        const result = handler(command, options);
+        callback(null, typeof result === 'string' ? result : result.toString('utf-8'), '');
+      } catch (error) {
+        callback(error as Error, '', '');
+      }
 
-    return {} as any;
-  });
+      return {} as any;
+    },
+  );
 }
 
 describe('resumeBranches', () => {
@@ -102,31 +106,31 @@ describe('resumeBranches', () => {
     installGitCommandMock((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
-      const output = (value: string) => encoding ? value : Buffer.from(value);
+      const output = (value: string) => (encoding ? value : Buffer.from(value));
 
       if (
-        cwd === orphanedRootWorktree
-        && (
-          command.includes("'branch' '--show-current'")
-          || command.includes('branch --show-current')
-        )
+        cwd === orphanedRootWorktree &&
+        (command.includes("'branch' '--show-current'") || command.includes('branch --show-current'))
       ) {
         return output('feature/reopen-me');
       }
       if (
-        cwd === orphanedRootWorktree
-        && (
-          command.includes("'status' '--porcelain'")
-          || command.includes('status --porcelain')
-        )
+        cwd === orphanedRootWorktree &&
+        (command.includes("'status' '--porcelain'") || command.includes('status --porcelain'))
       ) {
         return output('M  src/index.ts');
       }
 
-      if (cwd === rootRepo && command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' '@{upstream}'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' '@{upstream}'")
+      ) {
         return output('origin/main');
       }
-      if (cwd === childRepo && command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' '@{upstream}'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' '@{upstream}'")
+      ) {
         return output('origin/main');
       }
 
@@ -137,17 +141,29 @@ describe('resumeBranches', () => {
         return output('main');
       }
 
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main\nfeature/local-parent');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('child/local-only');
       }
 
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output('origin/feature/reopen-me\norigin/feature/remote-only');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output('origin/feature/remote-only\norigin/child/remote-child-only');
       }
 
@@ -191,7 +207,7 @@ describe('resumeBranches', () => {
           hasRemoteBranch: true,
           isRemote: true,
         }),
-      ])
+      ]),
     );
   });
 
@@ -199,31 +215,31 @@ describe('resumeBranches', () => {
     installGitCommandMock((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
-      const output = (value: string) => encoding ? value : Buffer.from(value);
+      const output = (value: string) => (encoding ? value : Buffer.from(value));
 
       if (
-        cwd === orphanedRootWorktree
-        && (
-          command.includes("'branch' '--show-current'")
-          || command.includes('branch --show-current')
-        )
+        cwd === orphanedRootWorktree &&
+        (command.includes("'branch' '--show-current'") || command.includes('branch --show-current'))
       ) {
         return output('feature/reopen-me');
       }
       if (
-        cwd === orphanedRootWorktree
-        && (
-          command.includes("'status' '--porcelain'")
-          || command.includes('status --porcelain')
-        )
+        cwd === orphanedRootWorktree &&
+        (command.includes("'status' '--porcelain'") || command.includes('status --porcelain'))
       ) {
         return output('');
       }
 
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main\nfeature/local-parent');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('child/local-only');
       }
 
@@ -256,7 +272,7 @@ describe('resumeBranches', () => {
           hasLocalBranch: true,
           hasRemoteBranch: false,
         }),
-      ])
+      ]),
     );
   });
 
@@ -281,27 +297,43 @@ describe('resumeBranches', () => {
     installGitCommandMock((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
-      const output = (value: string) => encoding ? value : Buffer.from(value);
+      const output = (value: string) => (encoding ? value : Buffer.from(value));
 
       if (command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' '@{upstream}'")) {
         return output('origin/main');
       }
-      if (command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' 'feature/remote-shared@{upstream}'")) {
+      if (
+        command.includes(
+          "'rev-parse' '--abbrev-ref' '--symbolic-full-name' 'feature/remote-shared@{upstream}'",
+        )
+      ) {
         return output('');
       }
       if (command.includes("'branch' '--show-current'")) {
         return output('main');
       }
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main\nfeature/remote-shared');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main');
       }
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output('origin/feature/remote-shared');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output(childRemoteFetched ? 'origin/feature/remote-shared' : '');
       }
       if (command.includes("'fetch' '--prune' 'origin'")) {
@@ -316,16 +348,30 @@ describe('resumeBranches', () => {
       if (command.includes("'show-ref' '--verify' '--quiet' 'refs/heads/main'")) {
         return output('');
       }
-      if (command.includes("'rev-list' '--left-right' '--count' 'feature/remote-shared...origin/feature/remote-shared'")) {
+      if (
+        command.includes(
+          "'rev-list' '--left-right' '--count' 'feature/remote-shared...origin/feature/remote-shared'",
+        )
+      ) {
         return output('0\t9');
       }
-      if (command.includes("'branch' '--set-upstream-to=origin/feature/remote-shared' 'feature/remote-shared'")) {
+      if (
+        command.includes(
+          "'branch' '--set-upstream-to=origin/feature/remote-shared' 'feature/remote-shared'",
+        )
+      ) {
         return output('');
       }
-      if (command.includes("'branch' '-f' 'feature/remote-shared' 'origin/feature/remote-shared'")) {
+      if (
+        command.includes("'branch' '-f' 'feature/remote-shared' 'origin/feature/remote-shared'")
+      ) {
         return output('');
       }
-      if (command.includes("'branch' '--track' 'feature/remote-shared' 'origin/feature/remote-shared'")) {
+      if (
+        command.includes(
+          "'branch' '--track' 'feature/remote-shared' 'origin/feature/remote-shared'",
+        )
+      ) {
         return output('');
       }
       if (command.includes("'branch' 'feature/remote-shared' 'main'")) {
@@ -366,31 +412,35 @@ describe('resumeBranches', () => {
     expect(execMock).toHaveBeenCalledWith(
       expect.stringContaining("'fetch' '--prune' 'origin'"),
       expect.objectContaining({ cwd: rootRepo, encoding: 'utf-8' }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(execMock).toHaveBeenCalledWith(
       expect.stringContaining("'fetch' '--prune' 'origin'"),
       expect.objectContaining({ cwd: childRepo, encoding: 'utf-8' }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(execMock).toHaveBeenCalledWith(
-      expect.stringContaining("'branch' '-f' 'feature/remote-shared' 'origin/feature/remote-shared'"),
+      expect.stringContaining(
+        "'branch' '-f' 'feature/remote-shared' 'origin/feature/remote-shared'",
+      ),
       expect.objectContaining({ cwd: rootRepo, encoding: 'utf-8' }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(execMock).toHaveBeenCalledWith(
-      expect.stringContaining("'branch' '--track' 'feature/remote-shared' 'origin/feature/remote-shared'"),
+      expect.stringContaining(
+        "'branch' '--track' 'feature/remote-shared' 'origin/feature/remote-shared'",
+      ),
       expect.objectContaining({ cwd: childRepo, encoding: 'utf-8' }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(execMock).not.toHaveBeenCalledWith(
       expect.stringContaining("'branch' 'feature/remote-shared' 'main'"),
       expect.objectContaining({ cwd: childRepo }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(execSyncMock).not.toHaveBeenCalledWith(
       expect.stringContaining("'fetch' '--prune' 'origin'"),
-      expect.anything()
+      expect.anything(),
     );
     expect(writeWorktreeMetadataMock).toHaveBeenCalledWith(
       rootWorktreePath,
@@ -398,13 +448,13 @@ describe('resumeBranches', () => {
         agent: 'codex',
         permissionMode: 'plan',
         branchName: 'feature/remote-shared',
-      })
+      }),
     );
     expect(writeWorktreeMetadataMock).toHaveBeenCalledWith(
       childWorktreePath,
       expect.objectContaining({
         branchName: 'feature/remote-shared',
-      })
+      }),
     );
     expect(createPaneMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -417,7 +467,7 @@ describe('resumeBranches', () => {
           branchName: 'feature/remote-shared',
         },
       }),
-      ['codex']
+      ['codex'],
     );
     expect(triggerHookMock).toHaveBeenCalledWith(
       'worktree_created',
@@ -427,7 +477,7 @@ describe('resumeBranches', () => {
         DMUX_AGENT: 'codex',
         DMUX_BRANCH: 'feature/remote-shared',
         DMUX_WORKTREE_PATH: childWorktreePath,
-      })
+      }),
     );
   });
 
@@ -451,30 +501,45 @@ describe('resumeBranches', () => {
     installGitCommandMock((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
-      const output = (value: string) => encoding ? value : Buffer.from(value);
+      const output = (value: string) => (encoding ? value : Buffer.from(value));
 
       if (command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' '@{upstream}'")) {
         return output('origin/main');
       }
-      if (cwd === rootRepo && command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' 'react@{upstream}'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' 'react@{upstream}'")
+      ) {
         return output('origin/react');
       }
       if (command.includes("'branch' '--show-current'")) {
         return output('main');
       }
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main\nreact');
       }
       if (command.includes("'fetch' '--prune' 'origin'")) {
         return output('');
       }
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output('origin/react');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output('');
       }
       if (command.includes("'worktree' 'prune'")) {
@@ -521,12 +586,12 @@ describe('resumeBranches', () => {
     expect(execMock).toHaveBeenCalledWith(
       expect.stringContaining("'branch' '--track' 'react' 'origin/react'"),
       expect.objectContaining({ cwd: rootRepo, encoding: 'utf-8' }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(execMock).not.toHaveBeenCalledWith(
       expect.stringContaining("'branch' 'react' 'main'"),
       expect.objectContaining({ cwd: childRepo }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(triggerHookMock).toHaveBeenCalledWith(
       'worktree_created',
@@ -535,7 +600,7 @@ describe('resumeBranches', () => {
       expect.objectContaining({
         DMUX_BRANCH: 'react',
         DMUX_WORKTREE_PATH: childWorktreePath,
-      })
+      }),
     );
   });
 
@@ -545,9 +610,17 @@ describe('resumeBranches', () => {
     const childWorktreePath = path.join(rootWorktreePath, 'child-repo');
 
     fs.mkdirSync(rootWorktreePath, { recursive: true });
-    fs.writeFileSync(path.join(rootWorktreePath, '.git'), 'gitdir: /tmp/existing-root-worktree\n', 'utf-8');
+    fs.writeFileSync(
+      path.join(rootWorktreePath, '.git'),
+      'gitdir: /tmp/existing-root-worktree\n',
+      'utf-8',
+    );
     fs.mkdirSync(childWorktreePath, { recursive: true });
-    fs.writeFileSync(path.join(childWorktreePath, '.git'), 'gitdir: /tmp/existing-child-worktree\n', 'utf-8');
+    fs.writeFileSync(
+      path.join(childWorktreePath, '.git'),
+      'gitdir: /tmp/existing-child-worktree\n',
+      'utf-8',
+    );
 
     createPaneMock.mockResolvedValue({
       pane: {
@@ -566,12 +639,15 @@ describe('resumeBranches', () => {
     installGitCommandMock((command: string, options?: { cwd?: string; encoding?: string }) => {
       const cwd = options?.cwd;
       const encoding = options?.encoding;
-      const output = (value: string) => encoding ? value : Buffer.from(value);
+      const output = (value: string) => (encoding ? value : Buffer.from(value));
 
       if (command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' '@{upstream}'")) {
         return output('origin/main');
       }
-      if (cwd === childRepo && command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' 'react@{upstream}'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'rev-parse' '--abbrev-ref' '--symbolic-full-name' 'react@{upstream}'")
+      ) {
         return output('');
       }
       if (cwd === rootWorktreePath && command.includes("'branch' '--show-current'")) {
@@ -580,10 +656,16 @@ describe('resumeBranches', () => {
       if (command.includes("'branch' '--show-current'")) {
         return output('main');
       }
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/heads'")
+      ) {
         return output('main\nreact');
       }
       if (command.includes("'fetch' '--prune' 'origin'")) {
@@ -592,13 +674,22 @@ describe('resumeBranches', () => {
       if (command.includes("'worktree' 'prune'")) {
         return output('');
       }
-      if (cwd === rootRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === rootRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output('origin/react');
       }
-      if (cwd === childRepo && command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'for-each-ref' '--format=%(refname:short)' 'refs/remotes/origin'")
+      ) {
         return output('origin/react');
       }
-      if (cwd === childRepo && command.includes("'rev-list' '--left-right' '--count' 'react...origin/react'")) {
+      if (
+        cwd === childRepo &&
+        command.includes("'rev-list' '--left-right' '--count' 'react...origin/react'")
+      ) {
         return output('0\t3');
       }
       if (cwd === childRepo && command.includes("'worktree' 'list' '--porcelain'")) {
@@ -611,7 +702,9 @@ describe('resumeBranches', () => {
         return output('');
       }
       if (cwd === childRepo && command.includes("'branch' '-f' 'react' 'origin/react'")) {
-        throw new Error('should not force-update a branch already checked out in the target worktree');
+        throw new Error(
+          'should not force-update a branch already checked out in the target worktree',
+        );
       }
       if (command.includes("'worktree' 'add'")) {
         const match = command.match(/'worktree' 'add' '([^']+)' 'react'/);
@@ -619,7 +712,11 @@ describe('resumeBranches', () => {
           const worktreePath = match[1];
           createdPaths.push(worktreePath!);
           fs.mkdirSync(worktreePath!, { recursive: true });
-          fs.writeFileSync(path.join(worktreePath!, '.git'), 'gitdir: /tmp/root-worktree\n', 'utf-8');
+          fs.writeFileSync(
+            path.join(worktreePath!, '.git'),
+            'gitdir: /tmp/root-worktree\n',
+            'utf-8',
+          );
         }
         return output('');
       }
@@ -642,12 +739,12 @@ describe('resumeBranches', () => {
     expect(execMock).toHaveBeenCalledWith(
       expect.stringContaining("'worktree' 'list' '--porcelain'"),
       expect.objectContaining({ cwd: childRepo, encoding: 'utf-8' }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(execMock).not.toHaveBeenCalledWith(
       expect.stringContaining("'branch' '-f' 'react' 'origin/react'"),
       expect.objectContaining({ cwd: childRepo }),
-      expect.any(Function)
+      expect.any(Function),
     );
     expect(triggerHookMock).toHaveBeenCalledWith(
       'worktree_created',
@@ -656,7 +753,7 @@ describe('resumeBranches', () => {
       expect.objectContaining({
         DMUX_BRANCH: 'react',
         DMUX_WORKTREE_PATH: childWorktreePath,
-      })
+      }),
     );
   });
 });

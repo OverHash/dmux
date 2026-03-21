@@ -12,10 +12,7 @@ const ALL_PANE_TITLE_DELIMITERS = [PANE_TITLE_DELIMITER, ...LEGACY_PANE_TITLE_DE
 export const TMUX_PANE_TITLE_DISPLAY_FORMAT = `#{s|${PANE_TITLE_DELIMITER}.*$||:pane_title}`;
 
 function getProjectTag(projectRoot: string, projectName: string): string {
-  const hash = createHash('md5')
-    .update(projectRoot)
-    .digest('hex')
-    .slice(0, 4);
+  const hash = createHash('md5').update(projectRoot).digest('hex').slice(0, 4);
   const sanitizedName = projectName.replace(/[^a-zA-Z0-9._-]+/g, '-');
   return `${sanitizedName}-${hash}`;
 }
@@ -23,26 +20,23 @@ function getProjectTag(projectRoot: string, projectName: string): string {
 export function sanitizePaneDisplayName(value: string): string {
   return ALL_PANE_TITLE_DELIMITERS.reduce(
     (sanitized, delimiter) => sanitized.replaceAll(delimiter, ' '),
-    value
+    value,
   )
     .replace(/[\x00-\x1f\x7f]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-export function getPaneDisplayName(
-  pane: Pick<DmuxPane, 'slug' | 'displayName'>
-): string {
-  const displayName = typeof pane.displayName === 'string'
-    ? sanitizePaneDisplayName(pane.displayName)
-    : '';
+export function getPaneDisplayName(pane: Pick<DmuxPane, 'slug' | 'displayName'>): string {
+  const displayName =
+    typeof pane.displayName === 'string' ? sanitizePaneDisplayName(pane.displayName) : '';
   return displayName || pane.slug;
 }
 
 function encodePaneTmuxTitle(
   displayTitle: string,
   stableTitle: string,
-  delimiter: string = PANE_TITLE_DELIMITER
+  delimiter: string = PANE_TITLE_DELIMITER,
 ): string {
   if (displayTitle === stableTitle) {
     return stableTitle;
@@ -50,9 +44,7 @@ function encodePaneTmuxTitle(
   return `${displayTitle}${delimiter}${stableTitle}`;
 }
 
-function getCustomPaneDisplayName(
-  pane: Pick<DmuxPane, 'displayName'>
-): string | undefined {
+function getCustomPaneDisplayName(pane: Pick<DmuxPane, 'displayName'>): string | undefined {
   if (typeof pane.displayName !== 'string') {
     return undefined;
   }
@@ -64,22 +56,20 @@ function getCustomPaneDisplayName(
 function getStablePaneTmuxTitle(
   pane: DmuxPane,
   fallbackProjectRoot?: string,
-  fallbackProjectName?: string
+  fallbackProjectName?: string,
 ): string {
   if (pane.type === 'shell') {
     return pane.slug;
   }
 
-  const projectRoot = pane.projectRoot
-    || (fallbackProjectRoot ? getPaneProjectRoot(pane, fallbackProjectRoot) : undefined);
+  const projectRoot =
+    pane.projectRoot ||
+    (fallbackProjectRoot ? getPaneProjectRoot(pane, fallbackProjectRoot) : undefined);
   if (!projectRoot) {
     return pane.slug;
   }
 
-  if (
-    fallbackProjectRoot
-    && path.resolve(projectRoot) === path.resolve(fallbackProjectRoot)
-  ) {
+  if (fallbackProjectRoot && path.resolve(projectRoot) === path.resolve(fallbackProjectRoot)) {
     // Keep the original title style for panes in the session's primary project.
     return pane.slug;
   }
@@ -95,14 +85,12 @@ function getStablePaneTmuxTitle(
 export function getPaneTmuxTitle(
   pane: DmuxPane,
   fallbackProjectRoot?: string,
-  fallbackProjectName?: string
+  fallbackProjectName?: string,
 ): string {
   const stableTitle = getStablePaneTmuxTitle(pane, fallbackProjectRoot, fallbackProjectName);
   const displayTitle = getCustomPaneDisplayName(pane);
 
-  return displayTitle
-    ? encodePaneTmuxTitle(displayTitle, stableTitle)
-    : stableTitle;
+  return displayTitle ? encodePaneTmuxTitle(displayTitle, stableTitle) : stableTitle;
 }
 
 /**
@@ -113,7 +101,7 @@ export function getPaneTmuxTitle(
 export function getPaneTitleCandidates(
   pane: DmuxPane,
   fallbackProjectRoot?: string,
-  fallbackProjectName?: string
+  fallbackProjectName?: string,
 ): string[] {
   const stableTitle = getStablePaneTmuxTitle(pane, fallbackProjectRoot, fallbackProjectName);
   const displayTitle = getCustomPaneDisplayName(pane);
@@ -133,7 +121,7 @@ export function getPaneTitleCandidates(
 export function buildWorktreePaneTitle(
   slug: string,
   projectRoot: string,
-  projectName?: string
+  projectName?: string,
 ): string {
   const name = projectName || 'project';
   return `${slug}@${getProjectTag(projectRoot, name)}`;

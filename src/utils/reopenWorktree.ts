@@ -11,11 +11,7 @@ import { SIDEBAR_WIDTH, recalculateAndApplyLayout } from './layoutManager.js';
 import type { DmuxPane, DmuxConfig } from '../types.js';
 import { atomicWriteJsonSync } from './atomicWrite.js';
 import { buildWorktreePaneTitle } from './paneTitle.js';
-import {
-  AGENT_IDS,
-  buildAgentResumeOrLaunchCommand,
-  type AgentName,
-} from './agentLaunch.js';
+import { AGENT_IDS, buildAgentResumeOrLaunchCommand, type AgentName } from './agentLaunch.js';
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { SettingsManager } from './settingsManager.js';
 import { filterEnabledAgents, getInstalledAgents } from './agentDetection.js';
@@ -41,7 +37,7 @@ export interface ReopenWorktreeResult {
  * and launching the best available agent resume command.
  */
 export async function reopenWorktree(
-  options: ReopenWorktreeOptions
+  options: ReopenWorktreeOptions,
 ): Promise<ReopenWorktreeResult> {
   const {
     agent: requestedAgent,
@@ -55,15 +51,16 @@ export async function reopenWorktree(
   const paneProjectName = path.basename(projectRoot);
   const settings = new SettingsManager(projectRoot).getSettings();
   const metadata = readWorktreeMetadata(worktreePath);
-  const sessionProjectRoot = optionsSessionProjectRoot
-    || (optionsSessionConfigPath ? path.dirname(path.dirname(optionsSessionConfigPath)) : projectRoot);
+  const sessionProjectRoot =
+    optionsSessionProjectRoot ||
+    (optionsSessionConfigPath ? path.dirname(path.dirname(optionsSessionConfigPath)) : projectRoot);
 
   const tmuxService = TmuxService.getInstance();
   const originalPaneId = tmuxService.getCurrentPaneIdSync();
 
   // Load config to get control pane info
-  const configPath = optionsSessionConfigPath
-    || path.join(sessionProjectRoot, '.dmux', 'dmux.config.json');
+  const configPath =
+    optionsSessionConfigPath || path.join(sessionProjectRoot, '.dmux', 'dmux.config.json');
   let controlPaneId: string | undefined;
 
   try {
@@ -111,7 +108,7 @@ export async function reopenWorktree(
     await new Promise((resolve) => setTimeout(resolve, 300));
   } else {
     // Subsequent panes - always split horizontally
-    const dmuxPaneIds = existingPanes.map(p => p.paneId);
+    const dmuxPaneIds = existingPanes.map((p) => p.paneId);
     const targetPane = dmuxPaneIds[dmuxPaneIds.length - 1];
     paneInfo = splitPane({ targetPane });
   }
@@ -120,9 +117,10 @@ export async function reopenWorktree(
 
   // Set pane title
   try {
-    const paneTitle = projectRoot === sessionProjectRoot
-      ? slug
-      : buildWorktreePaneTitle(slug, projectRoot, paneProjectName);
+    const paneTitle =
+      projectRoot === sessionProjectRoot
+        ? slug
+        : buildWorktreePaneTitle(slug, projectRoot, paneProjectName);
     await tmuxService.setPaneTitle(paneInfo, paneTitle);
   } catch {
     // Ignore if setting title fails
@@ -131,13 +129,13 @@ export async function reopenWorktree(
   // Apply optimal layout
   if (controlPaneId) {
     const dimensions = getTerminalDimensions();
-    const allContentPaneIds = [...existingPanes.map(p => p.paneId), paneInfo];
+    const allContentPaneIds = [...existingPanes.map((p) => p.paneId), paneInfo];
 
     await recalculateAndApplyLayout(
       controlPaneId,
       allContentPaneIds,
       dimensions.width,
-      dimensions.height
+      dimensions.height,
     );
 
     await tmuxService.refreshClient();
@@ -158,13 +156,12 @@ export async function reopenWorktree(
     'claude',
     'codex',
     'opencode',
-    ...AGENT_IDS.filter((agent) =>
-      !['claude', 'codex', 'opencode'].includes(agent)
-    ),
+    ...AGENT_IDS.filter((agent) => !['claude', 'codex', 'opencode'].includes(agent)),
   ];
   const configuredAgent = metadata?.agent;
-  const agent = requestedAgent
-    || (configuredAgent && candidateAgents.includes(configuredAgent)
+  const agent =
+    requestedAgent ||
+    (configuredAgent && candidateAgents.includes(configuredAgent)
       ? configuredAgent
       : preferredOrder.find((candidate) => candidateAgents.includes(candidate)));
   const permissionMode = metadata?.permissionMode ?? settings.permissionMode;
@@ -190,9 +187,10 @@ export async function reopenWorktree(
     id: `dmux-${Date.now()}`,
     slug,
     displayName: metadata?.displayName,
-    branchName: (metadata?.branchName || currentBranch) !== slug
-      ? (metadata?.branchName || currentBranch)
-      : undefined,
+    branchName:
+      (metadata?.branchName || currentBranch) !== slug
+        ? metadata?.branchName || currentBranch
+        : undefined,
     prompt: '(Reopened session)',
     paneId: paneInfo,
     projectRoot,

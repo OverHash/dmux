@@ -18,7 +18,7 @@ export async function handleWorktreeUncommitted(
   pane: DmuxPane,
   context: ActionContext,
   mainBranch: string,
-  retryMerge: () => Promise<ActionResult>
+  retryMerge: () => Promise<ActionResult>,
 ): Promise<ActionResult> {
   return {
     type: 'choice',
@@ -68,7 +68,7 @@ export async function handleWorktreeUncommitted(
         return handleCommitWithOptions(
           pane.worktreePath!,
           optionId as 'commit_automatic' | 'commit_ai_editable' | 'commit_manual',
-          retryMerge
+          retryMerge,
         );
       }
 

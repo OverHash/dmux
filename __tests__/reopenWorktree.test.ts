@@ -21,11 +21,13 @@ const setupSidebarLayoutMock = vi.hoisted(() => vi.fn(() => '%1'));
 const recalculateAndApplyLayoutMock = vi.hoisted(() => vi.fn(async () => {}));
 const getInstalledAgentsMock = vi.hoisted(() => vi.fn(async () => ['claude', 'codex']));
 const filterEnabledAgentsMock = vi.hoisted(() => vi.fn((agents: string[]) => agents));
-const readWorktreeMetadataMock = vi.hoisted(() => vi.fn(() => ({
-  agent: 'codex',
-  permissionMode: 'bypassPermissions',
-  branchName: 'feature/reopen-me',
-})));
+const readWorktreeMetadataMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    agent: 'codex',
+    permissionMode: 'bypassPermissions',
+    branchName: 'feature/reopen-me',
+  })),
+);
 
 vi.mock('fs', () => ({
   default: fsMock,
@@ -43,7 +45,7 @@ vi.mock('../src/utils/tmux.js', () => ({
     tmuxServiceMock.setSessionOptionSync(
       tmuxServiceMock.getCurrentSessionNameSync(),
       'pane-border-status',
-      'top'
+      'top',
     );
   }),
   setupSidebarLayout: setupSidebarLayoutMock,
@@ -120,12 +122,12 @@ describe('reopenWorktree', () => {
 
     expect(tmuxServiceMock.sendShellCommand).toHaveBeenCalledWith(
       '%1',
-      'codex resume --last --dangerously-bypass-approvals-and-sandbox'
+      'codex resume --last --dangerously-bypass-approvals-and-sandbox',
     );
     expect(tmuxServiceMock.setSessionOptionSync).toHaveBeenCalledWith(
       'dmux-test',
       'pane-border-status',
-      'top'
+      'top',
     );
     expect(result.pane.agent).toBe('codex');
     expect(result.pane.permissionMode).toBe('bypassPermissions');

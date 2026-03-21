@@ -24,10 +24,10 @@ export interface InitMessage {
 export interface PatchMessage {
   type: 'patch';
   changes: Array<{
-    row: number;      // 0-based row index
-    col: number;      // 0-based column index
-    text: string;     // New text to insert
-    length?: number;  // Number of chars to replace (default: text.length)
+    row: number; // 0-based row index
+    col: number; // 0-based column index
+    text: string; // New text to insert
+    length?: number; // Number of chars to replace (default: text.length)
   }>;
   cursorRow?: number; // Cursor row position after update (0-based)
   cursorCol?: number; // Cursor column position after update (0-based)

@@ -9,10 +9,7 @@ import { LogService } from '../services/LogService.js';
  * CATEGORY 1: Optional UI operations
  * Silent failures are acceptable, but should be documented
  */
-export function handleOptionalOperation<T>(
-  operation: () => T,
-  context?: string
-): T | undefined {
+export function handleOptionalOperation<T>(operation: () => T, context?: string): T | undefined {
   try {
     return operation();
   } catch {
@@ -26,19 +23,15 @@ export function handleOptionalOperation<T>(
  * CATEGORY 2: Non-critical with fallback
  * Log the error but continue with fallback value
  */
-export function handleWithFallback<T>(
-  operation: () => T,
-  fallback: T,
-  context: string
-): T {
+export function handleWithFallback<T>(operation: () => T, fallback: T, context: string): T {
   try {
     return operation();
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       `${context} - using fallback`,
-  //       'warn',
-  //       error instanceof Error ? error.message : String(error)
-  //     );
+    //     LogService.getInstance().debug(
+    //       `${context} - using fallback`,
+    //       'warn',
+    //       error instanceof Error ? error.message : String(error)
+    //     );
     return fallback;
   }
 }
@@ -47,18 +40,15 @@ export function handleWithFallback<T>(
  * CATEGORY 3: Critical path operation
  * Log and re-throw - caller must handle
  */
-export function handleCriticalOperation<T>(
-  operation: () => T,
-  context: string
-): T {
+export function handleCriticalOperation<T>(operation: () => T, context: string): T {
   try {
     return operation();
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       `Critical operation failed: ${context}`,
-  //       'error',
-  //       error instanceof Error ? error.message : String(error)
-  //     );
+    //     LogService.getInstance().debug(
+    //       `Critical operation failed: ${context}`,
+    //       'error',
+    //       error instanceof Error ? error.message : String(error)
+    //     );
     throw error;
   }
 }
@@ -67,19 +57,15 @@ export function handleCriticalOperation<T>(
  * CATEGORY 4: Expected errors (like checking if something exists)
  * Log at debug level and return false/null
  */
-export function handleExpectedError<T>(
-  operation: () => T,
-  context: string,
-  defaultValue: T
-): T {
+export function handleExpectedError<T>(operation: () => T, context: string, defaultValue: T): T {
   try {
     return operation();
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       context,
-  //       'debug',
-  //       error instanceof Error ? error.message : String(error)
-  //     );
+    //     LogService.getInstance().debug(
+    //       context,
+    //       'debug',
+    //       error instanceof Error ? error.message : String(error)
+    //     );
     return defaultValue;
   }
 }
@@ -88,18 +74,15 @@ export function handleExpectedError<T>(
  * Common pattern: Check if a command/resource exists
  * Returns true if exists, false otherwise
  */
-export function checkExists(
-  checkOperation: () => void,
-  resourceName: string
-): boolean {
+export function checkExists(checkOperation: () => void, resourceName: string): boolean {
   try {
     checkOperation();
     return true;
   } catch {
-  //     LogService.getInstance().debug(
-  //       `${resourceName} does not exist`,
-  //       'debug'
-  //     );
+    //     LogService.getInstance().debug(
+    //       `${resourceName} does not exist`,
+    //       'debug'
+    //     );
     return false;
   }
 }
@@ -110,7 +93,7 @@ export function checkExists(
 
 export async function handleOptionalOperationAsync<T>(
   operation: () => Promise<T>,
-  context?: string
+  context?: string,
 ): Promise<T | undefined> {
   try {
     return await operation();
@@ -123,32 +106,32 @@ export async function handleOptionalOperationAsync<T>(
 export async function handleWithFallbackAsync<T>(
   operation: () => Promise<T>,
   fallback: T,
-  context: string
+  context: string,
 ): Promise<T> {
   try {
     return await operation();
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       `${context} - using fallback`,
-  //       'warn',
-  //       error instanceof Error ? error.message : String(error)
-  //     );
+    //     LogService.getInstance().debug(
+    //       `${context} - using fallback`,
+    //       'warn',
+    //       error instanceof Error ? error.message : String(error)
+    //     );
     return fallback;
   }
 }
 
 export async function handleCriticalOperationAsync<T>(
   operation: () => Promise<T>,
-  context: string
+  context: string,
 ): Promise<T> {
   try {
     return await operation();
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       `Critical operation failed: ${context}`,
-  //       'error',
-  //       error instanceof Error ? error.message : String(error)
-  //     );
+    //     LogService.getInstance().debug(
+    //       `Critical operation failed: ${context}`,
+    //       'error',
+    //       error instanceof Error ? error.message : String(error)
+    //     );
     throw error;
   }
 }
@@ -156,16 +139,16 @@ export async function handleCriticalOperationAsync<T>(
 export async function handleExpectedErrorAsync<T>(
   operation: () => Promise<T>,
   context: string,
-  defaultValue: T
+  defaultValue: T,
 ): Promise<T> {
   try {
     return await operation();
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       context,
-  //       'debug',
-  //       error instanceof Error ? error.message : String(error)
-  //     );
+    //     LogService.getInstance().debug(
+    //       context,
+    //       'debug',
+    //       error instanceof Error ? error.message : String(error)
+    //     );
     return defaultValue;
   }
 }

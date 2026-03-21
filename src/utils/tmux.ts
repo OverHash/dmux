@@ -6,7 +6,7 @@ import { execSync } from 'child_process';
 
 // Layout configuration - adjust these to change layout behavior
 export const SIDEBAR_WIDTH = 40;
-export const MIN_COMFORTABLE_WIDTH = 60;  // Minimum chars for comfortable code viewing
+export const MIN_COMFORTABLE_WIDTH = 60; // Minimum chars for comfortable code viewing
 export const MAX_COMFORTABLE_WIDTH = 100; // Maximum chars before too wide for comfort
 export const MIN_COMFORTABLE_HEIGHT = 15; // Minimum lines for comfortable pane viewing
 
@@ -20,7 +20,7 @@ function calculateLayoutChecksum(layout: string): string {
   for (let i = 0; i < layout.length; i++) {
     checksum = (checksum >> 1) + ((checksum & 1) << 15);
     checksum += layout.charCodeAt(i);
-    checksum &= 0xFFFF; // Mask to 16 bits (critical!)
+    checksum &= 0xffff; // Mask to 16 bits (critical!)
   }
 
   // Tmux expects a 4-digit hex checksum (pad with leading zeros)
@@ -64,11 +64,13 @@ export const getPanePositions = (): PanePosition[] => {
  * @returns The new pane ID
  * @deprecated Use TmuxService.getInstance().splitPaneSync() instead
  */
-export const splitPane = (options: {
-  targetPane?: string;
-  cwd?: string;
-  command?: string;
-} = {}): string => {
+export const splitPane = (
+  options: {
+    targetPane?: string;
+    cwd?: string;
+    command?: string;
+  } = {},
+): string => {
   return TmuxService.getInstance().splitPaneSync(options);
 };
 
@@ -88,7 +90,7 @@ export const getContentPaneIds = (controlPaneId: string): string[] => {
   const tmuxService = TmuxService.getInstance();
   const allPanes = tmuxService.getAllPaneIdsSync();
 
-  return allPanes.filter(id => {
+  return allPanes.filter((id) => {
     if (id === controlPaneId) return false;
 
     // Filter out spacer pane
@@ -125,7 +127,9 @@ export const setupSidebarLayout = (controlPaneId: string, cwd?: string): string 
       // Try to get the pane title - this will throw if the pane doesn't exist
       tmuxService.getPaneTitleSync(controlPaneId);
     } catch (error) {
-      throw new Error(`Control pane ${controlPaneId} does not exist. Cannot create sidebar layout.`);
+      throw new Error(
+        `Control pane ${controlPaneId} does not exist. Cannot create sidebar layout.`,
+      );
     }
 
     // Split horizontally (left-right) from control pane
@@ -159,7 +163,7 @@ export const generateSidebarGridLayout = (
   windowWidth: number,
   windowHeight: number,
   columns: number,
-  maxComfortableWidth: number = MAX_COMFORTABLE_WIDTH
+  maxComfortableWidth: number = MAX_COMFORTABLE_WIDTH,
 ): string => {
   // Calculate grid dimensions for content panes
   const numContentPanes = contentPanes.length;
@@ -180,15 +184,17 @@ export const generateSidebarGridLayout = (
 
   // Check if last pane is a spacer
   const tmuxService = TmuxService.getInstance();
-  const lastPaneIsSpacer = contentPanes.length > 0 && (() => {
-    try {
-      const lastPaneId = contentPanes[contentPanes.length - 1];
-      const title = tmuxService.getPaneTitleSync(lastPaneId);
-      return title === 'dmux-spacer';
-    } catch {
-      return false;
-    }
-  })();
+  const lastPaneIsSpacer =
+    contentPanes.length > 0 &&
+    (() => {
+      try {
+        const lastPaneId = contentPanes[contentPanes.length - 1];
+        const title = tmuxService.getPaneTitleSync(lastPaneId);
+        return title === 'dmux-spacer';
+      } catch {
+        return false;
+      }
+    })();
 
   // For height, account for borders between rows
   // If we have 2 rows with 1 border, total consumed = row1 + 1 + row2 = windowHeight
@@ -231,7 +237,10 @@ export const generateSidebarGridLayout = (
     }
 
     // Check if this row has a spacer (last pane is spacer)
-    const rowHasSpacer = lastPaneIsSpacer && row === rows - 1 && panesInThisRow.length > 0 &&
+    const rowHasSpacer =
+      lastPaneIsSpacer &&
+      row === rows - 1 &&
+      panesInThisRow.length > 0 &&
       panesInThisRow[panesInThisRow.length - 1] === contentPanes[numContentPanes - 1];
 
     const numContentPanesInRow = rowHasSpacer ? panesInThisRow.length - 1 : panesInThisRow.length;
@@ -255,7 +264,7 @@ export const generateSidebarGridLayout = (
       if (remainingWidth < 0) {
         LogService.getInstance().warn(
           `Negative spacer width! contentWidth=${contentWidth}, totalContent=${totalContentWidth}, borders=${bordersInRow}`,
-          'Layout'
+          'Layout',
         );
       }
 
@@ -266,7 +275,7 @@ export const generateSidebarGridLayout = (
       const bordersInRow = panesInThisRow.length - 1;
       const availableWidth = contentWidth - bordersInRow;
       const evenWidth = Math.floor(availableWidth / panesInThisRow.length);
-      const remainder = availableWidth - (evenWidth * panesInThisRow.length);
+      const remainder = availableWidth - evenWidth * panesInThisRow.length;
 
       // CRITICAL: Distribute width evenly, with remainder going to FIRST pane (matches tmux behavior)
       contentPaneWidths = Array(panesInThisRow.length).fill(evenWidth);
@@ -358,7 +367,7 @@ export const generateSidebarGridLayout = (
 export const calculateOptimalColumns = (
   numPanes: number,
   contentWidth: number,
-  contentHeight: number
+  contentHeight: number,
 ): number => {
   // Try different numbers of columns to find optimal layout
   let bestCols = 1;
@@ -398,7 +407,8 @@ export const calculateOptimalColumns = (
       const bordersWidth = cols - 1;
       const paneWidth = Math.floor((contentWidth - bordersWidth) / cols);
 
-      if (paneWidth >= MIN_COMFORTABLE_WIDTH * 0.8) { // Allow slightly narrower
+      if (paneWidth >= MIN_COMFORTABLE_WIDTH * 0.8) {
+        // Allow slightly narrower
         bestCols = cols;
         break;
       }
@@ -418,7 +428,7 @@ export const calculateOptimalColumns = (
 export const enforceControlPaneSize = async (
   controlPaneId: string,
   width: number,
-  options?: { forceLayout?: boolean; suppressLayoutLogs?: boolean; disableSpacer?: boolean }
+  options?: { forceLayout?: boolean; suppressLayoutLogs?: boolean; disableSpacer?: boolean },
 ): Promise<void> => {
   const logService = LogService.getInstance();
   const tmuxService = TmuxService.getInstance();
@@ -473,9 +483,9 @@ export const enforceControlPaneSize = async (
     try {
       const output = execSync(
         `tmux display-message -t '${controlPaneId}' -p "#{client_width} #{client_height}"`,
-        { encoding: 'utf-8' }
+        { encoding: 'utf-8' },
       ).trim();
-      const [targetWidth, targetHeight] = output.split(' ').map(n => parseInt(n, 10));
+      const [targetWidth, targetHeight] = output.split(' ').map((n) => parseInt(n, 10));
       if (
         Number.isFinite(targetWidth) &&
         Number.isFinite(targetHeight) &&
@@ -499,7 +509,7 @@ export const enforceControlPaneSize = async (
         force: options?.forceLayout === true,
         suppressLogs: options?.suppressLayoutLogs === true,
         disableSpacer: options?.disableSpacer === true,
-      }
+      },
     );
 
     // Refresh to apply changes (but don't select the pane - don't steal focus!)
@@ -507,6 +517,11 @@ export const enforceControlPaneSize = async (
   } catch (error) {
     // Log error for debugging but don't crash
     const msg = 'Layout enforcement failed';
-    LogService.getInstance().error(msg, 'tmux', undefined, error instanceof Error ? error : undefined);
+    LogService.getInstance().error(
+      msg,
+      'tmux',
+      undefined,
+      error instanceof Error ? error : undefined,
+    );
   }
 };

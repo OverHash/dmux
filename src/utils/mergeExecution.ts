@@ -18,10 +18,7 @@ export interface MergeResult {
  * Merge main branch into worktree branch
  * This is step 1 of the two-phase merge: get latest changes from main
  */
-export function mergeMainIntoWorktree(
-  worktreePath: string,
-  mainBranch: string
-): MergeResult {
+export function mergeMainIntoWorktree(worktreePath: string, mainBranch: string): MergeResult {
   try {
     execSync(`git merge "${mainBranch}" --no-edit`, {
       cwd: worktreePath,
@@ -65,10 +62,7 @@ export function mergeMainIntoWorktree(
  * Merge worktree branch into main (should be clean after resolving conflicts)
  * This is step 2 of the two-phase merge: bring changes back to main
  */
-export function mergeWorktreeIntoMain(
-  mainRepoPath: string,
-  worktreeBranch: string
-): MergeResult {
+export function mergeWorktreeIntoMain(mainRepoPath: string, worktreeBranch: string): MergeResult {
   try {
     execSync(`git merge "${worktreeBranch}" --no-edit`, {
       cwd: mainRepoPath,
@@ -112,7 +106,7 @@ export function getConflictingFiles(repoPath: string): string[] {
     return output
       .trim()
       .split('\n')
-      .filter(line => line.trim());
+      .filter((line) => line.trim());
   } catch {
     return [];
   }
@@ -147,8 +141,10 @@ export function isInMergeState(repoPath: string): boolean {
       stdio: 'pipe',
     });
 
-    return output.includes('You have unmerged paths') ||
-           output.includes('All conflicts fixed but you are still merging');
+    return (
+      output.includes('You have unmerged paths') ||
+      output.includes('All conflicts fixed but you are still merging')
+    );
   } catch {
     return false;
   }
@@ -192,7 +188,7 @@ export function completeMerge(repoPath: string, message?: string): MergeResult {
 export function cleanupAfterMerge(
   mainRepoPath: string,
   worktreePath: string,
-  branchName: string
+  branchName: string,
 ): { success: boolean; error?: string } {
   try {
     // Remove worktree

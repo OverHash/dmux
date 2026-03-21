@@ -54,7 +54,7 @@ function trimSurroundingEmptyLines(lines: string[]): string[] {
 
 export function normalizePaneContentForAnalysis(
   content: string,
-  maxLines: number = ANALYZER_CONTEXT_LINE_LIMIT
+  maxLines: number = ANALYZER_CONTEXT_LINE_LIMIT,
 ): string {
   if (!content) {
     return '';
@@ -73,7 +73,7 @@ export class PaneAnalyzer {
   private modelStack: string[] = [
     'google/gemini-2.5-flash',
     'x-ai/grok-4-fast:free',
-    'openai/gpt-4o-mini'
+    'openai/gpt-4o-mini',
   ];
 
   // Content-hash based cache to avoid repeated API calls for identical content
@@ -129,7 +129,6 @@ export class PaneAnalyzer {
     this.cache.clear();
   }
 
-
   /**
    * Make a single API request to a specific model
    */
@@ -138,12 +137,12 @@ export class PaneAnalyzer {
     systemPrompt: string,
     userPrompt: string,
     maxTokens: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<any> {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://github.com/dmux/dmux',
         'X-Title': 'dmux',
@@ -152,13 +151,13 @@ export class PaneAnalyzer {
         model,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { role: 'user', content: userPrompt },
         ],
         temperature: 0.1,
         max_tokens: maxTokens,
         response_format: { type: 'json_object' },
       }),
-      signal
+      signal,
     });
 
     if (!response.ok) {
@@ -180,7 +179,7 @@ export class PaneAnalyzer {
     systemPrompt: string,
     userPrompt: string,
     maxTokens: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<any> {
     if (!this.apiKey) {
       throw new Error('API key not available');
@@ -200,13 +199,12 @@ export class PaneAnalyzer {
     try {
       // Race all models in parallel - first success wins
       const result = await Promise.any(
-        this.modelStack.map(model =>
-          this.tryModel(model, systemPrompt, userPrompt, maxTokens, combinedSignal)
-            .then(data => {
-              logService.debug(`PaneAnalyzer: Model ${model} succeeded`, 'paneAnalyzer');
-              return data;
-            })
-        )
+        this.modelStack.map((model) =>
+          this.tryModel(model, systemPrompt, userPrompt, maxTokens, combinedSignal).then((data) => {
+            logService.debug(`PaneAnalyzer: Model ${model} succeeded`, 'paneAnalyzer');
+            return data;
+          }),
+        ),
       );
 
       return result;
@@ -227,12 +225,19 @@ export class PaneAnalyzer {
    * @param signal - Optional abort signal
    * @param paneName - Optional friendly pane name for logging
    */
-  async determineState(content: string, signal?: AbortSignal, paneName?: string): Promise<PaneState> {
+  async determineState(
+    content: string,
+    signal?: AbortSignal,
+    paneName?: string,
+  ): Promise<PaneState> {
     const logService = LogService.getInstance();
 
     if (!this.apiKey) {
       // API key not set
-      logService.debug(`PaneAnalyzer: No API key set, defaulting to in_progress state${paneName ? ` for "${paneName}"` : ''}`, 'paneAnalyzer');
+      logService.debug(
+        `PaneAnalyzer: No API key set, defaulting to in_progress state${paneName ? ` for "${paneName}"` : ''}`,
+        'paneAnalyzer',
+      );
       return 'in_progress';
     }
 
@@ -273,29 +278,46 @@ CRITICAL:
 3. When uncertain, default to "open_prompt"`;
 
     try {
-      logService.debug(`PaneAnalyzer: Requesting state determination${paneName ? ` for "${paneName}"` : ''}`, 'paneAnalyzer');
+      logService.debug(
+        `PaneAnalyzer: Requesting state determination${paneName ? ` for "${paneName}"` : ''}`,
+        'paneAnalyzer',
+      );
 
       const data = await this.makeRequestWithFallback(
         systemPrompt,
         `Analyze this terminal output and return a JSON object with the state:\n\n${content}`,
         20,
-        signal
+        signal,
       );
 
       const result = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-      logService.debug(`PaneAnalyzer: LLM response for state determination${paneName ? ` ("${paneName}")` : ''}: ${JSON.stringify(result)}`, 'paneAnalyzer');
+      logService.debug(
+        `PaneAnalyzer: LLM response for state determination${paneName ? ` ("${paneName}")` : ''}: ${JSON.stringify(result)}`,
+        'paneAnalyzer',
+      );
 
       // Validate the state
       const state = result.state;
       if (state === 'option_dialog' || state === 'open_prompt' || state === 'in_progress') {
-        logService.debug(`PaneAnalyzer: Determined state${paneName ? ` for "${paneName}"` : ''}: ${state}`, 'paneAnalyzer');
+        logService.debug(
+          `PaneAnalyzer: Determined state${paneName ? ` for "${paneName}"` : ''}: ${state}`,
+          'paneAnalyzer',
+        );
         return state;
       }
 
-      logService.debug(`PaneAnalyzer: Invalid state received${paneName ? ` for "${paneName}"` : ''} (${state}), defaulting to in_progress`, 'paneAnalyzer');
+      logService.debug(
+        `PaneAnalyzer: Invalid state received${paneName ? ` for "${paneName}"` : ''} (${state}), defaulting to in_progress`,
+        'paneAnalyzer',
+      );
       return 'in_progress';
     } catch (error) {
-      logService.error(`PaneAnalyzer: Failed to determine state${paneName ? ` for "${paneName}"` : ''}: ${error}`, 'paneAnalyzer', undefined, error instanceof Error ? error : undefined);
+      logService.error(
+        `PaneAnalyzer: Failed to determine state${paneName ? ` for "${paneName}"` : ''}: ${error}`,
+        'paneAnalyzer',
+        undefined,
+        error instanceof Error ? error : undefined,
+      );
       // Failed to determine state - throw error to be handled by caller
       throw error;
     }
@@ -310,13 +332,16 @@ CRITICAL:
   async extractOptions(
     content: string,
     context: PaneContext,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Omit<PaneAnalysis, 'state'>> {
     const logService = LogService.getInstance();
     const paneName = context.paneName;
 
     if (!this.apiKey) {
-      logService.debug(`PaneAnalyzer: No API key set, cannot extract options${paneName ? ` for "${paneName}"` : ''}`, 'paneAnalyzer');
+      logService.debug(
+        `PaneAnalyzer: No API key set, cannot extract options${paneName ? ` for "${paneName}"` : ''}`,
+        'paneAnalyzer',
+      );
       return {};
     }
 
@@ -373,7 +398,10 @@ Output: {
 }`;
 
     try {
-      logService.debug(`PaneAnalyzer: Requesting options extraction${paneName ? ` for "${paneName}"` : ''}`, 'paneAnalyzer');
+      logService.debug(
+        `PaneAnalyzer: Requesting options extraction${paneName ? ` for "${paneName}"` : ''}`,
+        'paneAnalyzer',
+      );
 
       const data = await this.makeRequestWithFallback(
         systemPrompt,
@@ -385,36 +413,48 @@ Extract the option details from this dialog and return as JSON:
 
 ${content}`,
         360,
-        signal
+        signal,
       );
 
       const result = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-      logService.debug(`PaneAnalyzer: LLM response for options extraction${paneName ? ` ("${paneName}")` : ''}: ${JSON.stringify(result)}`, 'paneAnalyzer');
+      logService.debug(
+        `PaneAnalyzer: LLM response for options extraction${paneName ? ` ("${paneName}")` : ''}: ${JSON.stringify(result)}`,
+        'paneAnalyzer',
+      );
 
       const parsedOptions = {
         question: result.question,
         options: result.options?.map((opt: any) => ({
           action: opt.action,
           keys: Array.isArray(opt.keys) ? opt.keys : [opt.keys],
-          description: opt.description
+          description: opt.description,
         })),
         attentionTitle: result.attention_title,
         attentionBody: result.attention_body,
-        potentialHarm: result.potential_harm ? {
-          hasRisk: result.potential_harm.has_risk,
-          description: result.potential_harm.description
-        } : undefined
+        potentialHarm: result.potential_harm
+          ? {
+              hasRisk: result.potential_harm.has_risk,
+              description: result.potential_harm.description,
+            }
+          : undefined,
       };
 
       logService.debug(
         `PaneAnalyzer: Extracted ${parsedOptions.options?.length || 0} options${paneName ? ` for "${paneName}"` : ''}` +
-        (parsedOptions.potentialHarm?.hasRisk ? ` (RISK: ${parsedOptions.potentialHarm.description})` : ''),
-        'paneAnalyzer'
+          (parsedOptions.potentialHarm?.hasRisk
+            ? ` (RISK: ${parsedOptions.potentialHarm.description})`
+            : ''),
+        'paneAnalyzer',
       );
 
       return parsedOptions;
     } catch (error) {
-      logService.error(`PaneAnalyzer: Failed to extract options${paneName ? ` for "${paneName}"` : ''}: ${error}`, 'paneAnalyzer', undefined, error instanceof Error ? error : undefined);
+      logService.error(
+        `PaneAnalyzer: Failed to extract options${paneName ? ` for "${paneName}"` : ''}: ${error}`,
+        'paneAnalyzer',
+        undefined,
+        error instanceof Error ? error : undefined,
+      );
       // Failed to extract options - throw error to be handled by caller
       throw error;
     }
@@ -426,7 +466,7 @@ ${content}`,
   async extractSummary(
     content: string,
     context: PaneContext,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Pick<PaneAnalysis, 'summary' | 'attentionTitle' | 'attentionBody'>> {
     if (!this.apiKey) {
       return {};
@@ -472,7 +512,7 @@ Extract the summary and notification copy from this terminal output:
 
 ${content}`,
         180,
-        signal
+        signal,
       );
 
       const result = JSON.parse(data.choices?.[0]?.message?.content || '{}');
@@ -495,7 +535,7 @@ ${content}`,
     content: string,
     context: PaneContext,
     dmuxPaneId: string | undefined,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<PaneAnalysis> {
     const logService = LogService.getInstance();
     const paneName = context.paneName;
@@ -506,28 +546,41 @@ ${content}`,
 
       // If it's an option dialog, extract option details
       if (state === 'option_dialog') {
-        logService.debug(`PaneAnalyzer: Detected option_dialog for "${paneName}", extracting options...`, 'paneAnalyzer', dmuxPaneId);
+        logService.debug(
+          `PaneAnalyzer: Detected option_dialog for "${paneName}", extracting options...`,
+          'paneAnalyzer',
+          dmuxPaneId,
+        );
         const optionDetails = await this.extractOptions(content, context, signal);
         return {
           state,
-          ...optionDetails
+          ...optionDetails,
         };
       }
 
       // If it's open_prompt (idle), extract summary
       if (state === 'open_prompt') {
-        logService.debug(`PaneAnalyzer: Detected open_prompt for "${paneName}", extracting summary...`, 'paneAnalyzer', dmuxPaneId);
+        logService.debug(
+          `PaneAnalyzer: Detected open_prompt for "${paneName}", extracting summary...`,
+          'paneAnalyzer',
+          dmuxPaneId,
+        );
         const summaryDetails = await this.extractSummary(content, context, signal);
         return {
           state,
-          ...summaryDetails
+          ...summaryDetails,
         };
       }
 
       // Otherwise just return the state (in_progress)
       return { state };
     } catch (error) {
-      logService.error(`PaneAnalyzer: Analysis failed for "${paneName}": ${error}`, 'paneAnalyzer', dmuxPaneId, error instanceof Error ? error : undefined);
+      logService.error(
+        `PaneAnalyzer: Analysis failed for "${paneName}": ${error}`,
+        'paneAnalyzer',
+        dmuxPaneId,
+        error instanceof Error ? error : undefined,
+      );
       throw error;
     }
   }
@@ -544,7 +597,7 @@ ${content}`,
     tmuxPaneId: string,
     signal?: AbortSignal,
     dmuxPaneId?: string,
-    capturedSnapshot?: string
+    capturedSnapshot?: string,
   ): Promise<PaneAnalysis> {
     const logService = LogService.getInstance();
 
@@ -565,20 +618,26 @@ ${content}`,
       }
     }
 
-    logService.debug(`PaneAnalyzer: Starting analysis for "${paneName}"`, 'paneAnalyzer', dmuxPaneId);
+    logService.debug(
+      `PaneAnalyzer: Starting analysis for "${paneName}"`,
+      'paneAnalyzer',
+      dmuxPaneId,
+    );
 
     // Normalize the analyzer input to the last 50 trimmed lines so every LLM stage
     // sees the same bounded pane snapshot.
-    const analysisSource = typeof capturedSnapshot === 'string'
-      ? capturedSnapshot
-      : capturePaneContent(tmuxPaneId, ANALYZER_CONTEXT_LINE_LIMIT);
-    const content = normalizePaneContentForAnalysis(
-      analysisSource,
-      ANALYZER_CONTEXT_LINE_LIMIT
-    );
+    const analysisSource =
+      typeof capturedSnapshot === 'string'
+        ? capturedSnapshot
+        : capturePaneContent(tmuxPaneId, ANALYZER_CONTEXT_LINE_LIMIT);
+    const content = normalizePaneContentForAnalysis(analysisSource, ANALYZER_CONTEXT_LINE_LIMIT);
 
     if (!content) {
-      logService.debug(`PaneAnalyzer: No content captured for "${paneName}", defaulting to in_progress`, 'paneAnalyzer', dmuxPaneId);
+      logService.debug(
+        `PaneAnalyzer: No content captured for "${paneName}", defaulting to in_progress`,
+        'paneAnalyzer',
+        dmuxPaneId,
+      );
       return { state: 'in_progress' };
     }
 
@@ -593,7 +652,11 @@ ${content}`,
     // Check for pending request (deduplication)
     const pendingKey = `${tmuxPaneId}:${contentHash}`;
     if (this.pendingRequests.has(pendingKey)) {
-      logService.debug(`PaneAnalyzer: Deduplicating request for "${paneName}"`, 'paneAnalyzer', dmuxPaneId);
+      logService.debug(
+        `PaneAnalyzer: Deduplicating request for "${paneName}"`,
+        'paneAnalyzer',
+        dmuxPaneId,
+      );
       return this.pendingRequests.get(pendingKey)!;
     }
 
@@ -607,12 +670,16 @@ ${content}`,
         agentLabel,
       },
       dmuxPaneId,
-      signal
+      signal,
     )
-      .then(result => {
+      .then((result) => {
         // Cache successful result
         this.setCache(contentHash, result);
-        logService.debug(`PaneAnalyzer: Analysis complete for "${paneName}": ${result.state}`, 'paneAnalyzer', dmuxPaneId);
+        logService.debug(
+          `PaneAnalyzer: Analysis complete for "${paneName}": ${result.state}`,
+          'paneAnalyzer',
+          dmuxPaneId,
+        );
         return result;
       })
       .finally(() => {

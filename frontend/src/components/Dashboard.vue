@@ -38,7 +38,7 @@ const loadingSettings = ref(false);
 
 // Hooks
 const showHooksSection = ref(false);
-const hooksData = ref<Array<{name: string; active: boolean}>>([]);
+const hooksData = ref<Array<{ name: string; active: boolean }>>([]);
 const loadingHooks = ref(false);
 
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
@@ -124,7 +124,7 @@ const createPane = async () => {
     creatingPane.value = true;
 
     const payload: any = {
-      prompt: newPanePrompt.value.trim()
+      prompt: newPanePrompt.value.trim(),
     };
 
     if (newPaneAgent.value) {
@@ -134,7 +134,7 @@ const createPane = async () => {
     const response = await fetch('/api/panes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     const result = await response.json();
@@ -211,7 +211,7 @@ const executeAction = async (pane: any, action: any) => {
     showActionMenu.value = null;
 
     const response = await fetch(`/api/panes/${pane.id}/actions/${action.id}`, {
-      method: 'POST'
+      method: 'POST',
     });
 
     const result = await response.json();
@@ -225,14 +225,14 @@ const executeAction = async (pane: any, action: any) => {
           type: 'confirm',
           title: result.title || 'Confirm',
           message: result.message,
-          ...result.confirmData
+          ...result.confirmData,
         };
       } else if (result.interactionType === 'choice') {
         dialogData = {
           type: 'choice',
           title: result.title || 'Choose',
           message: result.message,
-          ...result.choiceData
+          ...result.choiceData,
         };
       } else if (result.interactionType === 'input') {
         dialogData = {
@@ -240,7 +240,7 @@ const executeAction = async (pane: any, action: any) => {
           title: result.title || 'Input',
           message: result.message,
           ...result.inputData,
-          inputValue: result.inputData?.defaultValue || ''
+          inputValue: result.inputData?.defaultValue || '',
         };
 
         // Focus the input after dialog opens
@@ -277,7 +277,7 @@ const confirmAction = async (confirmed: boolean) => {
     const response = await fetch(`/api/callbacks/confirm/${actionDialog.value.callbackId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmed })
+      body: JSON.stringify({ confirmed }),
     });
 
     const result = await response.json();
@@ -291,14 +291,14 @@ const confirmAction = async (confirmed: boolean) => {
           type: 'confirm',
           title: result.title || 'Confirm',
           message: result.message,
-          ...result.confirmData
+          ...result.confirmData,
         };
       } else if (result.interactionType === 'choice') {
         dialogData = {
           type: 'choice',
           title: result.title || 'Choose',
           message: result.message,
-          ...result.choiceData
+          ...result.choiceData,
         };
       } else if (result.interactionType === 'input') {
         dialogData = {
@@ -306,7 +306,7 @@ const confirmAction = async (confirmed: boolean) => {
           title: result.title || 'Input',
           message: result.message,
           ...result.inputData,
-          inputValue: result.inputData?.defaultValue || ''
+          inputValue: result.inputData?.defaultValue || '',
         };
 
         // Focus the input after dialog opens
@@ -340,7 +340,7 @@ const selectChoice = async (optionId: string) => {
     const response = await fetch(`/api/callbacks/choice/${actionDialog.value.callbackId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ optionId })
+      body: JSON.stringify({ optionId }),
     });
 
     const result = await response.json();
@@ -354,14 +354,14 @@ const selectChoice = async (optionId: string) => {
           type: 'confirm',
           title: result.title || 'Confirm',
           message: result.message,
-          ...result.confirmData
+          ...result.confirmData,
         };
       } else if (result.interactionType === 'choice') {
         dialogData = {
           type: 'choice',
           title: result.title || 'Choose',
           message: result.message,
-          ...result.choiceData
+          ...result.choiceData,
         };
       } else if (result.interactionType === 'input') {
         dialogData = {
@@ -369,7 +369,7 @@ const selectChoice = async (optionId: string) => {
           title: result.title || 'Input',
           message: result.message,
           ...result.inputData,
-          inputValue: result.inputData?.defaultValue || ''
+          inputValue: result.inputData?.defaultValue || '',
         };
 
         // Focus the input after dialog opens
@@ -400,25 +400,28 @@ const selectChoice = async (optionId: string) => {
  * Example: " src/file.ts | 10 ++--" -> adds spans with colors
  */
 const colorizeDiffStat = (text: string): string => {
-  return text.split('\n').map(line => {
-    // Check if line contains diff markers
-    if (line.includes('|')) {
-      // Split by | to separate file path from changes
-      const parts = line.split('|');
-      if (parts.length === 2) {
-        const filePart = parts[0];
-        const statPart = parts[1];
+  return text
+    .split('\n')
+    .map((line) => {
+      // Check if line contains diff markers
+      if (line.includes('|')) {
+        // Split by | to separate file path from changes
+        const parts = line.split('|');
+        if (parts.length === 2) {
+          const filePart = parts[0];
+          const statPart = parts[1];
 
-        // Colorize + and - in the stat part
-        const colorizedStat = statPart
-          .replace(/\+/g, '<span style="color: #4ade80;">+</span>')
-          .replace(/-/g, '<span style="color: #f87171;">-</span>');
+          // Colorize + and - in the stat part
+          const colorizedStat = statPart
+            .replace(/\+/g, '<span style="color: #4ade80;">+</span>')
+            .replace(/-/g, '<span style="color: #f87171;">-</span>');
 
-        return filePart + '<span style="opacity: 0.6;">|</span>' + colorizedStat;
+          return filePart + '<span style="opacity: 0.6;">|</span>' + colorizedStat;
+        }
       }
-    }
-    return line;
-  }).join('<br>');
+      return line;
+    })
+    .join('<br>');
 };
 
 const submitInput = async () => {
@@ -429,7 +432,7 @@ const submitInput = async () => {
     const response = await fetch(`/api/callbacks/input/${actionDialog.value.callbackId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: actionDialog.value.inputValue })
+      body: JSON.stringify({ value: actionDialog.value.inputValue }),
     });
 
     const result = await response.json();
@@ -443,14 +446,14 @@ const submitInput = async () => {
           type: 'confirm',
           title: result.title || 'Confirm',
           message: result.message,
-          ...result.confirmData
+          ...result.confirmData,
         };
       } else if (result.interactionType === 'choice') {
         dialogData = {
           type: 'choice',
           title: result.title || 'Choose',
           message: result.message,
-          ...result.choiceData
+          ...result.choiceData,
         };
       } else if (result.interactionType === 'input') {
         dialogData = {
@@ -458,7 +461,7 @@ const submitInput = async () => {
           title: result.title || 'Input',
           message: result.message,
           ...result.inputData,
-          inputValue: result.inputData?.defaultValue || ''
+          inputValue: result.inputData?.defaultValue || '',
         };
 
         // Focus the input after dialog opens
@@ -495,7 +498,7 @@ const selectOption = async (pane: any, option: any) => {
       await fetch(`/api/keys/${pane.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: key })
+        body: JSON.stringify({ key: key }),
       });
     }
 
@@ -523,14 +526,14 @@ const sendPrompt = async (pane: any) => {
     await fetch(`/api/keys/${pane.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: prompt })
+      body: JSON.stringify({ text: prompt }),
     });
 
     // Send Enter key to submit
     await fetch(`/api/keys/${pane.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'Enter' })
+      body: JSON.stringify({ key: 'Enter' }),
     });
 
     queuedMessages.value[pane.id] = prompt.substring(0, 50) + (prompt.length > 50 ? '...' : '');
@@ -585,7 +588,7 @@ const updateSetting = async (key: string, value: any, scope: 'global' | 'project
     await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, value, scope })
+      body: JSON.stringify({ key, value, scope }),
     });
 
     // Reload settings to show updated values
@@ -621,7 +624,8 @@ const closeHooksSection = () => {
 };
 
 const editHooksWithAgent = async () => {
-  const prompt = "I would like to edit my dmux hooks in .dmux-hooks, please read the instructions in there and ask me what I want to edit";
+  const prompt =
+    'I would like to edit my dmux hooks in .dmux-hooks, please read the instructions in there and ask me what I want to edit';
 
   // Close dialogs
   closeHooksSection();
@@ -639,7 +643,11 @@ const editHooksWithAgent = async () => {
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
   // Close action menu if clicking outside
-  if (showActionMenu.value && !target.closest('.action-menu-btn') && !target.closest('.action-menu-dropdown')) {
+  if (
+    showActionMenu.value &&
+    !target.closest('.action-menu-btn') &&
+    !target.closest('.action-menu-dropdown')
+  ) {
     showActionMenu.value = null;
   }
 };
@@ -673,12 +681,20 @@ onBeforeUnmount(() => {
     <img src="https://cdn.formk.it/dmux/dmux.png" alt="dmux" class="logo" />
     <h1>{{ projectName }}</h1>
     <div class="session-info">
-      <button @click="toggleTheme" class="theme-toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+      <button
+        @click="toggleTheme"
+        class="theme-toggle"
+        :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+      >
         <svg v-if="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
+          <path
+            d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"
+          />
         </svg>
         <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6.5a9 9 0 009 9 8.97 8.97 0 003.963-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"/>
+          <path
+            d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6.5a9 9 0 009 9 8.97 8.97 0 003.963-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
+          />
         </svg>
       </button>
       <span v-if="sessionName">{{ sessionName }}</span>
@@ -691,13 +707,26 @@ onBeforeUnmount(() => {
       <div class="actions-bar">
         <button @click="openCreateDialog" class="create-pane-button" :disabled="creatingPane">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 4.5v15m7.5-7.5h-15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path
+              d="M12 4.5v15m7.5-7.5h-15"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
           Create New Pane
         </button>
-        <button @click="openSettingsDialog" class="settings-button" :disabled="loadingSettings" title="Settings">
+        <button
+          @click="openSettingsDialog"
+          class="settings-button"
+          :disabled="loadingSettings"
+          title="Settings"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10.5 1.875a1.125 1.125 0 012.25 0v.563c0 1.018.84 1.843 1.854 1.839a.75.75 0 01.585.217l.4.4a.75.75 0 01.216.585c-.004 1.014.821 1.854 1.839 1.854h.563a1.125 1.125 0 010 2.25h-.563c-1.018 0-1.843.84-1.839 1.854a.75.75 0 01-.217.585l-.4.4a.75.75 0 01-.585.216c-1.014-.004-1.854.821-1.854 1.839v.563a1.125 1.125 0 01-2.25 0v-.563c0-1.018-.84-1.843-1.854-1.839a.75.75 0 01-.585-.217l-.4-.4a.75.75 0 01-.216-.585c.004-1.014-.821-1.854-1.839-1.854H3.75a1.125 1.125 0 010-2.25h.563c1.018 0 1.843-.84 1.839-1.854a.75.75 0 01.217-.585l.4-.4a.75.75 0 01.585-.216c1.014.004 1.854-.821 1.854-1.839V1.875zM12 15a3 3 0 100-6 3 3 0 000 6z"/>
+            <path
+              d="M10.5 1.875a1.125 1.125 0 012.25 0v.563c0 1.018.84 1.843 1.854 1.839a.75.75 0 01.585.217l.4.4a.75.75 0 01.216.585c-.004 1.014.821 1.854 1.839 1.854h.563a1.125 1.125 0 010 2.25h-.563c-1.018 0-1.843.84-1.839 1.854a.75.75 0 01-.217.585l-.4.4a.75.75 0 01-.585.216c-1.014-.004-1.854.821-1.854 1.839v.563a1.125 1.125 0 01-2.25 0v-.563c0-1.018-.84-1.843-1.854-1.839a.75.75 0 01-.585-.217l-.4-.4a.75.75 0 01-.216-.585c.004-1.014-.821-1.854-1.839-1.854H3.75a1.125 1.125 0 010-2.25h.563c1.018 0 1.843-.84 1.839-1.854a.75.75 0 01.217-.585l.4-.4a.75.75 0 01.585-.216c1.014.004 1.854-.821 1.854-1.839V1.875zM12 15a3 3 0 100-6 3 3 0 000 6z"
+            />
           </svg>
           Settings
         </button>
@@ -709,11 +738,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div v-else class="panes-grid">
-        <div
-          v-for="pane in panes"
-          :key="pane.id"
-          class="pane-card"
-        >
+        <div v-for="pane in panes" :key="pane.id" class="pane-card">
           <div class="pane-header">
             <div class="pane-header-content">
               <a :href="'/panes/' + pane.id" class="pane-title-link">
@@ -721,9 +746,15 @@ onBeforeUnmount(() => {
                 <span class="pane-arrow">→</span>
               </a>
               <div class="pane-meta">
-                <span v-if="pane.autopilot" class="pane-autopilot" title="Autopilot enabled">🤖</span>
-                <span v-if="pane.type === 'shell'" class="pane-agent shell" :title="'Shell pane'">{{ pane.shellType || 'shell' }}</span>
-                <span v-else class="pane-agent" :class="pane.agent || ''">{{ pane.agent || 'unknown' }}</span>
+                <span v-if="pane.autopilot" class="pane-autopilot" title="Autopilot enabled"
+                  >🤖</span
+                >
+                <span v-if="pane.type === 'shell'" class="pane-agent shell" :title="'Shell pane'">{{
+                  pane.shellType || 'shell'
+                }}</span>
+                <span v-else class="pane-agent" :class="pane.agent || ''">{{
+                  pane.agent || 'unknown'
+                }}</span>
                 <span class="pane-id">{{ pane.paneId }}</span>
               </div>
             </div>
@@ -733,7 +764,10 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- Action Menu Dropdown -->
-          <div v-if="showActionMenu === pane.id && paneActions[pane.id]" class="action-menu-dropdown">
+          <div
+            v-if="showActionMenu === pane.id && paneActions[pane.id]"
+            class="action-menu-dropdown"
+          >
             <button
               v-for="action in paneActions[pane.id]"
               :key="action.id"
@@ -750,7 +784,7 @@ onBeforeUnmount(() => {
             <div
               class="pane-prompt-preview"
               @click="togglePrompt(pane.id)"
-              :class="{ 'expanded': expandedPrompts.has(pane.id) }"
+              :class="{ expanded: expandedPrompts.has(pane.id) }"
             >
               <div class="prompt-header">
                 <span class="prompt-label">Initial Prompt</span>
@@ -769,13 +803,14 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- Show analyzer error if present -->
-          <div v-if="pane.analyzerError" class="analyzer-error">
-            ⚠ {{ pane.analyzerError }}
-          </div>
+          <div v-if="pane.analyzerError" class="analyzer-error">⚠ {{ pane.analyzerError }}</div>
 
           <div class="pane-interactive" @click.prevent>
             <!-- Options Dialog (when waiting with options) -->
-            <div v-if="pane.agentStatus === 'waiting' && pane.options && pane.options.length > 0" class="options-dialog">
+            <div
+              v-if="pane.agentStatus === 'waiting' && pane.options && pane.options.length > 0"
+              class="options-dialog"
+            >
               <div class="options-question">{{ pane.optionsQuestion || 'Choose an option:' }}</div>
               <div v-if="pane.potentialHarm && pane.potentialHarm.hasRisk" class="options-warning">
                 ⚠️ {{ pane.potentialHarm.description }}
@@ -790,7 +825,9 @@ onBeforeUnmount(() => {
                   :key="option.action"
                   @click="selectOption(pane, option)"
                   class="option-button"
-                  :class="{ 'option-button-danger': pane.potentialHarm && pane.potentialHarm.hasRisk }"
+                  :class="{
+                    'option-button-danger': pane.potentialHarm && pane.potentialHarm.hasRisk,
+                  }"
                   :disabled="loadingOptions.has(pane.id)"
                 >
                   {{ option.action }}
@@ -810,7 +847,9 @@ onBeforeUnmount(() => {
                 <textarea
                   v-model="promptInputs[pane.id]"
                   @input="autoExpand"
-                  :placeholder="pane.agentStatus === 'working' ? 'Queue a prompt...' : 'Send a prompt...'"
+                  :placeholder="
+                    pane.agentStatus === 'working' ? 'Queue a prompt...' : 'Send a prompt...'
+                  "
                   :disabled="sendingPrompts.has(pane.id)"
                   class="prompt-textarea"
                   rows="1"
@@ -823,7 +862,9 @@ onBeforeUnmount(() => {
                 >
                   <span v-if="sendingPrompts.has(pane.id)" class="button-loader"></span>
                   <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 988.44 1200.05">
-                    <path d="M425.13,28.37L30.09,423.41C11.19,441.37.34,466.2,0,492.27c-.34,26.07,9.86,51.17,28.29,69.61,18.43,18.45,43.52,28.67,69.59,28.35,26.07-.31,50.91-11.14,68.88-30.02l233.16-233.52v776.64c0,34.56,18.43,66.48,48.36,83.76,29.93,17.28,66.8,17.28,96.72,0,29.93-17.28,48.36-49.21,48.36-83.76V328.85l231.72,231.36c24.63,23.41,59.74,32.18,92.48,23.09,32.74-9.08,58.32-34.68,67.38-67.43,9.05-32.75.25-67.85-23.18-92.46L566.73,28.37C548.63,10.16,524-.04,498.33.05c-.8-.06-1.6-.06-2.4,0-.8-.06-1.6-.06-2.4,0-25.65,0-50.25,10.19-68.4,28.32h0Z"/>
+                    <path
+                      d="M425.13,28.37L30.09,423.41C11.19,441.37.34,466.2,0,492.27c-.34,26.07,9.86,51.17,28.29,69.61,18.43,18.45,43.52,28.67,69.59,28.35,26.07-.31,50.91-11.14,68.88-30.02l233.16-233.52v776.64c0,34.56,18.43,66.48,48.36,83.76,29.93,17.28,66.8,17.28,96.72,0,29.93-17.28,48.36-49.21,48.36-83.76V328.85l231.72,231.36c24.63,23.41,59.74,32.18,92.48,23.09,32.74-9.08,58.32-34.68,67.38-67.43,9.05-32.75.25-67.85-23.18-92.46L566.73,28.37C548.63,10.16,524-.04,498.33.05c-.8-.06-1.6-.06-2.4,0-.8-.06-1.6-.06-2.4,0-25.65,0-50.25,10.19-68.4,28.32h0Z"
+                    />
                   </svg>
                 </button>
               </div>
@@ -862,7 +903,11 @@ onBeforeUnmount(() => {
           </div>
           <div class="dialog-buttons">
             <button @click="closeCreateDialog" class="dialog-btn">Cancel</button>
-            <button @click="createPane" :disabled="!newPanePrompt.trim() || creatingPane" class="dialog-btn dialog-btn-primary">
+            <button
+              @click="createPane"
+              :disabled="!newPanePrompt.trim() || creatingPane"
+              class="dialog-btn dialog-btn-primary"
+            >
               {{ creatingPane ? 'Creating...' : 'Create Pane' }}
             </button>
           </div>
@@ -899,8 +944,16 @@ onBeforeUnmount(() => {
           <span>Processing...</span>
         </div>
         <div v-else class="dialog-buttons">
-          <button @click="confirmAction(false)" class="dialog-btn" :disabled="actionDialogLoading">Cancel</button>
-          <button @click="confirmAction(true)" class="dialog-btn dialog-btn-primary" :disabled="actionDialogLoading">Confirm</button>
+          <button @click="confirmAction(false)" class="dialog-btn" :disabled="actionDialogLoading">
+            Cancel
+          </button>
+          <button
+            @click="confirmAction(true)"
+            class="dialog-btn dialog-btn-primary"
+            :disabled="actionDialogLoading"
+          >
+            Confirm
+          </button>
         </div>
       </div>
 
@@ -919,15 +972,19 @@ onBeforeUnmount(() => {
               :key="option.id"
               @click="selectChoice(option.id)"
               class="choice-option-btn"
-              :class="{ 'danger': option.danger }"
+              :class="{ danger: option.danger }"
               :disabled="actionDialogLoading"
             >
               <div class="choice-label">{{ option.label }}</div>
-              <div v-if="option.description" class="choice-description">{{ option.description }}</div>
+              <div v-if="option.description" class="choice-description">
+                {{ option.description }}
+              </div>
             </button>
           </div>
           <div class="dialog-buttons">
-            <button @click="closeActionDialog" class="dialog-btn" :disabled="actionDialogLoading">Cancel</button>
+            <button @click="closeActionDialog" class="dialog-btn" :disabled="actionDialogLoading">
+              Cancel
+            </button>
           </div>
         </div>
       </div>
@@ -935,7 +992,11 @@ onBeforeUnmount(() => {
       <!-- Input Dialog -->
       <div v-else-if="actionDialog.type === 'input'" class="action-dialog">
         <h3>{{ actionDialog.title }}</h3>
-        <div v-if="actionDialog.message" class="dialog-message" v-html="colorizeDiffStat(actionDialog.message)"></div>
+        <div
+          v-if="actionDialog.message"
+          class="dialog-message"
+          v-html="colorizeDiffStat(actionDialog.message)"
+        ></div>
         <div v-if="actionDialogLoading" class="dialog-loading">
           <div class="loader-spinner"></div>
           <span>Processing...</span>
@@ -949,15 +1010,27 @@ onBeforeUnmount(() => {
             @keydown.enter="submitInput"
           />
           <div class="dialog-buttons">
-            <button @click="closeActionDialog" class="dialog-btn" :disabled="actionDialogLoading">Cancel</button>
-            <button @click="submitInput" class="dialog-btn dialog-btn-primary" :disabled="actionDialogLoading">Submit</button>
+            <button @click="closeActionDialog" class="dialog-btn" :disabled="actionDialogLoading">
+              Cancel
+            </button>
+            <button
+              @click="submitInput"
+              class="dialog-btn dialog-btn-primary"
+              :disabled="actionDialogLoading"
+            >
+              Submit
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Settings Dialog -->
-    <div v-if="showSettingsDialog && settingsData" class="action-dialog-overlay" @click.self="closeSettingsDialog">
+    <div
+      v-if="showSettingsDialog && settingsData"
+      class="action-dialog-overlay"
+      @click.self="closeSettingsDialog"
+    >
       <div class="action-dialog settings-dialog">
         <h3>Settings</h3>
         <div v-if="loadingSettings" class="dialog-loading">
@@ -976,21 +1049,40 @@ onBeforeUnmount(() => {
             <!-- Boolean setting -->
             <div v-if="def.type === 'boolean'" class="setting-control">
               <div class="setting-value">
-                Current: <strong>{{ settingsData.merged[def.key] ? 'Enabled' : 'Disabled' }}</strong>
+                Current:
+                <strong>{{ settingsData.merged[def.key] ? 'Enabled' : 'Disabled' }}</strong>
                 <span v-if="def.key in settingsData.project" class="setting-scope">(project)</span>
-                <span v-else-if="def.key in settingsData.global" class="setting-scope">(global)</span>
+                <span v-else-if="def.key in settingsData.global" class="setting-scope"
+                  >(global)</span
+                >
               </div>
               <div class="setting-buttons">
-                <button @click="updateSetting(def.key, true, 'global')" class="setting-btn" :disabled="loadingSettings">
+                <button
+                  @click="updateSetting(def.key, true, 'global')"
+                  class="setting-btn"
+                  :disabled="loadingSettings"
+                >
                   Enable (global)
                 </button>
-                <button @click="updateSetting(def.key, false, 'global')" class="setting-btn" :disabled="loadingSettings">
+                <button
+                  @click="updateSetting(def.key, false, 'global')"
+                  class="setting-btn"
+                  :disabled="loadingSettings"
+                >
                   Disable (global)
                 </button>
-                <button @click="updateSetting(def.key, true, 'project')" class="setting-btn" :disabled="loadingSettings">
+                <button
+                  @click="updateSetting(def.key, true, 'project')"
+                  class="setting-btn"
+                  :disabled="loadingSettings"
+                >
                   Enable (project)
                 </button>
-                <button @click="updateSetting(def.key, false, 'project')" class="setting-btn" :disabled="loadingSettings">
+                <button
+                  @click="updateSetting(def.key, false, 'project')"
+                  class="setting-btn"
+                  :disabled="loadingSettings"
+                >
                   Disable (project)
                 </button>
               </div>
@@ -999,17 +1091,31 @@ onBeforeUnmount(() => {
             <!-- Select setting -->
             <div v-else-if="def.type === 'select'" class="setting-control">
               <div class="setting-value">
-                Current: <strong>{{ def.options.find((o: any) => o.value === settingsData.merged[def.key])?.label || 'Not set' }}</strong>
+                Current:
+                <strong>{{
+                  def.options.find((o: any) => o.value === settingsData.merged[def.key])?.label ||
+                  'Not set'
+                }}</strong>
                 <span v-if="def.key in settingsData.project" class="setting-scope">(project)</span>
-                <span v-else-if="def.key in settingsData.global" class="setting-scope">(global)</span>
+                <span v-else-if="def.key in settingsData.global" class="setting-scope"
+                  >(global)</span
+                >
               </div>
               <div class="setting-select-group" v-for="option in def.options" :key="option.value">
                 <div class="setting-option-label">{{ option.label }}</div>
                 <div class="setting-buttons">
-                  <button @click="updateSetting(def.key, option.value, 'global')" class="setting-btn" :disabled="loadingSettings">
+                  <button
+                    @click="updateSetting(def.key, option.value, 'global')"
+                    class="setting-btn"
+                    :disabled="loadingSettings"
+                  >
                     Set global
                   </button>
-                  <button @click="updateSetting(def.key, option.value, 'project')" class="setting-btn" :disabled="loadingSettings">
+                  <button
+                    @click="updateSetting(def.key, option.value, 'project')"
+                    class="setting-btn"
+                    :disabled="loadingSettings"
+                  >
                     Set project
                   </button>
                 </div>
@@ -1019,7 +1125,11 @@ onBeforeUnmount(() => {
             <!-- Action setting -->
             <div v-else-if="def.type === 'action'" class="setting-control">
               <div class="setting-buttons">
-                <button @click="openHooksSection" class="setting-btn setting-btn-action" :disabled="loadingSettings">
+                <button
+                  @click="openHooksSection"
+                  class="setting-btn setting-btn-action"
+                  :disabled="loadingSettings"
+                >
                   Open
                 </button>
               </div>
@@ -1030,7 +1140,9 @@ onBeforeUnmount(() => {
         <!-- Hooks Section (shown when hooks action is triggered) -->
         <div v-if="showHooksSection" class="hooks-section">
           <div class="hooks-header">
-            <button @click="closeHooksSection" class="back-btn" title="Back to settings">← Back</button>
+            <button @click="closeHooksSection" class="back-btn" title="Back to settings">
+              ← Back
+            </button>
             <h4>Hooks Management</h4>
           </div>
           <div v-if="loadingHooks" class="dialog-loading">

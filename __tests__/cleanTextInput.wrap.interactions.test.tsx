@@ -5,21 +5,28 @@ import stripAnsi from 'strip-ansi';
 import CleanTextInput from '../src/components/inputs/CleanTextInput.js';
 import { wrapText } from '../src/utils/input.js';
 
-const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const Harness: React.FC = () => {
   const [val, setVal] = useState('');
   return <CleanTextInput value={val} onChange={setVal} />;
 };
 
-const makeCaptureHarness = (capture: (v: string) => void): React.FC => () => {
-  const [val, setVal] = useState('');
-  return <CleanTextInput value={val} onChange={(v) => { 
-    console.log('Test onChange called with:', v);
-    setVal(v); 
-    capture(v); 
-  }} />;
-};
+const makeCaptureHarness =
+  (capture: (v: string) => void): React.FC =>
+  () => {
+    const [val, setVal] = useState('');
+    return (
+      <CleanTextInput
+        value={val}
+        onChange={(v) => {
+          console.log('Test onChange called with:', v);
+          setVal(v);
+          capture(v);
+        }}
+      />
+    );
+  };
 
 function typeChar(stdin: any, ch: string) {
   stdin.write(ch);
@@ -36,7 +43,7 @@ function getLines(frame: string): string[] {
 async function waitForWrappedLines(
   lastFrame: () => string | undefined,
   minLines: number,
-  timeoutMs = 200
+  timeoutMs = 200,
 ): Promise<string[]> {
   const deadline = Date.now() + timeoutMs;
 
@@ -121,17 +128,25 @@ describe('CleanTextInput: cursor movement and multi-line', () => {
   });
 
   const ESC = String.fromCharCode(27);
-  function left(stdin: any, n = 1) { for (let i = 0; i < n; i++) { stdin.write(`${ESC}[D`); } return sleep(2); }
-  function type(stdin: any, s: string) { stdin.write(s); return sleep(3); }
+  function left(stdin: any, n = 1) {
+    for (let i = 0; i < n; i++) {
+      stdin.write(`${ESC}[D`);
+    }
+    return sleep(2);
+  }
+  function type(stdin: any, s: string) {
+    stdin.write(s);
+    return sleep(3);
+  }
 
   it.skip('left/right moves cursor and inserts at new position', async () => {
     // TODO: Fix cursor movement in CleanTextInput component
     // This test fails because cursor position state isn't properly updating
     // Related to MAINTENANCE.md Phase 2 item 6: Decompose CleanTextInput
     let current = '';
-    const Capturing = makeCaptureHarness((v) => { 
+    const Capturing = makeCaptureHarness((v) => {
       console.log('Capture called with:', v);
-      current = v; 
+      current = v;
     });
     const { stdin } = render(<Capturing />);
     await sleep(120);

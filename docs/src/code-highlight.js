@@ -3,13 +3,15 @@
  * Uses token placeholders to prevent regex passes from corrupting each other.
  */
 
-const KEYWORDS = /\b(const|let|var|function|return|if|else|for|while|class|import|export|from|default|async|await|new|this|try|catch|throw|typeof|interface|type|extends|implements|enum|readonly|true|false|null|undefined|void|string|number|boolean)\b/g;
+const KEYWORDS =
+  /\b(const|let|var|function|return|if|else|for|while|class|import|export|from|default|async|await|new|this|try|catch|throw|typeof|interface|type|extends|implements|enum|readonly|true|false|null|undefined|void|string|number|boolean)\b/g;
 const STRINGS = /(["'`])(?:(?=(\\?))\2.)*?\1/g;
 const COMMENTS = /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm;
 const NUMBERS = /\b(\d+\.?\d*)\b/g;
 const FUNCTIONS = /\b([a-zA-Z_]\w*)\s*(?=\()/g;
 const SHELL_COMMENT = /^(\s*#.*)$/gm;
-const SHELL_CMD = /^(\s*)(npm|npx|pnpm|yarn|curl|git|cd|mkdir|cat|echo|tmux|dmux|ls|rm|cp|mv|sudo|brew|apt|pip|node|deno|bun|chmod|export)\b/gm;
+const SHELL_CMD =
+  /^(\s*)(npm|npx|pnpm|yarn|curl|git|cd|mkdir|cat|echo|tmux|dmux|ls|rm|cp|mv|sudo|brew|apt|pip|node|deno|bun|chmod|export)\b/gm;
 const SHELL_FLAG = /\s(--?[\w-]+)/g;
 const JSON_KEY = /("[\w-]+")\s*:/g;
 
@@ -84,7 +86,8 @@ export function highlight(code, lang) {
   lang = lang.toLowerCase().trim();
   if (['bash', 'sh', 'shell', 'zsh'].includes(lang)) return highlightShell(code);
   if (['json', 'jsonc'].includes(lang)) return highlightJSON(code);
-  if (['js', 'javascript', 'ts', 'typescript', 'jsx', 'tsx'].includes(lang)) return highlightJS(code);
+  if (['js', 'javascript', 'ts', 'typescript', 'jsx', 'tsx'].includes(lang))
+    return highlightJS(code);
   return escapeHtml(code);
 }
 

@@ -34,6 +34,6 @@ export const COLORS = {
 // Tmux-specific colors (for use in tmux commands)
 // Only foreground colors - respects user's terminal background settings
 export const TMUX_COLORS = {
-  activeBorder: '214',  // Light orange (ANSI 256-color)
+  activeBorder: '214', // Light orange (ANSI 256-color)
   inactiveBorder: '240', // Gray (ANSI 256-color)
 } as const;

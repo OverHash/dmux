@@ -9,10 +9,7 @@ import type { ActionResult, ActionContext } from '../types.js';
 /**
  * Copy worktree path to clipboard
  */
-export async function copyPath(
-  pane: DmuxPane,
-  context: ActionContext
-): Promise<ActionResult> {
+export async function copyPath(pane: DmuxPane, context: ActionContext): Promise<ActionResult> {
   if (!pane.worktreePath) {
     return {
       type: 'error',

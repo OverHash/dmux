@@ -12,10 +12,7 @@ interface LayoutManagementOptions {
  * Manages periodic enforcement of control pane (sidebar) size
  * Ensures the sidebar stays at SIDEBAR_WIDTH (40 chars) even after terminal resizes
  */
-export function useLayoutManagement({
-  controlPaneId,
-  hasActiveDialog,
-}: LayoutManagementOptions) {
+export function useLayoutManagement({ controlPaneId, hasActiveDialog }: LayoutManagementOptions) {
   // Use refs to track state across resize events
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isApplyingLayoutRef = useRef(false);
@@ -30,11 +27,8 @@ export function useLayoutManagement({
     }
 
     // Enforce sidebar width immediately on mount (with error handling)
-    enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH).catch(error => {
-      LogService.getInstance().warn(
-        `Initial layout enforcement failed: ${error}`,
-        'ResizeDebug'
-      );
+    enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH).catch((error) => {
+      LogService.getInstance().warn(`Initial layout enforcement failed: ${error}`, 'ResizeDebug');
     });
 
     const handleResize = () => {
@@ -71,12 +65,11 @@ export function useLayoutManagement({
             if (!isMountedRef.current) {
               return;
             }
-
           } catch (error) {
             // Log error but don't crash - layout will be retried on next resize
             LogService.getInstance().warn(
               `Layout enforcement failed during resize: ${error}`,
-              'ResizeDebug'
+              'ResizeDebug',
             );
           } finally {
             // Reset flag after a brief delay (always reset, even on error)

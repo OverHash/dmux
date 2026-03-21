@@ -4,15 +4,7 @@ const DEFAULT_STARTUP_TIMEOUT_MS = 5000;
 const DEFAULT_POLL_INTERVAL_MS = 75;
 
 // Common shell process names reported by tmux for inactive panes.
-const SHELL_PROCESS_NAMES = new Set([
-  'bash',
-  'zsh',
-  'sh',
-  'fish',
-  'dash',
-  'ksh',
-  'tcsh',
-]);
+const SHELL_PROCESS_NAMES = new Set(['bash', 'zsh', 'sh', 'fish', 'dash', 'ksh', 'tcsh']);
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -34,7 +26,7 @@ interface WaitForForegroundCommandOptions {
  * If we time out, callers may still send input because the PTY typically buffers it.
  */
 export async function waitForForegroundCommand(
-  options: WaitForForegroundCommandOptions
+  options: WaitForForegroundCommandOptions,
 ): Promise<void> {
   const {
     paneId,
@@ -92,9 +84,7 @@ interface SendPromptViaTmuxOptions {
 /**
  * Send a full prompt payload to an already-starting interactive agent via tmux paste buffer.
  */
-export async function sendPromptViaTmux(
-  options: SendPromptViaTmuxOptions
-): Promise<void> {
+export async function sendPromptViaTmux(options: SendPromptViaTmuxOptions): Promise<void> {
   const {
     paneId,
     prompt,

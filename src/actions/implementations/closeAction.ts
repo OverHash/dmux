@@ -23,10 +23,7 @@ import { getPaneDisplayName } from '../../utils/paneTitle.js';
 /**
  * Close a pane - presents options for how to close
  */
-export async function closePane(
-  pane: DmuxPane,
-  context: ActionContext
-): Promise<ActionResult> {
+export async function closePane(pane: DmuxPane, context: ActionContext): Promise<ActionResult> {
   const paneName = getPaneDisplayName(pane);
 
   // For shell panes (no worktree), close immediately without options
@@ -34,23 +31,22 @@ export async function closePane(
     return executeCloseOption(pane, context, 'kill_only');
   }
 
-  const siblingPanesOnWorktree = context.panes.filter(candidate =>
-    candidate.id !== pane.id &&
-    isActiveDevSourcePath(candidate.worktreePath, pane.worktreePath)
+  const siblingPanesOnWorktree = context.panes.filter(
+    (candidate) =>
+      candidate.id !== pane.id && isActiveDevSourcePath(candidate.worktreePath, pane.worktreePath),
   );
 
   if (siblingPanesOnWorktree.length > 0) {
-    const siblingLabel = siblingPanesOnWorktree.length === 1
-      ? '1 other pane'
-      : `${siblingPanesOnWorktree.length} other panes`;
+    const siblingLabel =
+      siblingPanesOnWorktree.length === 1
+        ? '1 other pane'
+        : `${siblingPanesOnWorktree.length} other panes`;
     const MAX_LISTED_SIBLINGS = 5;
     const listedSiblings = siblingPanesOnWorktree
       .slice(0, MAX_LISTED_SIBLINGS)
       .map((sibling) => `  - ${getPaneDisplayName(sibling)}`);
     const remainingSiblings = siblingPanesOnWorktree.length - listedSiblings.length;
-    const remainingSiblingLine = remainingSiblings > 0
-      ? [`  - +${remainingSiblings} more`]
-      : [];
+    const remainingSiblingLine = remainingSiblings > 0 ? [`  - +${remainingSiblings} more`] : [];
 
     return {
       type: 'choice',
@@ -116,7 +112,7 @@ export async function closePane(
 async function executeCloseOption(
   pane: DmuxPane,
   context: ActionContext,
-  option: string
+  option: string,
 ): Promise<ActionResult> {
   const paneName = getPaneDisplayName(pane);
   const lifecycleManager = PaneLifecycleManager.getInstance();
@@ -146,7 +142,7 @@ async function executeCloseOption(
       // CRITICAL: Remove from config FIRST, before killing tmux pane
       // This prevents the race condition where polling detects "missing" pane
       // and recreates it before we finish closing
-      const updatedPanes = context.panes.filter(p => p.id !== pane.id);
+      const updatedPanes = context.panes.filter((p) => p.id !== pane.id);
       await context.savePanes(updatedPanes);
 
       // NOW kill the tmux pane (after config is updated)
@@ -157,12 +153,15 @@ async function executeCloseOption(
         const paneList = execSync('tmux list-panes -a -F "#{pane_id}"', {
           encoding: 'utf-8',
           stdio: 'pipe',
-          timeout: 5000 // 5 second timeout to prevent hangs
+          timeout: 5000, // 5 second timeout to prevent hangs
         });
         paneExists = paneList.includes(pane.paneId);
       } catch {
         // Error checking panes - assume it doesn't exist
-        LogService.getInstance().debug(`Could not verify pane ${pane.paneId} exists, treating as already closed`, 'paneActions');
+        LogService.getInstance().debug(
+          `Could not verify pane ${pane.paneId} exists, treating as already closed`,
+          'paneActions',
+        );
       }
 
       if (paneExists) {
@@ -171,10 +170,10 @@ async function executeCloseOption(
           try {
             execSync(`tmux send-keys -t '${pane.paneId}' C-c`, {
               stdio: 'pipe',
-              timeout: 2000 // 2 second timeout
+              timeout: 2000, // 2 second timeout
             });
             // Wait a moment for the process to exit
-            await new Promise(resolve => setTimeout(resolve, TMUX_SPLIT_DELAY));
+            await new Promise((resolve) => setTimeout(resolve, TMUX_SPLIT_DELAY));
           } catch {
             // Process might not be running or pane already gone
           }
@@ -182,17 +181,17 @@ async function executeCloseOption(
           // Now kill the pane
           execSync(`tmux kill-pane -t '${pane.paneId}'`, {
             stdio: 'pipe',
-            timeout: 5000 // 5 second timeout
+            timeout: 5000, // 5 second timeout
           });
 
           // Verify the pane is actually gone
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
           try {
             // Check if pane still exists
             const updatedPaneList = execSync('tmux list-panes -a -F "#{pane_id}"', {
               encoding: 'utf-8',
               stdio: 'pipe',
-              timeout: 5000
+              timeout: 5000,
             });
             if (updatedPaneList.includes(pane.paneId)) {
               const msg = `Pane ${pane.paneId} still exists after kill attempt`;
@@ -204,17 +203,25 @@ async function executeCloseOption(
         } catch (killError) {
           // Pane might already be dead, which is fine
           const msg = `Error killing pane ${pane.paneId}`;
-          LogService.getInstance().error(msg, 'paneActions', pane.id, killError instanceof Error ? killError : undefined);
+          LogService.getInstance().error(
+            msg,
+            'paneActions',
+            pane.id,
+            killError instanceof Error ? killError : undefined,
+          );
         }
       } else {
-        LogService.getInstance().debug(`Pane ${pane.paneId} already gone, skipping kill`, 'paneActions');
+        LogService.getInstance().debug(
+          `Pane ${pane.paneId} already gone, skipping kill`,
+          'paneActions',
+        );
       }
 
       // Best-effort cleanup of any stored prompt files for this pane slug
       // (including leftovers from interrupted launches).
       try {
         const promptCleanupRoot = pane.worktreePath
-          ? (deriveProjectRootFromWorktreePath(pane.worktreePath) || paneProjectRoot)
+          ? deriveProjectRootFromWorktreePath(pane.worktreePath) || paneProjectRoot
           : paneProjectRoot;
         await cleanupPromptFilesForSlug(promptCleanupRoot, pane.slug);
       } catch {
@@ -225,16 +232,17 @@ async function executeCloseOption(
       if (pane.worktreePath && (option === 'kill_and_clean' || option === 'kill_clean_branch')) {
         // Check if sibling panes still share this worktree
         // updatedPanes already excludes the current pane, so any match = active sibling
-        const siblingPanes = updatedPanes.filter(p => p.worktreePath === pane.worktreePath);
+        const siblingPanes = updatedPanes.filter((p) => p.worktreePath === pane.worktreePath);
         if (siblingPanes.length > 0) {
           // Skip worktree/branch deletion — other panes still using it
           LogService.getInstance().info(
             `Skipping worktree cleanup for ${paneName}: ${siblingPanes.length} sibling(s) still using ${pane.worktreePath}`,
             'paneActions',
-            pane.id
+            pane.id,
           );
         } else {
-          const mainRepoPath = deriveProjectRootFromWorktreePath(pane.worktreePath) || paneProjectRoot;
+          const mainRepoPath =
+            deriveProjectRootFromWorktreePath(pane.worktreePath) || paneProjectRoot;
 
           // Trigger before_worktree_remove hook
           await triggerHook('before_worktree_remove', paneProjectRoot, pane);
@@ -251,7 +259,7 @@ async function executeCloseOption(
             LogService.getInstance().warn(
               `Failed to start background cleanup for pane ${pane.id}`,
               'paneActions',
-              pane.id
+              pane.id,
             );
           }
         }
@@ -271,20 +279,20 @@ async function executeCloseOption(
           const paneListCheck = execSync('tmux list-panes -F "#{pane_id}"', {
             encoding: 'utf-8',
             stdio: 'pipe',
-            timeout: 5000
+            timeout: 5000,
           });
           const currentPaneIds = paneListCheck.trim().split('\n').filter(Boolean);
 
           if (!currentPaneIds.includes(config.controlPaneId)) {
             LogService.getInstance().debug(
               `Control pane ${config.controlPaneId} no longer exists, skipping layout recalc`,
-              'paneActions'
+              'paneActions',
             );
           } else {
             // Filter to only panes that actually exist in tmux
             const validPaneIds = updatedPanes
-              .map(p => p.paneId)
-              .filter(id => currentPaneIds.includes(id));
+              .map((p) => p.paneId)
+              .filter((id) => currentPaneIds.includes(id));
 
             if (validPaneIds.length > 0) {
               const { recalculateAndApplyLayout } = await import('../../utils/layoutManager.js');
@@ -295,19 +303,22 @@ async function executeCloseOption(
                 config.controlPaneId,
                 validPaneIds,
                 dimensions.width,
-                dimensions.height
+                dimensions.height,
               );
 
               LogService.getInstance().debug(
                 `Recalculated layout after closing pane: ${validPaneIds.length} panes remaining`,
-                'paneActions'
+                'paneActions',
               );
             }
           }
         }
       } catch (error) {
         // Log but don't fail - layout recalc is non-critical
-        LogService.getInstance().debug('Failed to recalculate layout after pane close', 'paneActions');
+        LogService.getInstance().debug(
+          'Failed to recalculate layout after pane close',
+          'paneActions',
+        );
       }
 
       // Trigger pane_closed hook (after everything is cleaned up)
@@ -321,9 +332,9 @@ async function executeCloseOption(
 
       const hasRemainingPaneForWorktree = Boolean(
         pane.worktreePath &&
-        updatedPanes.some(candidate =>
-          isActiveDevSourcePath(candidate.worktreePath, pane.worktreePath)
-        )
+        updatedPanes.some((candidate) =>
+          isActiveDevSourcePath(candidate.worktreePath, pane.worktreePath),
+        ),
       );
 
       // Dev source fallback:
@@ -340,33 +351,36 @@ async function executeCloseOption(
           const fallbackCommand = buildDevWatchRespawnCommand(sessionProjectRoot);
           const quotedCommand = `'${fallbackCommand.replace(/'/g, "'\\''")}'`;
           const configForRespawn: DmuxConfig = JSON.parse(fs.readFileSync(panesFile, 'utf-8'));
-          const targetControlPaneId = configForRespawn.controlPaneId || execSync(
-            'tmux display-message -p "#{pane_id}"',
-            { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 }
-          ).trim();
+          const targetControlPaneId =
+            configForRespawn.controlPaneId ||
+            execSync('tmux display-message -p "#{pane_id}"', {
+              encoding: 'utf-8',
+              stdio: 'pipe',
+              timeout: 5000,
+            }).trim();
 
           if (targetControlPaneId) {
-            execSync(
-              `tmux respawn-pane -k -t '${targetControlPaneId}' ${quotedCommand}`,
-              { stdio: 'pipe', timeout: 5000 }
-            );
+            execSync(`tmux respawn-pane -k -t '${targetControlPaneId}' ${quotedCommand}`, {
+              stdio: 'pipe',
+              timeout: 5000,
+            });
           }
         } catch (respawnError) {
           LogService.getInstance().warn(
             'Failed to respawn dev source at root after closing source pane',
             'paneActions',
-            pane.id
+            pane.id,
           );
         }
       }
 
-        return {
-          type: 'success',
-          message: startedBackgroundCleanup
+      return {
+        type: 'success',
+        message: startedBackgroundCleanup
           ? `Pane "${paneName}" closed successfully (cleanup running in background)`
           : `Pane "${paneName}" closed successfully`,
-          dismissable: true,
-        };
+        dismissable: true,
+      };
     } finally {
       // CRITICAL: Always resume watcher, even if there was an error
       stateManager.resumeConfigWatcher();

@@ -5,10 +5,7 @@ describe('generateSiblingSlugForTargetPane', () => {
   it('increments from existing attached-agent siblings', () => {
     const slug = generateSiblingSlugForTargetPane(
       { slug: 'cli-login', worktreePath: '/repo/.dmux/worktrees/cli-login' },
-      [
-        { slug: 'cli-login' },
-        { slug: 'cli-login-a2' },
-      ],
+      [{ slug: 'cli-login' }, { slug: 'cli-login-a2' }],
     );
 
     expect(slug).toBe('cli-login-a3');
@@ -17,10 +14,7 @@ describe('generateSiblingSlugForTargetPane', () => {
   it('uses worktree directory as base when attaching from a suffixed sibling', () => {
     const slug = generateSiblingSlugForTargetPane(
       { slug: 'cli-login-a2', worktreePath: '/repo/.dmux/worktrees/cli-login' },
-      [
-        { slug: 'cli-login' },
-        { slug: 'cli-login-a2' },
-      ],
+      [{ slug: 'cli-login' }, { slug: 'cli-login-a2' }],
     );
 
     expect(slug).toBe('cli-login-a3');
@@ -29,11 +23,7 @@ describe('generateSiblingSlugForTargetPane', () => {
   it('always uses highest sibling suffix + 1', () => {
     const slug = generateSiblingSlugForTargetPane(
       { slug: 'cli-login-a4', worktreePath: '/repo/.dmux/worktrees/cli-login' },
-      [
-        { slug: 'cli-login' },
-        { slug: 'cli-login-a2' },
-        { slug: 'cli-login-a4' },
-      ],
+      [{ slug: 'cli-login' }, { slug: 'cli-login-a2' }, { slug: 'cli-login-a4' }],
     );
 
     expect(slug).toBe('cli-login-a5');

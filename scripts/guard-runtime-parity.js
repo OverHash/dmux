@@ -30,7 +30,7 @@ for (const [scriptName, marker] of Object.entries(requiredMarkers)) {
   const scriptValue = scripts[scriptName];
   if (typeof scriptValue !== 'string' || !scriptValue.includes(marker)) {
     errors.push(
-      `scripts.${scriptName} must include "${marker}" (current: ${JSON.stringify(scriptValue)})`
+      `scripts.${scriptName} must include "${marker}" (current: ${JSON.stringify(scriptValue)})`,
     );
   }
 }

@@ -20,7 +20,11 @@ function createPopupManager(availableAgents: AgentName[]): PopupManager {
     trackProjectActivity: async (work) => await work(),
   };
 
-  return new PopupManager(config, () => {}, () => {});
+  return new PopupManager(
+    config,
+    () => {},
+    () => {},
+  );
 }
 
 describe('PopupManager launchReopenWorktreePopup', () => {
@@ -42,13 +46,18 @@ describe('PopupManager launchReopenWorktreePopup', () => {
       isRemote: index % 2 === 0,
     }));
 
-    await manager.launchReopenWorktreePopup(worktrees, '/tmp/project-selected', {
-      includeWorktrees: true,
-      includeLocalBranches: true,
-      includeRemoteBranches: false,
-      remoteLoaded: false,
-      filterQuery: 'task',
-    }, []);
+    await manager.launchReopenWorktreePopup(
+      worktrees,
+      '/tmp/project-selected',
+      {
+        includeWorktrees: true,
+        includeLocalBranches: true,
+        includeRemoteBranches: false,
+        remoteLoaded: false,
+        filterQuery: 'task',
+      },
+      [],
+    );
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
       'reopenWorktreePopup.js',
@@ -67,7 +76,7 @@ describe('PopupManager launchReopenWorktreePopup', () => {
         projectRoot: '/tmp/project-selected',
         activePaneSlugs: [],
       }),
-      '/tmp/project-selected'
+      '/tmp/project-selected',
     );
   });
 });
@@ -87,7 +96,7 @@ describe('PopupManager launchSingleAgentChoicePopup', () => {
     await manager.launchSingleAgentChoicePopup(
       'Select Agent',
       'Choose the agent to launch for feature/remote.',
-      '/tmp/project-selected'
+      '/tmp/project-selected',
     );
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
@@ -104,7 +113,7 @@ describe('PopupManager launchSingleAgentChoicePopup', () => {
           { id: 'codex', default: true },
         ],
       }),
-      '/tmp/project-selected'
+      '/tmp/project-selected',
     );
   });
 });

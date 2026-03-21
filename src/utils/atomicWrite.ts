@@ -86,7 +86,11 @@ export function atomicWriteJsonSync(filePath: string, data: any, pretty: boolean
  * @param data - The data to serialize and write
  * @param pretty - Whether to pretty-print the JSON (default: true)
  */
-export async function atomicWriteJson(filePath: string, data: any, pretty: boolean = true): Promise<void> {
+export async function atomicWriteJson(
+  filePath: string,
+  data: any,
+  pretty: boolean = true,
+): Promise<void> {
   const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
   await atomicWriteFile(filePath, content);
 }

@@ -36,7 +36,7 @@ export function formatMergeTargetLabel(target: MergeTargetReference): string {
 
 export function createMergeTargetChain(
   parentPane: DmuxPane,
-  projectRoot: string
+  projectRoot: string,
 ): MergeTargetReference[] {
   if (!parentPane.worktreePath) {
     return [];
@@ -53,7 +53,8 @@ export function createMergeTargetChain(
     return [parentTarget, ...parentPane.mergeTargetChain.map(cloneMergeTarget)];
   }
 
-  const mergeBaseRepoPath = deriveProjectRootFromWorktreePath(parentPane.worktreePath) || projectRoot;
+  const mergeBaseRepoPath =
+    deriveProjectRootFromWorktreePath(parentPane.worktreePath) || projectRoot;
   const mergeBaseBranch = getCurrentBranch(mergeBaseRepoPath);
 
   return [
@@ -106,7 +107,7 @@ function getTargetUsability(target: MergeTargetReference): {
 
 function isTargetMergedIntoNextTarget(
   target: MergeTargetReference,
-  nextTarget?: MergeTargetReference
+  nextTarget?: MergeTargetReference,
 ): boolean {
   if (!nextTarget?.branchName || !target.worktreePath) {
     return false;
@@ -120,11 +121,7 @@ function isTargetMergedIntoNextTarget(
     return false;
   }
 
-  return !hasCommitsToMerge(
-    target.worktreePath,
-    target.branchName,
-    nextTarget.branchName
-  );
+  return !hasCommitsToMerge(target.worktreePath, target.branchName, nextTarget.branchName);
 }
 
 export function resolveMergeTarget(pane: DmuxPane): MergeTargetResolution | null {
@@ -173,7 +170,7 @@ export function resolveMergeTarget(pane: DmuxPane): MergeTargetResolution | null
 export function buildFallbackMergeMessage(
   pane: DmuxPane,
   resolution: MergeTargetResolution,
-  paneName: string = getPaneDisplayName(pane)
+  paneName: string = getPaneDisplayName(pane),
 ): string {
   const parentLabel = resolution.fallbackFrom
     ? formatMergeTargetLabel(resolution.fallbackFrom)

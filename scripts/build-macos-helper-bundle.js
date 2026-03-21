@@ -169,6 +169,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`[build:macos-helper] ${error instanceof Error ? error.stack || error.message : String(error)}`);
+  console.error(
+    `[build:macos-helper] ${error instanceof Error ? error.stack || error.message : String(error)}`,
+  );
   process.exit(1);
 });

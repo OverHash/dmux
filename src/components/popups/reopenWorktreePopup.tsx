@@ -32,11 +32,10 @@ export interface ReopenWorktreePopupState {
   filterQuery: string;
 }
 
-export type ReopenWorktreePopupResult =
-  {
-    action: 'select';
-    candidate: ResumableBranch;
-  };
+export type ReopenWorktreePopupResult = {
+  action: 'select';
+  candidate: ResumableBranch;
+};
 
 interface ReopenWorktreePopupProps {
   resultFile: string;
@@ -59,12 +58,10 @@ const SOURCE_FILTERS = [
   { key: 'remote', label: 'Remote' },
 ] as const;
 
-type SourceFilterKey = typeof SOURCE_FILTERS[number]['key'];
+type SourceFilterKey = (typeof SOURCE_FILTERS)[number]['key'];
 type FocusArea = 'list' | 'sources';
 
-function toPopupBranch(
-  worktree: ReturnType<typeof getResumableBranches>[number]
-): ResumableBranch {
+function toPopupBranch(worktree: ReturnType<typeof getResumableBranches>[number]): ResumableBranch {
   return {
     branchName: worktree.branchName,
     slug: worktree.slug,
@@ -80,7 +77,7 @@ function toPopupBranch(
 
 function loadRemoteResumableBranches(
   projectRoot: string,
-  activePaneSlugs: string[]
+  activePaneSlugs: string[],
 ): ResumableBranch[] {
   return getResumableBranches(projectRoot, activePaneSlugs, {
     includeRemoteBranches: true,
@@ -97,12 +94,12 @@ function isFilterTypingInput(input: string, key: Record<string, boolean>): boole
   }
 
   if (
-    key.upArrow
-    || key.downArrow
-    || key.leftArrow
-    || key.rightArrow
-    || key.pageUp
-    || key.pageDown
+    key.upArrow ||
+    key.downArrow ||
+    key.leftArrow ||
+    key.rightArrow ||
+    key.pageUp ||
+    key.pageDown
   ) {
     return false;
   }
@@ -186,8 +183,12 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterQuery, setFilterQuery] = useState(initialState.filterQuery);
   const [includeWorktrees, setIncludeWorktrees] = useState(initialState.includeWorktrees);
-  const [includeLocalBranches, setIncludeLocalBranches] = useState(initialState.includeLocalBranches);
-  const [includeRemoteBranches, setIncludeRemoteBranches] = useState(initialState.includeRemoteBranches);
+  const [includeLocalBranches, setIncludeLocalBranches] = useState(
+    initialState.includeLocalBranches,
+  );
+  const [includeRemoteBranches, setIncludeRemoteBranches] = useState(
+    initialState.includeRemoteBranches,
+  );
   const [remoteLoaded, setRemoteLoaded] = useState(initialState.remoteLoaded);
   const [isLoadingRemote, setIsLoadingRemote] = useState(false);
   const [remoteLoadError, setRemoteLoadError] = useState<string | null>(null);
@@ -235,21 +236,18 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [
-    activePaneSlugs,
-    includeRemoteBranches,
-    loadRemoteBranches,
-    projectRoot,
-    remoteLoaded,
-  ]);
+  }, [activePaneSlugs, includeRemoteBranches, loadRemoteBranches, projectRoot, remoteLoaded]);
 
-  const sourceFilteredWorktrees = useMemo(() => (
-    availableWorktrees.filter((worktree) => (
-      (includeWorktrees && worktree.hasWorktree)
-      || (includeLocalBranches && worktree.hasLocalBranch)
-      || (includeRemoteBranches && worktree.hasRemoteBranch)
-    ))
-  ), [availableWorktrees, includeLocalBranches, includeRemoteBranches, includeWorktrees]);
+  const sourceFilteredWorktrees = useMemo(
+    () =>
+      availableWorktrees.filter(
+        (worktree) =>
+          (includeWorktrees && worktree.hasWorktree) ||
+          (includeLocalBranches && worktree.hasLocalBranch) ||
+          (includeRemoteBranches && worktree.hasRemoteBranch),
+      ),
+    [availableWorktrees, includeLocalBranches, includeRemoteBranches, includeWorktrees],
+  );
 
   const filteredWorktrees = useMemo(() => {
     const normalizedQuery = filterQuery.trim().toLowerCase();
@@ -265,10 +263,7 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
   }, [filterQuery, sourceFilteredWorktrees]);
 
   useEffect(() => {
-    setSelectedIndex((current) => Math.min(
-      current,
-      Math.max(0, filteredWorktrees.length - 1)
-    ));
+    setSelectedIndex((current) => Math.min(current, Math.max(0, filteredWorktrees.length - 1)));
   }, [filteredWorktrees.length]);
 
   const toggleSourceFilter = (sourceKey: SourceFilterKey) => {
@@ -290,7 +285,7 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
 
   useInput((input, key) => {
     if (key.tab) {
-      setFocusArea((current) => current === 'list' ? 'sources' : 'list');
+      setFocusArea((current) => (current === 'list' ? 'sources' : 'list'));
       return;
     }
 
@@ -327,17 +322,19 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
     } else if (key.upArrow) {
       setSelectedIndex((current) => Math.max(0, current - 1));
     } else if (key.downArrow) {
-      setSelectedIndex((current) => (
-        filteredWorktrees.length === 0
-          ? 0
-          : Math.min(filteredWorktrees.length - 1, current + 1)
-      ));
+      setSelectedIndex((current) =>
+        filteredWorktrees.length === 0 ? 0 : Math.min(filteredWorktrees.length - 1, current + 1),
+      );
     } else if (key.return && filteredWorktrees.length > 0 && !isLoadingRemote) {
       const selected = filteredWorktrees[selectedIndex];
-      writeSuccessAndExit<ReopenWorktreePopupResult>(resultFile, {
-        action: 'select',
-        candidate: selected,
-      }, exit);
+      writeSuccessAndExit<ReopenWorktreePopupResult>(
+        resultFile,
+        {
+          action: 'select',
+          candidate: selected,
+        },
+        exit,
+      );
     }
   });
 
@@ -348,7 +345,7 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
   const { startIndex, endIndex } = getVisibleWindow(
     totalFilteredWorktrees,
     selectedIndex,
-    MAX_VISIBLE_WORKTREES
+    MAX_VISIBLE_WORKTREES,
   );
   const visibleWorktrees = filteredWorktrees.slice(startIndex, endIndex);
   const renderedRowCount = showEmptyState ? 1 : visibleWorktrees.length;
@@ -359,9 +356,10 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
   const filterDisplay = filterQuery || 'Search branches';
   const filterCursor = focusArea === 'list' ? '|' : '';
   const searchFocused = focusArea === 'list';
-  const footer = focusArea === 'sources'
-    ? '←→ move • Space toggle • ↓ back • 1/2/3 quick toggle • ESC cancel'
-    : 'Type filter • ↑↓ navigate • ↑/← filters • Enter resume • ESC cancel';
+  const footer =
+    focusArea === 'sources'
+      ? '←→ move • Space toggle • ↓ back • 1/2/3 quick toggle • ESC cancel'
+      : 'Type filter • ↑↓ navigate • ↑/← filters • Enter resume • ESC cancel';
   const filterMessage = isLoadingRemote
     ? 'Loading remote branches...'
     : remoteLoadError
@@ -390,7 +388,10 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
           flexDirection="column"
         >
           <Box width={CONTENT_INNER_WIDTH}>
-            <Text bold color={searchFocused ? POPUP_CONFIG.inputBorderColor : POPUP_CONFIG.borderColor}>
+            <Text
+              bold
+              color={searchFocused ? POPUP_CONFIG.inputBorderColor : POPUP_CONFIG.borderColor}
+            >
               {' '}
             </Text>
             <Text
@@ -405,7 +406,9 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
 
         <Box
           borderStyle={POPUP_CONFIG.inputBorderStyle}
-          borderColor={focusArea === 'sources' ? POPUP_CONFIG.inputBorderColor : POPUP_CONFIG.borderColor}
+          borderColor={
+            focusArea === 'sources' ? POPUP_CONFIG.inputBorderColor : POPUP_CONFIG.borderColor
+          }
           paddingX={1}
           marginTop={1}
           width={CONTENT_BOX_WIDTH}
@@ -414,29 +417,32 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
           <Box width={CONTENT_INNER_WIDTH}>
             {SOURCE_FILTERS.map((source, index) => {
               const isFocused = focusArea === 'sources' && focusedSourceIndex === index;
-              const isEnabled = source.key === 'worktrees'
-                ? includeWorktrees
-                : source.key === 'local'
-                  ? includeLocalBranches
-                  : includeRemoteBranches;
+              const isEnabled =
+                source.key === 'worktrees'
+                  ? includeWorktrees
+                  : source.key === 'local'
+                    ? includeLocalBranches
+                    : includeRemoteBranches;
               const marker = isEnabled ? '◉' : '◎';
               const label = source.key === 'remote' ? remoteLabel : source.label;
-              const color = source.key === 'remote' && remoteLabelColor
-                ? remoteLabelColor
-                : isFocused
-                  ? POPUP_CONFIG.titleColor
-                  : 'white';
+              const color =
+                source.key === 'remote' && remoteLabelColor
+                  ? remoteLabelColor
+                  : isFocused
+                    ? POPUP_CONFIG.titleColor
+                    : 'white';
 
               return (
                 <Box key={source.key} marginRight={2}>
-                  <Text color={isEnabled ? POPUP_CONFIG.successColor : POPUP_CONFIG.dimColor} bold={isEnabled}>
+                  <Text
+                    color={isEnabled ? POPUP_CONFIG.successColor : POPUP_CONFIG.dimColor}
+                    bold={isEnabled}
+                  >
                     {marker}
                   </Text>
-                  <Text
-                    color={color}
-                    bold={isFocused}
-                  >
-                    {' '}{label}
+                  <Text color={color} bold={isFocused}>
+                    {' '}
+                    {label}
                   </Text>
                 </Box>
               );
@@ -484,7 +490,8 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
                       bold={isSelected}
                       wrap="truncate-end"
                     >
-                      {isSelected ? '▶ ' : '  '}{worktree.branchName}
+                      {isSelected ? '▶ ' : '  '}
+                      {worktree.branchName}
                     </Text>
                   </Box>
                   <Box width={LAST_WORKED_COLUMN_WIDTH} paddingRight={1}>
@@ -518,7 +525,8 @@ export const ReopenWorktreePopupApp: React.FC<ReopenWorktreePopupProps> = ({
 
           <Box width={CONTENT_INNER_WIDTH}>
             <Text dimColor>
-              {totalFilteredWorktrees} of {totalWorktrees} resumable branch{totalWorktrees === 1 ? '' : 'es'}
+              {totalFilteredWorktrees} of {totalWorktrees} resumable branch
+              {totalWorktrees === 1 ? '' : 'es'}
               {moreAbove ? `  •  ${startIndex} above` : ''}
               {moreBelow ? `  •  ${totalFilteredWorktrees - endIndex} below` : ''}
               {filterActive ? '  •  filtered' : ''}
@@ -561,16 +569,18 @@ function main() {
       resultFile={resultFile}
       projectName={data.projectName}
       worktrees={data.worktrees}
-      initialState={data.initialState ?? {
-        includeWorktrees: true,
-        includeLocalBranches: true,
-        includeRemoteBranches: false,
-        remoteLoaded: false,
-        filterQuery: '',
-      }}
+      initialState={
+        data.initialState ?? {
+          includeWorktrees: true,
+          includeLocalBranches: true,
+          includeRemoteBranches: false,
+          remoteLoaded: false,
+          filterQuery: '',
+        }
+      }
       projectRoot={data.projectRoot}
       activePaneSlugs={data.activePaneSlugs}
-    />
+    />,
   );
 }
 

@@ -4,7 +4,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { executeMerge, executeMergeWithConflictHandling } from '../../../src/actions/merge/mergeExecution.js';
+import {
+  executeMerge,
+  executeMergeWithConflictHandling,
+} from '../../../src/actions/merge/mergeExecution.js';
 import type { DmuxPane } from '../../../src/types.js';
 import type { ActionContext } from '../../../src/actions/types.js';
 
@@ -42,9 +45,11 @@ vi.mock('../../../src/actions/implementations/closeAction.js', () => ({
       type: 'choice',
       title: 'Close Pane',
       options: [{ id: 'kill_only', label: 'Kill only' }],
-      onSelect: vi.fn(() => Promise.resolve({ type: 'success', message: 'Closed', dismissable: true })),
+      onSelect: vi.fn(() =>
+        Promise.resolve({ type: 'success', message: 'Closed', dismissable: true }),
+      ),
       dismissable: true,
-    })
+    }),
   ),
 }));
 
@@ -55,7 +60,7 @@ vi.mock('../../../src/actions/merge/conflictResolution.js', () => ({
       title: 'Conflict Resolution Pane Created',
       message: 'AI agent will help resolve conflicts',
       targetPaneId: 'conflict-pane-1',
-    })
+    }),
   ),
 }));
 
@@ -80,14 +85,16 @@ describe('Merge Execution - Bug Fixes', () => {
 
   describe('BUG #1: 2-Phase Merge Missing', () => {
     it('should merge main into worktree BEFORE merging worktree into main', async () => {
-      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } = await import(
-        '../../../src/utils/mergeExecution.ts'
-      );
+      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } =
+        await import('../../../src/utils/mergeExecution.ts');
 
       await executeMerge(mockPane, mockContext, 'main', '/test/main');
 
       // CRITICAL: Must call mergeMainIntoWorktree FIRST
-      expect(mergeMainIntoWorktree).toHaveBeenCalledWith('/test/main/.dmux/worktrees/test-branch', 'main');
+      expect(mergeMainIntoWorktree).toHaveBeenCalledWith(
+        '/test/main/.dmux/worktrees/test-branch',
+        'main',
+      );
 
       // THEN call mergeWorktreeIntoMain
       expect(mergeWorktreeIntoMain).toHaveBeenCalledWith('/test/main', 'test-branch');
@@ -114,9 +121,8 @@ describe('Merge Execution - Bug Fixes', () => {
     });
 
     it('should not proceed to step 2 if step 1 fails', async () => {
-      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } = await import(
-        '../../../src/utils/mergeExecution.ts'
-      );
+      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } =
+        await import('../../../src/utils/mergeExecution.ts');
 
       vi.mocked(mergeMainIntoWorktree).mockReturnValue({
         success: false,
@@ -137,12 +143,9 @@ describe('Merge Execution - Bug Fixes', () => {
     });
 
     it('should return close options from closePane after successful merge', async () => {
-      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } = await import(
-        '../../../src/utils/mergeExecution.ts'
-      );
-      const { closePane } = await import(
-        '../../../src/actions/implementations/closeAction.js'
-      );
+      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } =
+        await import('../../../src/utils/mergeExecution.ts');
+      const { closePane } = await import('../../../src/actions/implementations/closeAction.js');
 
       // Ensure both merge steps succeed
       vi.mocked(mergeMainIntoWorktree).mockReturnValue({ success: true });
@@ -156,9 +159,8 @@ describe('Merge Execution - Bug Fixes', () => {
     });
 
     it('should not directly mutate panes during merge execution', async () => {
-      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } = await import(
-        '../../../src/utils/mergeExecution.ts'
-      );
+      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } =
+        await import('../../../src/utils/mergeExecution.ts');
 
       // Ensure all operations succeed
       vi.mocked(mergeMainIntoWorktree).mockReturnValue({ success: true });
@@ -186,8 +188,8 @@ describe('Merge Execution - Bug Fixes', () => {
       // Should offer AI/manual conflict resolution, not just show error
       expect(result.type).toBe('choice');
       expect(result.title).toContain('Conflict');
-      expect(result.options?.map(o => o.id)).toContain('ai_merge');
-      expect(result.options?.map(o => o.id)).toContain('manual_merge');
+      expect(result.options?.map((o) => o.id)).toContain('ai_merge');
+      expect(result.options?.map((o) => o.id)).toContain('manual_merge');
     });
 
     it('should show which files have conflicts', async () => {
@@ -240,12 +242,13 @@ describe('Merge Execution - Bug Fixes', () => {
 
       expect(result.type).toBe('choice');
       if (result.type === 'choice') {
-        expect(result.options?.map(o => o.id)).toContain('abort');
+        expect(result.options?.map((o) => o.id)).toContain('abort');
       }
     });
 
     it('should abort merge and clean up when abort option selected', async () => {
-      const { mergeMainIntoWorktree, abortMerge } = await import('../../../src/utils/mergeExecution.ts');
+      const { mergeMainIntoWorktree, abortMerge } =
+        await import('../../../src/utils/mergeExecution.ts');
 
       vi.mocked(mergeMainIntoWorktree).mockReturnValue({
         success: false,
@@ -290,9 +293,8 @@ describe('Merge Execution - Bug Fixes', () => {
 
     it('should create AI conflict resolution pane when AI merge selected', async () => {
       const { mergeMainIntoWorktree } = await import('../../../src/utils/mergeExecution.ts');
-      const { createConflictResolutionPaneForMerge } = await import(
-        '../../../src/actions/merge/conflictResolution.js'
-      );
+      const { createConflictResolutionPaneForMerge } =
+        await import('../../../src/actions/merge/conflictResolution.js');
 
       vi.mocked(mergeMainIntoWorktree).mockReturnValue({
         success: false,
@@ -310,7 +312,7 @@ describe('Merge Execution - Bug Fixes', () => {
           mockPane,
           mockContext,
           'main',
-          '/test/main'
+          '/test/main',
         );
         expect(aiResult.type).toBe('navigation');
         expect(aiResult.targetPaneId).toBe('conflict-pane-1');
@@ -343,9 +345,8 @@ describe('Merge Execution - Bug Fixes', () => {
 
   describe('Post-merge hooks', () => {
     it('should trigger post_merge hook after successful merge', async () => {
-      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } = await import(
-        '../../../src/utils/mergeExecution.ts'
-      );
+      const { mergeMainIntoWorktree, mergeWorktreeIntoMain } =
+        await import('../../../src/utils/mergeExecution.ts');
       const { triggerHook } = await import('../../../src/utils/hooks.js');
 
       // Ensure both merge steps succeed

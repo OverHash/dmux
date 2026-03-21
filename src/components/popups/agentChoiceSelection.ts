@@ -8,11 +8,9 @@ import type { AgentName } from '../../utils/agentLaunch.js';
 export function resolveAgentsToLaunchOnEnter(
   availableAgents: AgentName[],
   selectedAgents: ReadonlySet<AgentName>,
-  focusedIndex: number
+  focusedIndex: number,
 ): AgentName[] {
-  const orderedSelections = availableAgents.filter((agent) =>
-    selectedAgents.has(agent)
-  );
+  const orderedSelections = availableAgents.filter((agent) => selectedAgents.has(agent));
 
   if (orderedSelections.length > 0) {
     return orderedSelections;

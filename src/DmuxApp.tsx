@@ -1,91 +1,74 @@
-import React, { useState, useEffect, useMemo } from "react"
-import { Box, Text, useApp, useStdout, useInput } from "ink"
-import { TmuxService } from "./services/TmuxService.js"
+import React, { useState, useEffect, useMemo } from 'react';
+import { Box, Text, useApp, useStdout, useInput } from 'ink';
+import { TmuxService } from './services/TmuxService.js';
 
 // Hooks
-import usePanes from "./hooks/usePanes.js"
-import useProjectSettings from "./hooks/useProjectSettings.js"
-import useTerminalWidth from "./hooks/useTerminalWidth.js"
-import useNavigation from "./hooks/useNavigation.js"
-import useAutoUpdater from "./hooks/useAutoUpdater.js"
-import useAgentStatus from "./hooks/useAgentStatus.js"
-import usePaneRunner from "./hooks/usePaneRunner.js"
-import usePaneCreation from "./hooks/usePaneCreation.js"
-import useActionSystem from "./hooks/useActionSystem.js"
-import { useStatusMessages } from "./hooks/useStatusMessages.js"
-import { useLayoutManagement } from "./hooks/useLayoutManagement.js"
-import { useInputHandling } from "./hooks/useInputHandling.js"
-import { useDialogState } from "./hooks/useDialogState.js"
-import { useDebugInfo } from "./hooks/useDebugInfo.js"
-import { useProjectActivity } from "./hooks/useProjectActivity.js"
+import usePanes from './hooks/usePanes.js';
+import useProjectSettings from './hooks/useProjectSettings.js';
+import useTerminalWidth from './hooks/useTerminalWidth.js';
+import useNavigation from './hooks/useNavigation.js';
+import useAutoUpdater from './hooks/useAutoUpdater.js';
+import useAgentStatus from './hooks/useAgentStatus.js';
+import usePaneRunner from './hooks/usePaneRunner.js';
+import usePaneCreation from './hooks/usePaneCreation.js';
+import useActionSystem from './hooks/useActionSystem.js';
+import { useStatusMessages } from './hooks/useStatusMessages.js';
+import { useLayoutManagement } from './hooks/useLayoutManagement.js';
+import { useInputHandling } from './hooks/useInputHandling.js';
+import { useDialogState } from './hooks/useDialogState.js';
+import { useDebugInfo } from './hooks/useDebugInfo.js';
+import { useProjectActivity } from './hooks/useProjectActivity.js';
 
 // Utils
-import { SIDEBAR_WIDTH } from "./utils/layoutManager.js"
-import { supportsPopups } from "./utils/popup.js"
-import { StateManager } from "./shared/StateManager.js"
-import {
-  STATUS_MESSAGE_DURATION_SHORT,
-} from "./constants/timing.js"
-import {
-  getStatusDetector,
-  type StatusUpdateEvent,
-} from "./services/StatusDetector.js"
-import {
-  type ActionResult,
-} from "./actions/index.js"
-import { SettingsManager } from "./utils/settingsManager.js"
-import { useServices } from "./hooks/useServices.js"
-import { PaneLifecycleManager } from "./services/PaneLifecycleManager.js"
-import { DmuxFocusService } from "./services/DmuxFocusService.js"
+import { SIDEBAR_WIDTH } from './utils/layoutManager.js';
+import { supportsPopups } from './utils/popup.js';
+import { StateManager } from './shared/StateManager.js';
+import { STATUS_MESSAGE_DURATION_SHORT } from './constants/timing.js';
+import { getStatusDetector, type StatusUpdateEvent } from './services/StatusDetector.js';
+import { type ActionResult } from './actions/index.js';
+import { SettingsManager } from './utils/settingsManager.js';
+import { useServices } from './hooks/useServices.js';
+import { PaneLifecycleManager } from './services/PaneLifecycleManager.js';
+import { DmuxFocusService } from './services/DmuxFocusService.js';
 import {
   DmuxAttentionService,
   type PaneAttentionChangedEvent,
-} from "./services/DmuxAttentionService.js"
-import { reopenWorktree } from "./utils/reopenWorktree.js"
-import {
-  resumeBranchWorkspace,
-  type ResumableBranchCandidate,
-} from "./utils/resumeBranches.js"
-import { fileURLToPath } from "url"
-import { dirname, resolve as resolvePath } from "path"
-import {
-  resolveEnabledAgentsSelection,
-  type AgentName,
-} from "./utils/agentLaunch.js"
-import { resolveNextDevSourcePath } from "./utils/devSource.js"
-import { buildDevWatchRespawnCommand } from "./utils/devWatchCommand.js"
-import { getPaneBranchName } from "./utils/git.js"
-import { getGitStatus } from "./utils/mergeValidation.js"
-import { createMergeTargetChain } from "./utils/mergeTargets.js"
-import { claimProcessShutdown } from "./utils/processShutdown.js"
-import { getPaneDisplayName } from "./utils/paneTitle.js"
+} from './services/DmuxAttentionService.js';
+import { reopenWorktree } from './utils/reopenWorktree.js';
+import { resumeBranchWorkspace, type ResumableBranchCandidate } from './utils/resumeBranches.js';
+import { fileURLToPath } from 'url';
+import { dirname, resolve as resolvePath } from 'path';
+import { resolveEnabledAgentsSelection, type AgentName } from './utils/agentLaunch.js';
+import { resolveNextDevSourcePath } from './utils/devSource.js';
+import { buildDevWatchRespawnCommand } from './utils/devWatchCommand.js';
+import { getPaneBranchName } from './utils/git.js';
+import { getGitStatus } from './utils/mergeValidation.js';
+import { createMergeTargetChain } from './utils/mergeTargets.js';
+import { claimProcessShutdown } from './utils/processShutdown.js';
+import { getPaneDisplayName } from './utils/paneTitle.js';
 import {
   FOOTER_TIP_ROTATION_INTERVAL,
   getFooterTips,
   getNextFooterTipIndex,
   getRandomFooterTipIndex,
-} from "./utils/footerTips.js"
+} from './utils/footerTips.js';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-import type {
-  DmuxPane,
-  DmuxAppProps,
-  MergeTargetReference,
-} from "./types.js"
-import PanesGrid from "./components/panes/PanesGrid.js"
-import CommandPromptDialog from "./components/dialogs/CommandPromptDialog.js"
-import FileCopyPrompt from "./components/ui/FileCopyPrompt.js"
-import FooterHelp from "./components/ui/FooterHelp.js"
-import TmuxHooksPromptDialog from "./components/dialogs/TmuxHooksPromptDialog.js"
-import { PaneEventService } from "./services/PaneEventService.js"
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import type { DmuxPane, DmuxAppProps, MergeTargetReference } from './types.js';
+import PanesGrid from './components/panes/PanesGrid.js';
+import CommandPromptDialog from './components/dialogs/CommandPromptDialog.js';
+import FileCopyPrompt from './components/ui/FileCopyPrompt.js';
+import FooterHelp from './components/ui/FooterHelp.js';
+import TmuxHooksPromptDialog from './components/dialogs/TmuxHooksPromptDialog.js';
+import { PaneEventService } from './services/PaneEventService.js';
 import {
   buildProjectActionLayout,
   buildVisualNavigationRows,
   buildGroupStartRows,
   getProjectActionByIndex,
-} from "./utils/projectActions.js"
-import { getPaneProjectRoot } from "./utils/paneProject.js"
+} from './utils/projectActions.js';
+import { getPaneProjectRoot } from './utils/paneProject.js';
 
 const DmuxApp: React.FC<DmuxAppProps> = ({
   panesFile,
@@ -96,27 +79,25 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
   autoUpdater,
   controlPaneId,
 }) => {
-  const { stdout } = useStdout()
-  const terminalHeight = stdout?.rows || 40
-  const isDevMode = process.env.DMUX_DEV === "true"
-  const sessionProjectRoot = projectRoot || process.cwd()
+  const { stdout } = useStdout();
+  const terminalHeight = stdout?.rows || 40;
+  const isDevMode = process.env.DMUX_DEV === 'true';
+  const sessionProjectRoot = projectRoot || process.cwd();
 
   /* panes state moved to usePanes */
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const { statusMessage, setStatusMessage } = useStatusMessages()
-  const [isCreatingPane, setIsCreatingPane] = useState(false)
-  const {
-    trackProjectActivity,
-    isProjectBusy: isTrackedProjectBusy,
-  } = useProjectActivity(sessionProjectRoot)
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const { statusMessage, setStatusMessage } = useStatusMessages();
+  const [isCreatingPane, setIsCreatingPane] = useState(false);
+  const { trackProjectActivity, isProjectBusy: isTrackedProjectBusy } =
+    useProjectActivity(sessionProjectRoot);
 
   // Settings state
-  const [settingsManager] = useState(() => new SettingsManager(projectRoot))
-  const { projectSettings, saveSettings } = useProjectSettings(settingsFile)
-  const settings = settingsManager.getSettings()
+  const [settingsManager] = useState(() => new SettingsManager(projectRoot));
+  const { projectSettings, saveSettings } = useProjectSettings(settingsFile);
+  const settings = settingsManager.getSettings();
 
   // Dialog state management
-  const dialogState = useDialogState()
+  const dialogState = useDialogState();
   const {
     showCommandPrompt,
     setShowCommandPrompt,
@@ -130,225 +111,208 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     setRunningCommand,
     quitConfirmMode,
     setQuitConfirmMode,
-  } = dialogState
+  } = dialogState;
 
   // Debug/development info
-  const { debugMessage, setDebugMessage, currentBranch } = useDebugInfo(__dirname)
+  const { debugMessage, setDebugMessage, currentBranch } = useDebugInfo(__dirname);
   // Update state handled by hook
-  const {
-    updateInfo,
-    isUpdating,
-    updateAvailable,
-  } = useAutoUpdater(autoUpdater, setStatusMessage)
-  const { exit } = useApp()
+  const { updateInfo, isUpdating, updateAvailable } = useAutoUpdater(autoUpdater, setStatusMessage);
+  const { exit } = useApp();
 
   // Flag to ignore input temporarily after popup closes (prevents buffered keys)
-  const [ignoreInput, setIgnoreInput] = useState(false)
+  const [ignoreInput, setIgnoreInput] = useState(false);
 
   // Agent selection is settings-driven.
   // Installation checks are performed lazily in the Enabled Agents settings popup.
-  const availableAgents = resolveEnabledAgentsSelection(
-    settings.enabledAgents
-  )
-  const footerTips = useMemo(() => getFooterTips(isDevMode), [isDevMode])
-  const showFooterTips = settings.showFooterTips !== false && footerTips.length > 0
-  const [footerTipIndex, setFooterTipIndex] = useState(() => getRandomFooterTipIndex(footerTips.length))
-  const currentFooterTip = showFooterTips && footerTipIndex >= 0
-    ? footerTips[footerTipIndex]
-    : undefined
+  const availableAgents = resolveEnabledAgentsSelection(settings.enabledAgents);
+  const footerTips = useMemo(() => getFooterTips(isDevMode), [isDevMode]);
+  const showFooterTips = settings.showFooterTips !== false && footerTips.length > 0;
+  const [footerTipIndex, setFooterTipIndex] = useState(() =>
+    getRandomFooterTipIndex(footerTips.length),
+  );
+  const currentFooterTip =
+    showFooterTips && footerTipIndex >= 0 ? footerTips[footerTipIndex] : undefined;
 
   // Popup support detection
-  const [popupsSupported, setPopupsSupported] = useState(false)
+  const [popupsSupported, setPopupsSupported] = useState(false);
 
   // Track terminal dimensions for responsive layout
-  const terminalWidth = useTerminalWidth()
+  const terminalWidth = useTerminalWidth();
 
   // Track unread error and warning counts for logs badge
-  const [unreadErrorCount, setUnreadErrorCount] = useState(0)
-  const [unreadWarningCount, setUnreadWarningCount] = useState(0)
+  const [unreadErrorCount, setUnreadErrorCount] = useState(0);
+  const [unreadWarningCount, setUnreadWarningCount] = useState(0);
 
   // Track toast state
-  const [currentToast, setCurrentToast] = useState<any>(null)
-  const [toastQueueLength, setToastQueueLength] = useState(0)
-  const [toastQueuePosition, setToastQueuePosition] = useState<number | null>(null)
+  const [currentToast, setCurrentToast] = useState<any>(null);
+  const [toastQueueLength, setToastQueueLength] = useState(0);
+  const [toastQueuePosition, setToastQueuePosition] = useState<number | null>(null);
 
   // Tmux hooks prompt state
-  const [showHooksPrompt, setShowHooksPrompt] = useState(false)
-  const [hooksPromptIndex, setHooksPromptIndex] = useState(0)
+  const [showHooksPrompt, setShowHooksPrompt] = useState(false);
+  const [hooksPromptIndex, setHooksPromptIndex] = useState(0);
   // undefined = not yet determined, true = use hooks, false = use polling
-  const [useHooks, setUseHooks] = useState<boolean | undefined>(undefined)
-  const [focusService] = useState(() => new DmuxFocusService({ projectName, projectRoot }))
-  const [attentionService] = useState(
-    () => new DmuxAttentionService({ focusService })
-  )
+  const [useHooks, setUseHooks] = useState<boolean | undefined>(undefined);
+  const [focusService] = useState(() => new DmuxFocusService({ projectName, projectRoot }));
+  const [attentionService] = useState(() => new DmuxAttentionService({ focusService }));
 
   useEffect(() => {
     if (!showFooterTips || footerTips.length <= 1) {
-      return
+      return;
     }
 
     const timer = setInterval(() => {
-      setFooterTipIndex((currentIndex) => getNextFooterTipIndex(currentIndex, footerTips.length))
-    }, FOOTER_TIP_ROTATION_INTERVAL)
+      setFooterTipIndex((currentIndex) => getNextFooterTipIndex(currentIndex, footerTips.length));
+    }, FOOTER_TIP_ROTATION_INTERVAL);
 
     return () => {
-      clearInterval(timer)
-    }
-  }, [showFooterTips, footerTips.length])
+      clearInterval(timer);
+    };
+  }, [showFooterTips, footerTips.length]);
 
   // Subscribe to StateManager for unread error/warning count and toast updates
   useEffect(() => {
-    const stateManager = StateManager.getInstance()
+    const stateManager = StateManager.getInstance();
 
     const updateState = () => {
-      const state = stateManager.getState()
-      setUnreadErrorCount((prev) => prev === state.unreadErrorCount ? prev : state.unreadErrorCount)
-      setUnreadWarningCount((prev) => prev === state.unreadWarningCount ? prev : state.unreadWarningCount)
-      setCurrentToast((prev: any) => prev === state.currentToast ? prev : state.currentToast)
-      setToastQueueLength((prev) => prev === state.toastQueueLength ? prev : state.toastQueueLength)
-      setToastQueuePosition((prev) => prev === state.toastQueuePosition ? prev : state.toastQueuePosition)
-    }
+      const state = stateManager.getState();
+      setUnreadErrorCount((prev) =>
+        prev === state.unreadErrorCount ? prev : state.unreadErrorCount,
+      );
+      setUnreadWarningCount((prev) =>
+        prev === state.unreadWarningCount ? prev : state.unreadWarningCount,
+      );
+      setCurrentToast((prev: any) => (prev === state.currentToast ? prev : state.currentToast));
+      setToastQueueLength((prev) =>
+        prev === state.toastQueueLength ? prev : state.toastQueueLength,
+      );
+      setToastQueuePosition((prev) =>
+        prev === state.toastQueuePosition ? prev : state.toastQueuePosition,
+      );
+    };
 
     // Initial state
-    updateState()
+    updateState();
 
     // Subscribe to changes
-    const unsubscribe = stateManager.subscribe(updateState)
+    const unsubscribe = stateManager.subscribe(updateState);
 
     return () => {
-      unsubscribe()
-    }
-  }, [])
+      unsubscribe();
+    };
+  }, []);
 
   // Panes state and persistence (skipLoading will be updated after actionSystem is initialized)
-  const {
-    panes,
-    setPanes,
-    sidebarProjects,
-    isLoading,
-    loadPanes,
-    savePanes,
-    saveSidebarProjects,
-  } = usePanes(
-    panesFile,
-    false,
-    sessionName,
-    controlPaneId,
-    useHooks
-  )
+  const { panes, setPanes, sidebarProjects, isLoading, loadPanes, savePanes, saveSidebarProjects } =
+    usePanes(panesFile, false, sessionName, controlPaneId, useHooks);
 
   // Check for tmux hooks preference on startup
   useEffect(() => {
     const checkHooksPreference = async () => {
       // Check if user already has a preference
-      const settings = settingsManager.getSettings()
+      const settings = settingsManager.getSettings();
 
       if (settings.useTmuxHooks !== undefined) {
         // User has already decided
-        setUseHooks(settings.useTmuxHooks)
-        return
+        setUseHooks(settings.useTmuxHooks);
+        return;
       }
 
       // Check if hooks are already installed (from previous session)
-      const paneEventService = PaneEventService.getInstance()
-      paneEventService.initialize({ sessionName, controlPaneId })
+      const paneEventService = PaneEventService.getInstance();
+      paneEventService.initialize({ sessionName, controlPaneId });
 
-      const hooksInstalled = await paneEventService.canUseHooks()
+      const hooksInstalled = await paneEventService.canUseHooks();
 
       if (hooksInstalled) {
         // Hooks already installed, use them automatically
-        setUseHooks(true)
+        setUseHooks(true);
         // Save the preference
-        settingsManager.updateSetting('useTmuxHooks', true, 'global')
+        settingsManager.updateSetting('useTmuxHooks', true, 'global');
       } else {
         // Need to ask user - show prompt
-        setShowHooksPrompt(true)
+        setShowHooksPrompt(true);
       }
-    }
+    };
 
-    checkHooksPreference()
-  }, [sessionName, controlPaneId, settingsManager])
+    checkHooksPreference();
+  }, [sessionName, controlPaneId, settingsManager]);
 
   useEffect(() => {
-    void focusService.start()
-    attentionService.start()
+    void focusService.start();
+    attentionService.start();
 
     return () => {
-      attentionService.stop()
-      focusService.stop()
-    }
-  }, [attentionService, focusService])
+      attentionService.stop();
+      focusService.stop();
+    };
+  }, [attentionService, focusService]);
 
   useEffect(() => {
     const handleAttentionChanged = (event: PaneAttentionChangedEvent) => {
       setPanes((prevPanes) => {
-        const paneIndex = prevPanes.findIndex((pane) => pane.id === event.paneId)
-        if (paneIndex === -1) return prevPanes
+        const paneIndex = prevPanes.findIndex((pane) => pane.id === event.paneId);
+        if (paneIndex === -1) return prevPanes;
 
-        const pane = prevPanes[paneIndex]
+        const pane = prevPanes[paneIndex];
         if (pane.needsAttention === event.needsAttention) {
-          return prevPanes
+          return prevPanes;
         }
 
         const updatedPane: DmuxPane = {
           ...pane,
           needsAttention: event.needsAttention,
-        }
+        };
 
-        const nextPanes = [...prevPanes]
-        nextPanes[paneIndex] = updatedPane
-        return nextPanes
-      })
-    }
+        const nextPanes = [...prevPanes];
+        nextPanes[paneIndex] = updatedPane;
+        return nextPanes;
+      });
+    };
 
-    attentionService.on('attention-changed', handleAttentionChanged)
+    attentionService.on('attention-changed', handleAttentionChanged);
     return () => {
-      attentionService.off('attention-changed', handleAttentionChanged)
-    }
-  }, [attentionService, setPanes])
+      attentionService.off('attention-changed', handleAttentionChanged);
+    };
+  }, [attentionService, setPanes]);
 
   // Pane lifecycle manager - handles locking to prevent race conditions
   // Replaces the old timeout-based intentionallyClosedPanes Set
-  const lifecycleManager = React.useMemo(() => PaneLifecycleManager.getInstance(), [])
+  const lifecycleManager = React.useMemo(() => PaneLifecycleManager.getInstance(), []);
 
   // Clean up stale lifecycle operations periodically
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
-      lifecycleManager.cleanupStaleOperations()
-    }, 60000) // Every 60 seconds
+      lifecycleManager.cleanupStaleOperations();
+    }, 60000); // Every 60 seconds
 
-    return () => clearInterval(cleanupInterval)
-  }, [lifecycleManager])
+    return () => clearInterval(cleanupInterval);
+  }, [lifecycleManager]);
 
   // Pane runner
-  const {
-    copyNonGitFiles,
-    runCommandInternal,
-  } = usePaneRunner({
+  const { copyNonGitFiles, runCommandInternal } = usePaneRunner({
     panes,
     savePanes,
     projectSettings,
     setStatusMessage,
     setRunningCommand,
-  })
+  });
 
   // Spinner animation and branch detection now handled in hooks
 
   // Pane creation
-  const {
-    createNewPane: createNewPaneHook,
-    createPanesForAgents: createPanesForAgentsHook,
-  } = usePaneCreation({
-    panes,
-    savePanes,
-    projectName,
-    sessionProjectRoot: projectRoot || process.cwd(),
-    panesFile,
-    setIsCreatingPane,
-    setStatusMessage,
-    loadPanes,
-    availableAgents,
-  })
+  const { createNewPane: createNewPaneHook, createPanesForAgents: createPanesForAgentsHook } =
+    usePaneCreation({
+      panes,
+      savePanes,
+      projectName,
+      sessionProjectRoot: projectRoot || process.cwd(),
+      panesFile,
+      setIsCreatingPane,
+      setStatusMessage,
+      loadPanes,
+      availableAgents,
+    });
 
   // Initialize services
   const { popupManager } = useServices({
@@ -368,63 +332,60 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     setStatusMessage,
     setIgnoreInput,
     trackProjectActivity,
-  })
+  });
 
   // Listen for status updates with analysis data and merge into panes
   useEffect(() => {
-    const statusDetector = getStatusDetector()
+    const statusDetector = getStatusDetector();
 
     const handleStatusUpdate = (event: StatusUpdateEvent) => {
       setPanes((prevPanes) => {
-        const paneIndex = prevPanes.findIndex((pane) => pane.id === event.paneId)
-        if (paneIndex === -1) return prevPanes
+        const paneIndex = prevPanes.findIndex((pane) => pane.id === event.paneId);
+        if (paneIndex === -1) return prevPanes;
 
-        const pane = prevPanes[paneIndex]
+        const pane = prevPanes[paneIndex];
         const updated: DmuxPane = {
           ...pane,
           agentStatus: event.status,
-        }
+        };
 
         // Only update analysis fields if they're present in the event (not undefined)
         // This prevents simple status changes from overwriting PaneAnalyzer results
         if (event.optionsQuestion !== undefined) {
-          updated.optionsQuestion = event.optionsQuestion
+          updated.optionsQuestion = event.optionsQuestion;
         }
         if (event.options !== undefined) {
-          updated.options = event.options
+          updated.options = event.options;
         }
         if (event.potentialHarm !== undefined) {
-          updated.potentialHarm = event.potentialHarm
+          updated.potentialHarm = event.potentialHarm;
         }
         if (event.summary !== undefined) {
-          updated.agentSummary = event.summary
+          updated.agentSummary = event.summary;
         }
         if (event.analyzerError !== undefined) {
-          updated.analyzerError = event.analyzerError
+          updated.analyzerError = event.analyzerError;
         }
 
         // Clear option dialog data when transitioning away from 'waiting' state
-        if (event.status !== "waiting" && pane.agentStatus === "waiting") {
-          updated.optionsQuestion = undefined
-          updated.options = undefined
-          updated.potentialHarm = undefined
+        if (event.status !== 'waiting' && pane.agentStatus === 'waiting') {
+          updated.optionsQuestion = undefined;
+          updated.options = undefined;
+          updated.potentialHarm = undefined;
         }
 
         // Clear summary when transitioning away from 'idle' state
-        if (event.status !== "idle" && pane.agentStatus === "idle") {
-          updated.agentSummary = undefined
+        if (event.status !== 'idle' && pane.agentStatus === 'idle') {
+          updated.agentSummary = undefined;
         }
 
         // Clear analyzer error when successfully getting a new analysis
         // or when transitioning to 'working' status
-        if (event.status === "working") {
-          updated.analyzerError = undefined
-        } else if (event.status === "waiting" || event.status === "idle") {
-          if (
-            event.analyzerError === undefined &&
-            (event.optionsQuestion || event.summary)
-          ) {
-            updated.analyzerError = undefined
+        if (event.status === 'working') {
+          updated.analyzerError = undefined;
+        } else if (event.status === 'waiting' || event.status === 'idle') {
+          if (event.analyzerError === undefined && (event.optionsQuestion || event.summary)) {
+            updated.analyzerError = undefined;
           }
         }
 
@@ -434,24 +395,24 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
           pane.options === updated.options &&
           pane.potentialHarm === updated.potentialHarm &&
           pane.agentSummary === updated.agentSummary &&
-          pane.analyzerError === updated.analyzerError
+          pane.analyzerError === updated.analyzerError;
 
         if (unchanged) {
-          return prevPanes
+          return prevPanes;
         }
 
-        const next = prevPanes.slice()
-        next[paneIndex] = updated
-        return next
-      })
-    }
+        const next = prevPanes.slice();
+        next[paneIndex] = updated;
+        return next;
+      });
+    };
 
-    statusDetector.on("status-updated", handleStatusUpdate)
+    statusDetector.on('status-updated', handleStatusUpdate);
 
     return () => {
-      statusDetector.off("status-updated", handleStatusUpdate)
-    }
-  }, [setPanes])
+      statusDetector.off('status-updated', handleStatusUpdate);
+    };
+  }, [setPanes]);
 
   // Note: No need to sync panes with StateManager here.
   // The ConfigWatcher automatically updates StateManager when the config file changes.
@@ -459,28 +420,28 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
 
   // Sync settings with StateManager
   useEffect(() => {
-    const stateManager = StateManager.getInstance()
-    stateManager.updateSettings(projectSettings)
-  }, [projectSettings])
+    const stateManager = StateManager.getInstance();
+    stateManager.updateSettings(projectSettings);
+  }, [projectSettings]);
 
   // Expose debug message setter via StateManager
   useEffect(() => {
-    const stateManager = StateManager.getInstance()
-    stateManager.setDebugMessageCallback(setDebugMessage)
+    const stateManager = StateManager.getInstance();
+    stateManager.setDebugMessageCallback(setDebugMessage);
     return () => {
-      stateManager.setDebugMessageCallback(undefined)
-    }
-  }, [])
+      stateManager.setDebugMessageCallback(undefined);
+    };
+  }, []);
 
   // Load panes and settings on mount and refresh periodically
   useEffect(() => {
     // Check if tmux supports popups (3.2+) and enable mouse mode for click-outside-to-close
-    const popupSupport = supportsPopups()
-    setPopupsSupported(popupSupport)
+    const popupSupport = supportsPopups();
+    setPopupsSupported(popupSupport);
     if (popupSupport) {
       // Enable mouse mode only for this dmux session (not global)
     }
-  }, [])
+  }, []);
 
   // Update checking moved to useAutoUpdater
 
@@ -494,49 +455,46 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
 
   // getPanePositions moved to utils/tmux
 
-  const activeDevSourcePath = isDevMode ? process.cwd() : undefined
+  const activeDevSourcePath = isDevMode ? process.cwd() : undefined;
   const projectActionLayout = useMemo(
-    () => buildProjectActionLayout(
-      panes,
-      sidebarProjects,
-      sessionProjectRoot,
-      projectName
-    ),
-    [panes, sidebarProjects, sessionProjectRoot, projectName]
-  )
+    () => buildProjectActionLayout(panes, sidebarProjects, sessionProjectRoot, projectName),
+    [panes, sidebarProjects, sessionProjectRoot, projectName],
+  );
   const selectedProjectRoot = useMemo(() => {
-    const selectedPane = selectedIndex < panes.length ? panes[selectedIndex] : undefined
+    const selectedPane = selectedIndex < panes.length ? panes[selectedIndex] : undefined;
     if (selectedPane) {
-      return getPaneProjectRoot(selectedPane, sessionProjectRoot)
+      return getPaneProjectRoot(selectedPane, sessionProjectRoot);
     }
 
     return (
-      getProjectActionByIndex(projectActionLayout.actionItems, selectedIndex)?.projectRoot
-      || sessionProjectRoot
-    )
-  }, [selectedIndex, panes, projectActionLayout.actionItems, sessionProjectRoot])
+      getProjectActionByIndex(projectActionLayout.actionItems, selectedIndex)?.projectRoot ||
+      sessionProjectRoot
+    );
+  }, [selectedIndex, panes, projectActionLayout.actionItems, sessionProjectRoot]);
   const navigationRows = useMemo(
-    () => isLoading
-      ? projectActionLayout.groups.flatMap((group) =>
-          group.panes.map((entry) => [entry.index])
-        )
-      : buildVisualNavigationRows(projectActionLayout),
-    [isLoading, projectActionLayout]
-  )
+    () =>
+      isLoading
+        ? projectActionLayout.groups.flatMap((group) => group.panes.map((entry) => [entry.index]))
+        : buildVisualNavigationRows(projectActionLayout),
+    [isLoading, projectActionLayout],
+  );
   const groupStartRows = useMemo(
-    () => isLoading ? [] : buildGroupStartRows(projectActionLayout),
-    [isLoading, projectActionLayout]
-  )
+    () => (isLoading ? [] : buildGroupStartRows(projectActionLayout)),
+    [isLoading, projectActionLayout],
+  );
 
   useEffect(() => {
-    const maxIndex = Math.max(0, projectActionLayout.totalItems - 1)
+    const maxIndex = Math.max(0, projectActionLayout.totalItems - 1);
     if (selectedIndex > maxIndex) {
-      setSelectedIndex(maxIndex)
+      setSelectedIndex(maxIndex);
     }
-  }, [projectActionLayout.totalItems, selectedIndex, setSelectedIndex])
+  }, [projectActionLayout.totalItems, selectedIndex, setSelectedIndex]);
 
   // Navigation logic moved to hook
-  const { getCardGridPosition, findCardInDirection } = useNavigation(navigationRows, groupStartRows)
+  const { getCardGridPosition, findCardInDirection } = useNavigation(
+    navigationRows,
+    groupStartRows,
+  );
 
   // findCardInDirection provided by useNavigation
 
@@ -546,35 +504,35 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
 
   // Helper function to handle agent choice and pane creation
   const selectAgentsForPaneCreation = async (
-    targetProjectRoot?: string
+    targetProjectRoot?: string,
   ): Promise<AgentName[] | null> => {
     if (availableAgents.length === 0) {
-      return []
+      return [];
     }
 
     const selectedAgents = await popupManager.launchAgentChoicePopup(
-      targetProjectRoot || selectedProjectRoot
-    )
+      targetProjectRoot || selectedProjectRoot,
+    );
     if (selectedAgents === null) {
-      return null
+      return null;
     }
     if (selectedAgents.length === 0) {
-      setStatusMessage("Select at least one agent")
-      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
-      return null
+      setStatusMessage('Select at least one agent');
+      setTimeout(() => setStatusMessage(''), STATUS_MESSAGE_DURATION_SHORT);
+      return null;
     }
 
-    return selectedAgents
-  }
+    return selectedAgents;
+  };
 
   const createPaneSelection = async (
     prompt: string,
     selectedAgents: AgentName[],
     targetProjectRoot?: string,
     createOptions?: {
-      startPointBranch?: string
-      mergeTargetChain?: MergeTargetReference[]
-    }
+      startPointBranch?: string;
+      mergeTargetChain?: MergeTargetReference[];
+    },
   ): Promise<number> => {
     if (selectedAgents.length === 0) {
       const pane = await createNewPaneHook(prompt, undefined, {
@@ -582,8 +540,8 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         skipAgentSelection: true,
         startPointBranch: createOptions?.startPointBranch,
         mergeTargetChain: createOptions?.mergeTargetChain,
-      })
-      return pane ? 1 : 0
+      });
+      return pane ? 1 : 0;
     }
 
     const createdPanes = await createPanesForAgentsHook(prompt, selectedAgents, {
@@ -591,47 +549,42 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
       targetProjectRoot,
       startPointBranch: createOptions?.startPointBranch,
       mergeTargetChain: createOptions?.mergeTargetChain,
-    })
-    return createdPanes.length
-  }
+    });
+    return createdPanes.length;
+  };
 
   const handlePaneCreationWithAgent = async (
     prompt: string,
     targetProjectRoot?: string,
     createOptions?: {
-      startPointBranch?: string
-      mergeTargetChain?: MergeTargetReference[]
-    }
+      startPointBranch?: string;
+      mergeTargetChain?: MergeTargetReference[];
+    },
   ) => {
-    const selectedAgents = await selectAgentsForPaneCreation(targetProjectRoot)
+    const selectedAgents = await selectAgentsForPaneCreation(targetProjectRoot);
     if (selectedAgents === null) {
-      return
+      return;
     }
 
-    await createPaneSelection(
-      prompt,
-      selectedAgents,
-      targetProjectRoot,
-      createOptions
-    )
-  }
+    await createPaneSelection(prompt, selectedAgents, targetProjectRoot, createOptions);
+  };
 
   const handleCreateChildWorktree = async (parentPane: DmuxPane) => {
     if (!parentPane.worktreePath) {
-      setStatusMessage("Selected pane has no worktree path")
-      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
-      return
+      setStatusMessage('Selected pane has no worktree path');
+      setTimeout(() => setStatusMessage(''), STATUS_MESSAGE_DURATION_SHORT);
+      return;
     }
 
-    const targetProjectRoot = getPaneProjectRoot(parentPane, sessionProjectRoot)
-    const promptValue = await popupManager.launchNewPanePopup(targetProjectRoot)
+    const targetProjectRoot = getPaneProjectRoot(parentPane, sessionProjectRoot);
+    const promptValue = await popupManager.launchNewPanePopup(targetProjectRoot);
     if (!promptValue) {
-      return
+      return;
     }
 
-    const selectedAgents = await selectAgentsForPaneCreation(targetProjectRoot)
+    const selectedAgents = await selectAgentsForPaneCreation(targetProjectRoot);
     if (selectedAgents === null) {
-      return
+      return;
     }
 
     const createSubWorktree = async (): Promise<ActionResult> => {
@@ -642,129 +595,129 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         {
           startPointBranch: getPaneBranchName(parentPane),
           mergeTargetChain: createMergeTargetChain(parentPane, targetProjectRoot),
-        }
-      )
+        },
+      );
 
       if (createdCount > 0) {
         return {
-          type: "success",
-          message: `Created ${createdCount} sub-worktree${createdCount === 1 ? "" : "s"} from ${getPaneDisplayName(parentPane)}`,
-        }
+          type: 'success',
+          message: `Created ${createdCount} sub-worktree${createdCount === 1 ? '' : 's'} from ${getPaneDisplayName(parentPane)}`,
+        };
       }
 
       return {
-        type: "error",
+        type: 'error',
         message: `Failed to create a sub-worktree from ${getPaneDisplayName(parentPane)}`,
         dismissable: true,
-      }
-    }
+      };
+    };
 
-    const parentStatus = getGitStatus(parentPane.worktreePath)
+    const parentStatus = getGitStatus(parentPane.worktreePath);
     if (!parentStatus.hasChanges) {
       await actionSystem.executeCallback(createSubWorktree, {
         showProgress: false,
         projectRoot: targetProjectRoot,
-      })
-      return
+      });
+      return;
     }
 
     const branchFromDirtyResult: ActionResult = {
-      type: "choice",
-      title: "Parent Worktree Has Uncommitted Changes",
+      type: 'choice',
+      title: 'Parent Worktree Has Uncommitted Changes',
       message: `"${getPaneDisplayName(parentPane)}" has uncommitted changes. Commit them before creating a sub-worktree.`,
       options: [
         {
-          id: "commit_automatic",
-          label: "AI commit (automatic)",
-          description: "Auto-generate and commit immediately",
+          id: 'commit_automatic',
+          label: 'AI commit (automatic)',
+          description: 'Auto-generate and commit immediately',
           default: true,
         },
         {
-          id: "commit_ai_editable",
-          label: "AI commit (editable)",
-          description: "Generate message, edit before commit",
+          id: 'commit_ai_editable',
+          label: 'AI commit (editable)',
+          description: 'Generate message, edit before commit',
         },
         {
-          id: "commit_manual",
-          label: "Manual commit message",
-          description: "Write your own commit message",
+          id: 'commit_manual',
+          label: 'Manual commit message',
+          description: 'Write your own commit message',
         },
         {
-          id: "cancel",
-          label: "Cancel",
-          description: "Keep working in the parent worktree",
+          id: 'cancel',
+          label: 'Cancel',
+          description: 'Keep working in the parent worktree',
         },
       ],
       data: {
-        kind: "merge_uncommitted",
+        kind: 'merge_uncommitted',
         repoPath: parentPane.worktreePath,
         targetBranch: getPaneBranchName(parentPane),
         files: parentStatus.files,
-        diffMode: "working-tree",
+        diffMode: 'working-tree',
       },
       onSelect: async (optionId: string) => {
-        if (optionId === "cancel") {
+        if (optionId === 'cancel') {
           return {
-            type: "info",
-            message: "Sub-worktree creation cancelled",
+            type: 'info',
+            message: 'Sub-worktree creation cancelled',
             dismissable: true,
-          }
+          };
         }
 
         if (
-          optionId !== "commit_automatic"
-          && optionId !== "commit_ai_editable"
-          && optionId !== "commit_manual"
+          optionId !== 'commit_automatic' &&
+          optionId !== 'commit_ai_editable' &&
+          optionId !== 'commit_manual'
         ) {
           return {
-            type: "error",
+            type: 'error',
             message: `Unknown option: ${optionId}`,
             dismissable: true,
-          }
+          };
         }
 
-        const { handleCommitWithOptions } = await import("./actions/merge/commitMessageHandler.js")
-        return handleCommitWithOptions(parentPane.worktreePath!, optionId, createSubWorktree)
+        const { handleCommitWithOptions } = await import('./actions/merge/commitMessageHandler.js');
+        return handleCommitWithOptions(parentPane.worktreePath!, optionId, createSubWorktree);
       },
       dismissable: true,
-    }
+    };
 
-    await actionSystem.executeCallback(
-      async () => branchFromDirtyResult,
-      { showProgress: false, projectRoot: targetProjectRoot }
-    )
-  }
+    await actionSystem.executeCallback(async () => branchFromDirtyResult, {
+      showProgress: false,
+      projectRoot: targetProjectRoot,
+    });
+  };
 
   // Helper function to reopen a closed worktree
   const handleReopenWorktree = async (
     candidate: ResumableBranchCandidate,
-    targetProjectRoot?: string
+    targetProjectRoot?: string,
   ) => {
-    const reopenProjectRoot = targetProjectRoot || projectRoot || process.cwd()
-    let selectedAgent: AgentName | undefined
+    const reopenProjectRoot = targetProjectRoot || projectRoot || process.cwd();
+    let selectedAgent: AgentName | undefined;
 
     if (!candidate.path) {
       if (availableAgents.length === 0) {
-        setStatusMessage("No enabled agents available for opening this branch")
-        setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
-        return
+        setStatusMessage('No enabled agents available for opening this branch');
+        setTimeout(() => setStatusMessage(''), STATUS_MESSAGE_DURATION_SHORT);
+        return;
       }
 
       const chosenAgent = await popupManager.launchSingleAgentChoicePopup(
-        "Select Agent",
+        'Select Agent',
         `Choose the agent to launch for ${candidate.branchName}.`,
-        reopenProjectRoot
-      )
+        reopenProjectRoot,
+      );
       if (!chosenAgent) {
-        return
+        return;
       }
-      selectedAgent = chosenAgent
+      selectedAgent = chosenAgent;
     }
 
     try {
-      setIsCreatingPane(true)
-      const label = candidate.path ? (candidate.slug || candidate.branchName) : candidate.branchName
-      setStatusMessage(`${candidate.path ? "Reopening" : "Opening"} ${label}...`)
+      setIsCreatingPane(true);
+      const label = candidate.path ? candidate.slug || candidate.branchName : candidate.branchName;
+      setStatusMessage(`${candidate.path ? 'Reopening' : 'Opening'} ${label}...`);
 
       const result = candidate.path
         ? await reopenWorktree({
@@ -782,182 +735,167 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
             sessionProjectRoot: projectRoot || process.cwd(),
             sessionConfigPath: panesFile,
             existingPanes: panes,
-          })
+          });
 
       // Save the pane
-      const updatedPanes = [...panes, result.pane]
-      await savePanes(updatedPanes)
+      const updatedPanes = [...panes, result.pane];
+      await savePanes(updatedPanes);
 
-      await loadPanes()
+      await loadPanes();
 
       setStatusMessage(
-        `${candidate.path ? "Reopened" : "Opened"} ${getPaneDisplayName(result.pane)}`
-      )
-      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+        `${candidate.path ? 'Reopened' : 'Opened'} ${getPaneDisplayName(result.pane)}`,
+      );
+      setTimeout(() => setStatusMessage(''), STATUS_MESSAGE_DURATION_SHORT);
     } catch (error: any) {
-      setStatusMessage(`Failed to open branch: ${error.message}`)
-      setTimeout(() => setStatusMessage(""), 3000)
+      setStatusMessage(`Failed to open branch: ${error.message}`);
+      setTimeout(() => setStatusMessage(''), 3000);
     } finally {
-      setIsCreatingPane(false)
+      setIsCreatingPane(false);
     }
-  }
+  };
 
   const restartDevSessionAtSource = async (sourcePath: string) => {
-    if (!isDevMode) return
+    if (!isDevMode) return;
 
-    const tmuxService = TmuxService.getInstance()
-    const sourcePaneId = controlPaneId || await tmuxService.getCurrentPaneId()
-    await tmuxService.respawnPane(
-      sourcePaneId,
-      buildDevWatchRespawnCommand(sourcePath)
-    )
-  }
+    const tmuxService = TmuxService.getInstance();
+    const sourcePaneId = controlPaneId || (await tmuxService.getCurrentPaneId());
+    await tmuxService.respawnPane(sourcePaneId, buildDevWatchRespawnCommand(sourcePath));
+  };
 
   const handleSetDevSourceFromPane = async (pane: DmuxPane) => {
     if (!isDevMode) {
-      setStatusMessage("Source switching is only available in dev mode")
-      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
-      return
+      setStatusMessage('Source switching is only available in dev mode');
+      setTimeout(() => setStatusMessage(''), STATUS_MESSAGE_DURATION_SHORT);
+      return;
     }
 
     if (!pane.worktreePath) {
-      setStatusMessage("Selected pane has no worktree path")
-      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
-      return
+      setStatusMessage('Selected pane has no worktree path');
+      setTimeout(() => setStatusMessage(''), STATUS_MESSAGE_DURATION_SHORT);
+      return;
     }
 
-    const paneProjectRoot = getPaneProjectRoot(pane, sessionProjectRoot)
+    const paneProjectRoot = getPaneProjectRoot(pane, sessionProjectRoot);
     if (paneProjectRoot !== sessionProjectRoot) {
-      setStatusMessage("Source can only be set from panes in this project")
-      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
-      return
+      setStatusMessage('Source can only be set from panes in this project');
+      setTimeout(() => setStatusMessage(''), STATUS_MESSAGE_DURATION_SHORT);
+      return;
     }
 
     const nextSource = resolveNextDevSourcePath(
       pane.worktreePath,
       resolvePath(process.cwd()),
-      resolvePath(sessionProjectRoot)
-    )
+      resolvePath(sessionProjectRoot),
+    );
 
     if (nextSource.toggledToRoot) {
-      setStatusMessage("Switching source to project root...")
+      setStatusMessage('Switching source to project root...');
       await trackProjectActivity(
         () => restartDevSessionAtSource(nextSource.nextSourcePath),
-        sessionProjectRoot
-      )
-      return
+        sessionProjectRoot,
+      );
+      return;
     }
 
-    setStatusMessage(`Switching source to "${getPaneDisplayName(pane)}"...`)
+    setStatusMessage(`Switching source to "${getPaneDisplayName(pane)}"...`);
     await trackProjectActivity(
       () => restartDevSessionAtSource(nextSource.nextSourcePath),
-      paneProjectRoot
-    )
-  }
+      paneProjectRoot,
+    );
+  };
 
   // Helper function to handle action results recursively
   const handleActionResult = async (result: ActionResult): Promise<void> => {
     // Handle ActionResults from background callbacks (e.g., conflict resolution completion)
     // This allows showing dialogs even when not in the normal action flow
-    if (!popupsSupported) return
+    if (!popupsSupported) return;
 
     // Handle the result type and show appropriate dialog
-    if (result.type === "confirm") {
+    if (result.type === 'confirm') {
       const confirmed = await popupManager.launchConfirmPopup(
-        result.title || "Confirm",
+        result.title || 'Confirm',
         result.message,
         result.confirmLabel,
         result.cancelLabel,
-        selectedProjectRoot
-      )
+        selectedProjectRoot,
+      );
       if (confirmed && result.onConfirm) {
         const nextResult = await trackProjectActivity(
           () => result.onConfirm!(),
-          selectedProjectRoot
-        )
+          selectedProjectRoot,
+        );
         // Recursively handle nested results
         if (nextResult) {
-          await handleActionResult(nextResult)
+          await handleActionResult(nextResult);
         }
       } else if (!confirmed && result.onCancel) {
         const nextResult = await trackProjectActivity(
           () => result.onCancel!(),
-          selectedProjectRoot
-        )
+          selectedProjectRoot,
+        );
         if (nextResult) {
-          await handleActionResult(nextResult)
+          await handleActionResult(nextResult);
         }
       }
-    } else if (result.type === "choice") {
-      if (!result.options || !result.onSelect) return
+    } else if (result.type === 'choice') {
+      if (!result.options || !result.onSelect) return;
       const selectedId = await popupManager.launchChoicePopup(
-        result.title || "Choose Option",
+        result.title || 'Choose Option',
         result.message,
         result.options,
         result.data,
-        selectedProjectRoot
-      )
+        selectedProjectRoot,
+      );
       if (selectedId) {
         const nextResult = await trackProjectActivity(
           () => result.onSelect!(selectedId),
-          selectedProjectRoot
-        )
+          selectedProjectRoot,
+        );
         // Recursively handle nested results
         if (nextResult) {
-          await handleActionResult(nextResult)
+          await handleActionResult(nextResult);
         }
       }
-    } else if (result.type === "input") {
-      if (!result.onSubmit) return
+    } else if (result.type === 'input') {
+      if (!result.onSubmit) return;
       const inputValue = await popupManager.launchInputPopup(
-        result.title || "Input",
+        result.title || 'Input',
         result.message,
         result.placeholder,
         result.defaultValue,
-        selectedProjectRoot
-      )
+        selectedProjectRoot,
+      );
       if (inputValue !== null) {
         const nextResult = await trackProjectActivity(
           () => result.onSubmit!(inputValue),
-          selectedProjectRoot
-        )
+          selectedProjectRoot,
+        );
         // Recursively handle nested results
         if (nextResult) {
-          await handleActionResult(nextResult)
+          await handleActionResult(nextResult);
         }
       }
-    } else if (result.type === "navigation") {
+    } else if (result.type === 'navigation') {
       // Navigate to target pane if specified
       if (result.targetPaneId) {
-        const targetPane = panes.find(p => p.id === result.targetPaneId)
+        const targetPane = panes.find((p) => p.id === result.targetPaneId);
         if (targetPane) {
           try {
-            TmuxService.getInstance().selectPane(targetPane.paneId)
+            TmuxService.getInstance().selectPane(targetPane.paneId);
           } catch {}
         }
       }
       // Show message if dismissable
       if (result.message && result.dismissable) {
-        await popupManager.launchProgressPopup(
-          result.message,
-          "info",
-          3000,
-          selectedProjectRoot
-        )
+        await popupManager.launchProgressPopup(result.message, 'info', 3000, selectedProjectRoot);
       }
-    } else if (
-      result.type === "info" ||
-      result.type === "success" ||
-      result.type === "error"
-    ) {
+    } else if (result.type === 'info' || result.type === 'success' || result.type === 'error') {
       // Use toast notification instead of popup for better UX
-      const { default: stateManager } = await import("./shared/StateManager.js")
-      stateManager.showToast(
-        result.message,
-        result.type as "success" | "error" | "info"
-      )
+      const { default: stateManager } = await import('./shared/StateManager.js');
+      stateManager.showToast(result.message, result.type as 'success' | 'error' | 'info');
     }
-  }
+  };
 
   // Action system - initialized after services are defined
   const actionSystem = useActionSystem({
@@ -968,25 +906,25 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     defaultProjectRoot: sessionProjectRoot,
     onPaneRemove: async (paneId) => {
       // Mark pane as closing to prevent race condition with worker
-      await lifecycleManager.beginClose(paneId, 'user requested')
+      await lifecycleManager.beginClose(paneId, 'user requested');
 
       // Adjust selectedIndex before removing from list
-      const removedIndex = panes.findIndex((p) => p.paneId === paneId)
+      const removedIndex = panes.findIndex((p) => p.paneId === paneId);
       if (removedIndex >= 0 && selectedIndex >= panes.length - 1) {
-        setSelectedIndex(Math.max(0, panes.length - 2))
+        setSelectedIndex(Math.max(0, panes.length - 2));
       }
 
       // Remove from panes list
-      const updatedPanes = panes.filter((p) => p.paneId !== paneId)
-      savePanes(updatedPanes)
+      const updatedPanes = panes.filter((p) => p.paneId !== paneId);
+      savePanes(updatedPanes);
 
       // Mark close as completed (no more lock needed)
-      await lifecycleManager.completeClose(paneId)
+      await lifecycleManager.completeClose(paneId);
 
       // Return focus to control pane
       if (controlPaneId) {
         try {
-          await TmuxService.getInstance().selectPane(controlPaneId)
+          await TmuxService.getInstance().selectPane(controlPaneId);
         } catch {
           // Ignore - control pane might not exist
         }
@@ -999,26 +937,25 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
           launchConfirmPopup: popupManager.launchConfirmPopup.bind(popupManager),
           launchChoicePopup: popupManager.launchChoicePopup.bind(popupManager),
           launchInputPopup: popupManager.launchInputPopup.bind(popupManager),
-          launchProgressPopup:
-            popupManager.launchProgressPopup.bind(popupManager),
+          launchProgressPopup: popupManager.launchProgressPopup.bind(popupManager),
         }
       : undefined,
-  })
+  });
 
   const isProjectHeaderBusy = useMemo(() => {
-    const isSelectedProjectBusy = isCreatingPane || runningCommand
+    const isSelectedProjectBusy = isCreatingPane || runningCommand;
 
     return (projectRoot: string) => {
       if (isLoading || isUpdating) {
-        return true
+        return true;
       }
 
       if (isTrackedProjectBusy(projectRoot)) {
-        return true
+        return true;
       }
 
-      return isSelectedProjectBusy && resolvePath(projectRoot) === resolvePath(selectedProjectRoot)
-    }
+      return isSelectedProjectBusy && resolvePath(projectRoot) === resolvePath(selectedProjectRoot);
+    };
   }, [
     isCreatingPane,
     isLoading,
@@ -1026,7 +963,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     isUpdating,
     runningCommand,
     selectedProjectRoot,
-  ])
+  ]);
 
   // Auto-show new pane dialog removed - users can press 'n' to create panes via popup
 
@@ -1043,7 +980,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
       isCreatingPane ||
       runningCommand ||
       isUpdating,
-  })
+  });
 
   // Monitor agent status across panes (returns a map of pane ID to status)
   const agentStatuses = useAgentStatus({
@@ -1059,24 +996,20 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
       // Check if this pane is being closed intentionally or is locked
       // If so, don't re-save - the close action already handled it
       if (lifecycleManager.isClosing(paneId) || lifecycleManager.isLocked(paneId)) {
-        return
+        return;
       }
 
       // Pane was removed unexpectedly (e.g., user killed tmux pane manually)
       // Remove it from our tracking
-      const updatedPanes = panes.filter((p) => p.id !== paneId)
-      savePanes(updatedPanes)
+      const updatedPanes = panes.filter((p) => p.id !== paneId);
+      savePanes(updatedPanes);
 
-      const removedPane = panes.find((p) => p.id === paneId)
-      if (
-        isDevMode &&
-        removedPane?.worktreePath &&
-        removedPane.worktreePath === process.cwd()
-      ) {
-        void restartDevSessionAtSource(sessionProjectRoot)
+      const removedPane = panes.find((p) => p.id === paneId);
+      if (isDevMode && removedPane?.worktreePath && removedPane.worktreePath === process.cwd()) {
+        void restartDevSessionAtSource(sessionProjectRoot);
       }
     },
-  })
+  });
 
   // jumpToPane and runCommand functions removed - now handled by action system and pane runner
 
@@ -1086,72 +1019,72 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
 
   // Cleanup function for exit
   const cleanExit = () => {
-    if (!claimProcessShutdown("app-clean-exit")) {
-      return
+    if (!claimProcessShutdown('app-clean-exit')) {
+      return;
     }
 
     // Clear screen before exiting Ink
-    process.stdout.write("\x1b[2J\x1b[3J\x1b[H")
+    process.stdout.write('\x1b[2J\x1b[3J\x1b[H');
 
     // Exit the Ink app (this cleans up the React tree)
-    exit()
+    exit();
 
     // Give Ink a moment to clean up its rendering, then do final cleanup
     setTimeout(() => {
       // Multiple aggressive clearing strategies
-      process.stdout.write("\x1b[2J\x1b[H") // Clear screen and move cursor to home
-      process.stdout.write("\x1b[3J") // Clear scrollback buffer
-      process.stdout.write("\x1b[0m") // Reset all attributes
+      process.stdout.write('\x1b[2J\x1b[H'); // Clear screen and move cursor to home
+      process.stdout.write('\x1b[3J'); // Clear scrollback buffer
+      process.stdout.write('\x1b[0m'); // Reset all attributes
 
       // Never inject control keys into the pane during shutdown.
       // An orphaned dmux dev process can outlive the UI and replay them forever.
       if (process.env.TMUX) {
         try {
-          const tmuxService = TmuxService.getInstance()
-          tmuxService.clearHistorySync()
+          const tmuxService = TmuxService.getInstance();
+          tmuxService.clearHistorySync();
         } catch {}
       }
 
       // One more final clear
-      process.stdout.write("\x1b[2J\x1b[H")
+      process.stdout.write('\x1b[2J\x1b[H');
 
       // Show clean goodbye message
-      process.stdout.write("\n  Run dmux again to resume. Goodbye 👋\n\n")
+      process.stdout.write('\n  Run dmux again to resume. Goodbye 👋\n\n');
 
       // Exit process
-      process.exit(0)
-    }, 100)
-  }
+      process.exit(0);
+    }, 100);
+  };
 
   // Handle tmux hooks prompt input
   useInput(
     (input, key) => {
-      if (!showHooksPrompt) return
+      if (!showHooksPrompt) return;
 
       if (key.upArrow || input === 'k') {
-        setHooksPromptIndex(Math.max(0, hooksPromptIndex - 1))
+        setHooksPromptIndex(Math.max(0, hooksPromptIndex - 1));
       } else if (key.downArrow || input === 'j') {
-        setHooksPromptIndex(Math.min(1, hooksPromptIndex + 1))
+        setHooksPromptIndex(Math.min(1, hooksPromptIndex + 1));
       } else if (input === 'y') {
         // Yes - install hooks
-        setShowHooksPrompt(false)
-        setUseHooks(true)
-        settingsManager.updateSetting('useTmuxHooks', true, 'global')
+        setShowHooksPrompt(false);
+        setUseHooks(true);
+        settingsManager.updateSetting('useTmuxHooks', true, 'global');
       } else if (input === 'n') {
         // No - use polling
-        setShowHooksPrompt(false)
-        setUseHooks(false)
-        settingsManager.updateSetting('useTmuxHooks', false, 'global')
+        setShowHooksPrompt(false);
+        setUseHooks(false);
+        settingsManager.updateSetting('useTmuxHooks', false, 'global');
       } else if (key.return) {
         // Select current option
-        setShowHooksPrompt(false)
-        const selected = hooksPromptIndex === 0
-        setUseHooks(selected)
-        settingsManager.updateSetting('useTmuxHooks', selected, 'global')
+        setShowHooksPrompt(false);
+        const selected = hooksPromptIndex === 0;
+        setUseHooks(selected);
+        settingsManager.updateSetting('useTmuxHooks', selected, 'global');
       }
     },
-    { isActive: showHooksPrompt }
-  )
+    { isActive: showHooksPrompt },
+  );
 
   // Input handling - extracted to dedicated hook
   useInputHandling({
@@ -1199,7 +1132,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     projectRoot: sessionProjectRoot,
     projectActionItems: projectActionLayout.actionItems,
     findCardInDirection,
-  })
+  });
 
   // Calculate available height for content (terminal height - footer lines - active status messages)
   // Footer height varies based on state:
@@ -1211,18 +1144,18 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
   //   - Debug info: +1 line if DEBUG_DMUX
   //   - Status line: +1 line if updateAvailable/currentBranch/debugMessage
   //   - Status messages: +1 line per active message
-  const showFooterHelp = !showCommandPrompt
-  let footerLines = 2
+  const showFooterHelp = !showCommandPrompt;
+  let footerLines = 2;
   if (quitConfirmMode) {
-    footerLines = 2
+    footerLines = 2;
   } else {
-    footerLines = 0
+    footerLines = 0;
 
     if (showFooterHelp) {
-      footerLines = 4 // marginTop + logs divider + logs + shortcuts
+      footerLines = 4; // marginTop + logs divider + logs + shortcuts
 
       if (currentFooterTip) {
-        footerLines += 1
+        footerLines += 1;
       }
 
       // Add toast notification (calculate wrapped lines + header)
@@ -1240,23 +1173,23 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
 
       // Add debug info
       if (process.env.DEBUG_DMUX) {
-        footerLines += 1
+        footerLines += 1;
       }
     }
 
     // Add status line
     if (isDevMode || updateAvailable || currentBranch || debugMessage) {
-      footerLines += 1
+      footerLines += 1;
     }
     // Add line for each active status message
     if (statusMessage) {
-      footerLines += 1
+      footerLines += 1;
     }
     if (actionSystem.actionState.statusMessage) {
-      footerLines += 1
+      footerLines += 1;
     }
   }
-  const contentHeight = Math.max(terminalHeight - footerLines, 10)
+  const contentHeight = Math.max(terminalHeight - footerLines, 10);
 
   return (
     <Box flexDirection="column" height={terminalHeight}>
@@ -1285,9 +1218,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         {showFileCopyPrompt && <FileCopyPrompt />}
 
         {/* Tmux hooks prompt - shown on first startup */}
-        {showHooksPrompt && (
-          <TmuxHooksPromptDialog selectedIndex={hooksPromptIndex} />
-        )}
+        {showHooksPrompt && <TmuxHooksPromptDialog selectedIndex={hooksPromptIndex} />}
       </Box>
 
       {/* Status messages - only render when present */}
@@ -1300,11 +1231,11 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         <Box>
           <Text
             color={
-              actionSystem.actionState.statusType === "error"
-                ? "red"
-                : actionSystem.actionState.statusType === "success"
-                ? "green"
-                : "cyan"
+              actionSystem.actionState.statusType === 'error'
+                ? 'red'
+                : actionSystem.actionState.statusType === 'success'
+                  ? 'green'
+                  : 'cyan'
             }
           >
             {actionSystem.actionState.statusMessage}
@@ -1323,11 +1254,11 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         toastQueuePosition={toastQueuePosition}
         footerTip={currentFooterTip}
         gridInfo={(() => {
-          if (!process.env.DEBUG_DMUX) return undefined
-          const rows = navigationRows.length
-          const cols = Math.max(1, ...navigationRows.map((row) => row.length))
-          const pos = getCardGridPosition(selectedIndex)
-          return `Grid: ${cols} cols × ${rows} rows | Selected: row ${pos.row}, col ${pos.col} | Terminal: ${terminalWidth}w`
+          if (!process.env.DEBUG_DMUX) return undefined;
+          const rows = navigationRows.length;
+          const cols = Math.max(1, ...navigationRows.map((row) => row.length));
+          const pos = getCardGridPosition(selectedIndex);
+          return `Grid: ${cols} cols × ${rows} rows | Selected: row ${pos.row}, col ${pos.col} | Terminal: ${terminalWidth}w`;
         })()}
       />
 
@@ -1336,24 +1267,20 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         <Text dimColor>
           {isDevMode && (
             <Text color="yellow" bold>
-              DEV MODE{" "}
+              DEV MODE{' '}
             </Text>
           )}
           {updateAvailable && updateInfo && (
             <Text color="red" bold>
-              Update available: npm i -g dmux@latest{" "}
+              Update available: npm i -g dmux@latest{' '}
             </Text>
           )}
-          {currentBranch && (
-            <Text color="magenta">
-              source: {currentBranch}
-            </Text>
-          )}
+          {currentBranch && <Text color="magenta">source: {currentBranch}</Text>}
           {debugMessage && <Text dimColor> • {debugMessage}</Text>}
         </Text>
       )}
     </Box>
-  )
-}
+  );
+};
 
-export default DmuxApp
+export default DmuxApp;

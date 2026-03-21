@@ -19,18 +19,14 @@ const ActionChoiceDialog: React.FC<ActionChoiceDialogProps> = ({
   title,
   message,
   options,
-  selectedIndex
+  selectedIndex,
 }) => {
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="cyan"
-      paddingX={1}
-      marginTop={1}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} marginTop={1}>
       <Box marginBottom={1}>
-        <Text bold color="cyan">{title}</Text>
+        <Text bold color="cyan">
+          {title}
+        </Text>
       </Box>
 
       <Box marginBottom={1}>

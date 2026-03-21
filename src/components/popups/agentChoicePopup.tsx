@@ -31,15 +31,13 @@ const AgentChoicePopupApp: React.FC<AgentChoicePopupProps> = ({
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = useState(() => {
     const firstSelectedIndex = availableAgents.findIndex((agent) =>
-      initialSelectedAgents.includes(agent)
+      initialSelectedAgents.includes(agent),
     );
     return firstSelectedIndex >= 0 ? firstSelectedIndex : 0;
   });
   const [selectedAgents, setSelectedAgents] = useState<Set<AgentName>>(
     () =>
-      new Set<AgentName>(
-        availableAgents.filter((agent) => initialSelectedAgents.includes(agent))
-      )
+      new Set<AgentName>(availableAgents.filter((agent) => initialSelectedAgents.includes(agent))),
   );
   const selectedIndexRef = useRef(selectedIndex);
   const selectedAgentsRef = useRef(selectedAgents);
@@ -48,7 +46,7 @@ const AgentChoicePopupApp: React.FC<AgentChoicePopupProps> = ({
 
   const orderedSelections = useMemo(
     () => availableAgents.filter((agent) => selectedAgents.has(agent)),
-    [availableAgents, selectedAgents]
+    [availableAgents, selectedAgents],
   );
   const selectedCount = orderedSelections.length;
 
@@ -90,9 +88,7 @@ const AgentChoicePopupApp: React.FC<AgentChoicePopupProps> = ({
     }
 
     if (key.downArrow) {
-      setSelectedIndexValue(
-        Math.min(availableAgents.length - 1, selectedIndexRef.current + 1)
-      );
+      setSelectedIndexValue(Math.min(availableAgents.length - 1, selectedIndexRef.current + 1));
       return;
     }
 
@@ -105,7 +101,7 @@ const AgentChoicePopupApp: React.FC<AgentChoicePopupProps> = ({
       const launchAgents = resolveAgentsToLaunchOnEnter(
         availableAgents,
         selectedAgentsRef.current,
-        selectedIndexRef.current
+        selectedIndexRef.current,
       );
       writeSuccessAndExit(resultFile, launchAgents, exit);
     }
@@ -116,7 +112,8 @@ const AgentChoicePopupApp: React.FC<AgentChoicePopupProps> = ({
       <PopupContainer footer="↑↓ navigate • Space toggle • Enter launch • ESC cancel">
         <Box marginBottom={1}>
           <Text dimColor>
-            Space toggles selection. Enter launches selected agents, or the focused agent if none are selected.
+            Space toggles selection. Enter launches selected agents, or the focused agent if none
+            are selected.
           </Text>
           <Text color={POPUP_CONFIG.titleColor}>
             Selected: {selectedCount}/{availableAgents.length}
@@ -124,9 +121,7 @@ const AgentChoicePopupApp: React.FC<AgentChoicePopupProps> = ({
         </Box>
 
         <Box flexDirection="column">
-          {availableAgents.length === 0 && (
-            <Text dimColor>No enabled agents available</Text>
-          )}
+          {availableAgents.length === 0 && <Text dimColor>No enabled agents available</Text>}
           {availableAgents.map((agent, index) => {
             const isSelectedRow = index === selectedIndex;
             const isChecked = selectedAgents.has(agent);
@@ -182,9 +177,7 @@ function main() {
     try {
       const parsed = JSON.parse(initialSelectedJson);
       if (Array.isArray(parsed)) {
-        initialSelectedAgents = parsed.filter((agent): agent is AgentName =>
-          isAgentName(agent)
-        );
+        initialSelectedAgents = parsed.filter((agent): agent is AgentName => isAgentName(agent));
       }
     } catch {
       // Ignore invalid initial selection payloads and fall back to no preselection.
@@ -196,7 +189,7 @@ function main() {
       resultFile={resultFile}
       availableAgents={availableAgents}
       initialSelectedAgents={initialSelectedAgents}
-    />
+    />,
   );
 }
 

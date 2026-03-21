@@ -44,7 +44,7 @@ describe('NotificationSoundsPopupApp', () => {
           enabledNotificationSounds: ['default-system-sound'],
         }}
         previewPlayer={previewPlayer}
-      />
+      />,
     );
 
     await sleep(20);
@@ -74,7 +74,7 @@ describe('NotificationSoundsPopupApp', () => {
           enabledNotificationSounds: ['harp'],
         }}
         previewPlayer={previewPlayer}
-      />
+      />,
     );
 
     await sleep(20);

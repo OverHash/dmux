@@ -12,20 +12,13 @@ interface ActionProgressDialogProps {
   percent?: number;
 }
 
-const ActionProgressDialog: React.FC<ActionProgressDialogProps> = ({
-  message,
-  percent
-}) => {
+const ActionProgressDialog: React.FC<ActionProgressDialogProps> = ({ message, percent }) => {
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="cyan"
-      paddingX={1}
-      marginTop={1}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} marginTop={1}>
       <Box marginBottom={1}>
-        <Text bold color="cyan">⏳ {message}</Text>
+        <Text bold color="cyan">
+          ⏳ {message}
+        </Text>
       </Box>
 
       {percent !== undefined && (

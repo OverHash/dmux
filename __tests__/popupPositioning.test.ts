@@ -18,7 +18,7 @@ describe('getPaneAnchoredPopupOptions', () => {
       {
         width: 100,
         height: 40,
-      }
+      },
     );
 
     expect(popupOptions).toMatchObject({

@@ -39,11 +39,7 @@ describe('KebabMenuPopupApp', () => {
     ];
 
     const { stdin, unmount } = render(
-      <KebabMenuPopupApp
-        resultFile={resultFile}
-        paneName="pane-1"
-        actions={actions}
-      />
+      <KebabMenuPopupApp resultFile={resultFile} paneName="pane-1" actions={actions} />,
     );
 
     await sleep(30);

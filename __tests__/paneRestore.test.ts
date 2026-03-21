@@ -50,7 +50,7 @@ describe('pane restoration', () => {
 
     expect(tmuxServiceMock.sendShellCommand).toHaveBeenCalledWith(
       '%9',
-      'codex resume --last --dangerously-bypass-approvals-and-sandbox'
+      'codex resume --last --dangerously-bypass-approvals-and-sandbox',
     );
     expect(tmuxServiceMock.sendTmuxKeys).toHaveBeenCalledWith('%9', 'Enter');
   });

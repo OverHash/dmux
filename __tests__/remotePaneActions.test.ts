@@ -61,7 +61,7 @@ describe('remotePaneActions', () => {
         'not-json',
         JSON.stringify({ type: 'pane-shortcut', targetPaneId: '%21', shortcut: 'Z' }),
       ].join('\n'),
-      'utf-8'
+      'utf-8',
     );
 
     const drained = await drainRemotePaneActions('dmux-test', homeDir);
@@ -91,6 +91,8 @@ describe('remotePaneActions', () => {
     expect(setupCommands[0]).toContain('--remote-pane-action m');
     expect(cleanupCommands.some((command) => command.includes('unbind-key -n M-M'))).toBe(true);
     expect(cleanupCommands.some((command) => command.includes('unbind-key -n M-D'))).toBe(true);
-    expect(cleanupCommands.some((command) => command.includes('unbind-key -T dmux-pane-action x'))).toBe(true);
+    expect(
+      cleanupCommands.some((command) => command.includes('unbind-key -T dmux-pane-action x')),
+    ).toBe(true);
   });
 });

@@ -30,7 +30,7 @@ vi.mock('../../../src/utils/hooks.js', () => ({
 }));
 
 vi.mock('../../../src/utils/worktreeDiscovery.js', () => ({
-  detectAllWorktrees: vi.fn(() => ([
+  detectAllWorktrees: vi.fn(() => [
     {
       worktreePath: '/test/main/.dmux/worktrees/test-branch',
       parentRepoPath: '/test/main',
@@ -40,7 +40,7 @@ vi.mock('../../../src/utils/worktreeDiscovery.js', () => ({
       depth: 0,
       isRoot: true,
     },
-  ])),
+  ]),
 }));
 
 vi.mock('../../../src/actions/merge/multiMergeOrchestrator.js', () => ({
@@ -48,7 +48,7 @@ vi.mock('../../../src/actions/merge/multiMergeOrchestrator.js', () => ({
     worktrees.map((worktree) => ({
       worktree,
       validation: { canMerge: true, mainBranch: 'main', issues: [] },
-    }))
+    })),
   ),
   executeMultiMerge: vi.fn(async () => ({
     type: 'success',
@@ -63,9 +63,11 @@ vi.mock('../../../src/actions/implementations/closeAction.js', () => ({
       type: 'choice',
       title: 'Close Pane',
       options: [{ id: 'kill_only', label: 'Kill only' }],
-      onSelect: vi.fn(() => Promise.resolve({ type: 'success', message: 'Closed', dismissable: true })),
+      onSelect: vi.fn(() =>
+        Promise.resolve({ type: 'success', message: 'Closed', dismissable: true }),
+      ),
       dismissable: true,
-    })
+    }),
   ),
 }));
 
@@ -222,8 +224,8 @@ describe('Merge Action Integration', () => {
 
       expect(result.type).toBe('choice');
       expect(result.title).toBe('Main Branch Has Uncommitted Changes');
-      expect(result.options?.map(o => o.id)).toContain('commit_automatic');
-      expect(result.options?.map(o => o.id)).toContain('stash_main');
+      expect(result.options?.map((o) => o.id)).toContain('commit_automatic');
+      expect(result.options?.map((o) => o.id)).toContain('stash_main');
     });
 
     it('should prioritize main_dirty when nothing_to_merge is also present', async () => {
@@ -273,7 +275,7 @@ describe('Merge Action Integration', () => {
 
       expect(result.type).toBe('choice');
       expect(result.title).toBe('Worktree Has Uncommitted Changes');
-      expect(result.options?.map(o => o.id)).toContain('commit_automatic');
+      expect(result.options?.map((o) => o.id)).toContain('commit_automatic');
     });
   });
 
@@ -297,8 +299,8 @@ describe('Merge Action Integration', () => {
 
       expect(result.type).toBe('choice');
       expect(result.title).toBe('Merge Conflicts Detected');
-      expect(result.options?.map(o => o.id)).toContain('ai_merge');
-      expect(result.options?.map(o => o.id)).toContain('manual_merge');
+      expect(result.options?.map((o) => o.id)).toContain('ai_merge');
+      expect(result.options?.map((o) => o.id)).toContain('manual_merge');
     });
   });
 

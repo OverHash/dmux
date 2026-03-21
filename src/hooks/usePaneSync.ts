@@ -19,7 +19,7 @@ import { normalizeSidebarProjects } from '../utils/sidebarProjects.js';
 export async function enforcePaneTitles(
   panes: DmuxPane[],
   allPaneIds: string[],
-  controlPaneId?: string
+  controlPaneId?: string,
 ): Promise<void> {
   const tmuxService = TmuxService.getInstance();
   const sessionProjectRoot = StateManager.getInstance().getState().projectRoot;
@@ -37,8 +37,8 @@ export async function enforcePaneTitles(
   // Enforce control pane title stays "dmux"
   if (controlPaneId) {
     try {
-      const controlTitle = titleByPaneId.get(controlPaneId)
-        ?? await tmuxService.getPaneTitle(controlPaneId);
+      const controlTitle =
+        titleByPaneId.get(controlPaneId) ?? (await tmuxService.getPaneTitle(controlPaneId));
       if (controlTitle !== 'dmux') {
         await tmuxService.setPaneTitle(controlPaneId, 'dmux');
       }
@@ -51,8 +51,8 @@ export async function enforcePaneTitles(
     if (allPaneIds.includes(pane.paneId)) {
       try {
         // Get current title to check if update is needed
-        const currentTitle = titleByPaneId.get(pane.paneId)
-          ?? await tmuxService.getPaneTitle(pane.paneId);
+        const currentTitle =
+          titleByPaneId.get(pane.paneId) ?? (await tmuxService.getPaneTitle(pane.paneId));
 
         const expectedTitle = getPaneTmuxTitle(pane, sessionProjectRoot || undefined);
 
@@ -61,14 +61,14 @@ export async function enforcePaneTitles(
           await tmuxService.setPaneTitle(pane.paneId, expectedTitle);
           LogService.getInstance().debug(
             `Synced pane title: ${pane.id} "${currentTitle}" → "${expectedTitle}"`,
-            'shellDetection'
+            'shellDetection',
           );
         }
       } catch (error) {
         // Ignore errors - pane might have been killed between check and sync
         LogService.getInstance().debug(
           `Failed to sync title for pane ${pane.id}: ${error instanceof Error ? error.message : String(error)}`,
-          'usePaneSync'
+          'usePaneSync',
         );
       }
     }
@@ -82,7 +82,7 @@ export async function enforcePaneTitles(
 export async function savePanesToFile(
   panesFile: string,
   panes: DmuxPane[],
-  withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>
+  withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>,
 ): Promise<DmuxPane[]> {
   return withWriteLock(async () => {
     let activePanes = panes;
@@ -108,12 +108,12 @@ export async function savePanesToFile(
       // This prevents losing panes during concurrent operations
       // Note: We need to get allPaneIds to properly use rebindPaneByTitle
       const allPaneIds = Array.from(titleToId.values());
-      activePanes = panes.map(p => rebindPaneByTitle(p, titleToId, allPaneIds));
+      activePanes = panes.map((p) => rebindPaneByTitle(p, titleToId, allPaneIds));
     } catch (error) {
       // If tmux command fails, keep panes as-is (prevents data loss during tmux instability)
       LogService.getInstance().debug(
         `Failed to fetch tmux panes for rebinding: ${error instanceof Error ? error.message : String(error)}`,
-        'usePaneSync'
+        'usePaneSync',
       );
       activePanes = panes;
     }
@@ -136,7 +136,7 @@ export async function savePanesToFile(
       config.sidebarProjects,
       activePanes,
       projectRoot,
-      projectName
+      projectName,
     );
     config.lastUpdated = new Date().toISOString();
     await atomicWriteJson(panesFile, config);
@@ -160,7 +160,7 @@ export function rebindAndFilterPanes(
   loadedPanes: DmuxPane[],
   titleToId: Map<string, string>,
   allPaneIds: string[],
-  isInitialLoad: boolean
+  isInitialLoad: boolean,
 ): { activePanes: DmuxPane[]; shellPanesRemoved: boolean; worktreePanesToRecreate: DmuxPane[] } {
   const worktreePanesToRecreate: DmuxPane[] = [];
   const lifecycleManager = PaneLifecycleManager.getInstance();
@@ -171,19 +171,19 @@ export function rebindAndFilterPanes(
   // );
 
   // Rebind panes based on title matching
-  const reboundPanes = loadedPanes.map(loadedPane => {
+  const reboundPanes = loadedPanes.map((loadedPane) => {
     const rebound = rebindPaneByTitle(loadedPane, titleToId, allPaneIds);
     if (rebound.paneId !== loadedPane.paneId) {
       LogService.getInstance().debug(
         `Pane ${loadedPane.id} (${loadedPane.paneId}) not found in tmux, checking for rebind`,
-        'shellDetection'
+        'shellDetection',
       );
     }
     return rebound;
   });
 
   // Filter out dead shell panes, keep worktree panes
-  const activePanes = reboundPanes.filter(pane => {
+  const activePanes = reboundPanes.filter((pane) => {
     // If we have tmux data and this pane is not found
     if (allPaneIds.length > 0 && !allPaneIds.includes(pane.paneId)) {
       // CRITICAL: Check if pane is being intentionally closed
@@ -191,14 +191,14 @@ export function rebindAndFilterPanes(
       if (lifecycleManager.isClosing(pane.id) || lifecycleManager.isClosing(pane.paneId)) {
         LogService.getInstance().debug(
           `Pane ${pane.id} (${pane.slug}) is being intentionally closed - removing from list`,
-          'shellDetection'
+          'shellDetection',
         );
         return false; // Remove from list entirely
       }
 
       LogService.getInstance().debug(
         `Pane ${pane.id} (${pane.paneId}) not in tmux. Type: ${pane.type}`,
-        'shellDetection'
+        'shellDetection',
       );
 
       // CRITICAL FIX: Remove shell panes that are no longer present
@@ -211,7 +211,7 @@ export function rebindAndFilterPanes(
       if (pane.type === 'shell') {
         LogService.getInstance().info(
           `Removing stale shell pane: ${pane.id} (${pane.slug}) - paneId ${pane.paneId} no longer exists`,
-          'shellDetection'
+          'shellDetection',
         );
         return false;
       }
@@ -220,7 +220,7 @@ export function rebindAndFilterPanes(
       if (!isInitialLoad && pane.worktreePath) {
         LogService.getInstance().debug(
           `Worktree pane ${pane.id} (${pane.slug}) was killed, will recreate it`,
-          'shellDetection'
+          'shellDetection',
         );
         worktreePanesToRecreate.push(pane);
         return true; // Keep it in the list
@@ -229,21 +229,21 @@ export function rebindAndFilterPanes(
       // Keep worktree panes (they can be recreated on restart)
       LogService.getInstance().debug(
         `Keeping worktree pane: ${pane.id} (will be recreated if needed)`,
-        'shellDetection'
+        'shellDetection',
       );
     }
     return true;
   });
 
   // Track if shell panes were removed (for saving to config)
-  const shellPanesRemoved = loadedPanes.some(p =>
-    p.type === 'shell' && allPaneIds.length > 0 && !allPaneIds.includes(p.paneId)
+  const shellPanesRemoved = loadedPanes.some(
+    (p) => p.type === 'shell' && allPaneIds.length > 0 && !allPaneIds.includes(p.paneId),
   );
 
   if (shellPanesRemoved) {
     LogService.getInstance().info(
-      `Removed ${loadedPanes.filter(p => p.type === 'shell' && !allPaneIds.includes(p.paneId)).length} stale shell pane(s) from config`,
-      'shellDetection'
+      `Removed ${loadedPanes.filter((p) => p.type === 'shell' && !allPaneIds.includes(p.paneId)).length} stale shell pane(s) from config`,
+      'shellDetection',
     );
   }
 
@@ -256,7 +256,7 @@ export function rebindAndFilterPanes(
 export async function saveUpdatedPaneConfig(
   panesFile: string,
   activePanes: DmuxPane[],
-  withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>
+  withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>,
 ): Promise<void> {
   await withWriteLock(async () => {
     // Re-read config in case it changed
@@ -277,12 +277,12 @@ export async function saveUpdatedPaneConfig(
       currentConfig.sidebarProjects,
       activePanes,
       projectRoot,
-      projectName
+      projectName,
     );
     currentConfig.lastUpdated = new Date().toISOString();
     LogService.getInstance().debug(
       `Writing config with ${currentConfig.panes.length} panes`,
-      'shellDetection'
+      'shellDetection',
     );
     await atomicWriteJson(panesFile, currentConfig);
     LogService.getInstance().debug('Config file written successfully', 'shellDetection');
@@ -304,7 +304,7 @@ export async function handleLastPaneRemoval(projectRoot: string): Promise<void> 
 export async function destroyWelcomePaneIfNeeded(
   panesFile: string,
   currentPaneCount: number,
-  newPaneCount: number
+  newPaneCount: number,
 ): Promise<void> {
   const shouldDestroyWelcome = currentPaneCount === 0 && newPaneCount > 0;
   if (!shouldDestroyWelcome) return;
@@ -316,7 +316,7 @@ export async function destroyWelcomePaneIfNeeded(
     if (config.welcomePaneId) {
       LogService.getInstance().debug(
         `Destroying welcome pane ${config.welcomePaneId} because panes were added`,
-        'shellDetection'
+        'shellDetection',
       );
       const { destroyWelcomePane } = await import('../utils/welcomePane.js');
       await destroyWelcomePane(config.welcomePaneId);

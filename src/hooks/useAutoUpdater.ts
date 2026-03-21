@@ -19,7 +19,10 @@ interface UpdateCheckerMessage {
 const INITIAL_CHECK_DELAY_MS = 3000;
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // once per day
 
-export default function useAutoUpdater(autoUpdater: any | undefined, setStatusMessage: (msg: string) => void) {
+export default function useAutoUpdater(
+  autoUpdater: any | undefined,
+  setStatusMessage: (msg: string) => void,
+) {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -54,8 +57,8 @@ export default function useAutoUpdater(autoUpdater: any | undefined, setStatusMe
 
         worker = new Worker(workerPath, {
           workerData: {
-            configFile
-          }
+            configFile,
+          },
         });
 
         worker.once('message', (message: UpdateCheckerMessage) => {
@@ -138,5 +141,15 @@ export default function useAutoUpdater(autoUpdater: any | undefined, setStatusMe
     setUpdateInfo(null);
   };
 
-  return { updateInfo, showUpdateDialog, isUpdating, performUpdate, skipUpdate, dismissUpdate, setShowUpdateDialog, setUpdateInfo, updateAvailable };
+  return {
+    updateInfo,
+    showUpdateDialog,
+    isUpdating,
+    performUpdate,
+    skipUpdate,
+    dismissUpdate,
+    setShowUpdateDialog,
+    setUpdateInfo,
+    updateAvailable,
+  };
 }

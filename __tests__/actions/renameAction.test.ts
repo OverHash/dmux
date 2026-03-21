@@ -59,7 +59,7 @@ describe('renameAction', () => {
         id: pane.id,
         slug: 'test-pane',
         displayName: 'QA Review',
-      })
+      }),
     );
   });
 

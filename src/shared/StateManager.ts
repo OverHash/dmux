@@ -99,7 +99,12 @@ export class StateManager extends EventEmitter {
     this.notifyListeners();
   }
 
-  updateProjectInfo(projectName: string, sessionName: string, projectRoot: string, panesFile?: string): void {
+  updateProjectInfo(
+    projectName: string,
+    sessionName: string,
+    projectRoot: string,
+    panesFile?: string,
+  ): void {
     this.state.projectName = projectName;
     this.state.sessionName = sessionName;
     this.state.projectRoot = projectRoot;
@@ -124,7 +129,7 @@ export class StateManager extends EventEmitter {
       this.notifyListeners();
     });
 
-    this.configWatcher.start().catch(err => {
+    this.configWatcher.start().catch((err) => {
       console.error('Failed to start config watcher:', err);
     });
   }
@@ -141,7 +146,7 @@ export class StateManager extends EventEmitter {
   }
 
   getPaneById(id: string): DmuxPane | undefined {
-    return this.state.panes.find(pane => pane.id === id);
+    return this.state.panes.find((pane) => pane.id === id);
   }
 
   getPanes(): DmuxPane[] {
@@ -157,7 +162,7 @@ export class StateManager extends EventEmitter {
 
   private notifyListeners(): void {
     const stateCopy = this.getState();
-    this.updateCallbacks.forEach(callback => {
+    this.updateCallbacks.forEach((callback) => {
       try {
         callback(stateCopy);
       } catch (err) {

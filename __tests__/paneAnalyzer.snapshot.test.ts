@@ -31,7 +31,7 @@ describe('PaneAnalyzer snapshot source', () => {
       '%1',
       undefined,
       'pane-1',
-      'provided snapshot from worker'
+      'provided snapshot from worker',
     );
 
     expect(capturePaneContent).not.toHaveBeenCalled();

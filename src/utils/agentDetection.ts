@@ -16,10 +16,10 @@ import {
 function resolveViaShell(testCommand: string): string | null {
   try {
     const userShell = process.env.SHELL || '/bin/bash';
-    const result = execSync(
-      `${userShell} -i -c "${testCommand}"`,
-      { encoding: 'utf-8', stdio: 'pipe' }
-    ).trim();
+    const result = execSync(`${userShell} -i -c "${testCommand}"`, {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    }).trim();
     if (result) return result.split('\n')[0] || null;
   } catch {
     // ignore
@@ -72,12 +72,10 @@ export async function getInstalledAgents(): Promise<AgentName[]> {
     definitions.map(async (definition) => ({
       id: definition.id,
       command: await findAgentCommand(definition.id),
-    }))
+    })),
   );
 
-  return checks
-    .filter((entry) => !!entry.command)
-    .map((entry) => entry.id);
+  return checks.filter((entry) => !!entry.command).map((entry) => entry.id);
 }
 
 /**
@@ -85,7 +83,7 @@ export async function getInstalledAgents(): Promise<AgentName[]> {
  */
 export function filterEnabledAgents(
   installedAgents: AgentName[],
-  enabledAgentsSetting: readonly string[] | undefined
+  enabledAgentsSetting: readonly string[] | undefined,
 ): AgentName[] {
   const enabledAgents = new Set(resolveEnabledAgentsSelection(enabledAgentsSetting));
   return installedAgents.filter((agent) => enabledAgents.has(agent));

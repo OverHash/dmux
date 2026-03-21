@@ -11,7 +11,7 @@ import { getPaneDisplayName } from '../../utils/paneTitle.js';
  */
 export async function toggleAutopilot(
   pane: DmuxPane,
-  context: ActionContext
+  context: ActionContext,
 ): Promise<ActionResult> {
   try {
     const paneName = getPaneDisplayName(pane);
@@ -19,8 +19,8 @@ export async function toggleAutopilot(
     const newAutopilotState = !pane.autopilot;
 
     // Update the pane
-    const updatedPanes = context.panes.map(p =>
-      p.id === pane.id ? { ...p, autopilot: newAutopilotState } : p
+    const updatedPanes = context.panes.map((p) =>
+      p.id === pane.id ? { ...p, autopilot: newAutopilotState } : p,
     );
 
     // Save the updated panes

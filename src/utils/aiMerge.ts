@@ -12,7 +12,11 @@ import { LogService } from '../services/LogService.js';
 /**
  * Fetch with timeout wrapper
  */
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -32,7 +36,11 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
 /**
  * Call OpenRouter API for AI assistance with model fallback
  */
-async function callOpenRouter(prompt: string, maxTokens: number = 1000, timeoutMs: number = 12000): Promise<string | null> {
+async function callOpenRouter(
+  prompt: string,
+  maxTokens: number = 1000,
+  timeoutMs: number = 12000,
+): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
 
@@ -46,7 +54,7 @@ async function callOpenRouter(prompt: string, maxTokens: number = 1000, timeoutM
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model,
@@ -60,7 +68,7 @@ async function callOpenRouter(prompt: string, maxTokens: number = 1000, timeoutM
             temperature: 0.3,
           }),
         },
-        timeoutMs
+        timeoutMs,
       );
 
       if (response.ok) {
@@ -87,7 +95,7 @@ async function callClaudeCode(prompt: string, timeoutMs: number = 15000): Promis
         encoding: 'utf-8',
         stdio: 'pipe',
         timeout: timeoutMs,
-      }
+      },
     );
     return result.trim() || null;
   } catch {
@@ -131,10 +139,16 @@ export function getComprehensiveDiff(repoPath: string): { diff: string; summary:
       stdio: 'pipe',
     });
 
-    LogService.getInstance().info(`getComprehensiveDiff result - diff: ${diff.length} chars, summary: ${summary.trim().substring(0, 100)}`, 'aiMerge');
+    LogService.getInstance().info(
+      `getComprehensiveDiff result - diff: ${diff.length} chars, summary: ${summary.trim().substring(0, 100)}`,
+      'aiMerge',
+    );
     return { diff, summary };
   } catch (error) {
-    LogService.getInstance().error(`getComprehensiveDiff failed for ${repoPath}: ${error}`, 'aiMerge');
+    LogService.getInstance().error(
+      `getComprehensiveDiff failed for ${repoPath}: ${error}`,
+      'aiMerge',
+    );
     return { diff: '', summary: '' };
   }
 }
@@ -218,7 +232,11 @@ function parseConflicts(content: string): ConflictSection[] {
 
       i++; // Skip =======
       // Read "theirs" section (or base if 3-way)
-      while (i < lines.length && !lines[i].startsWith('>>>>>>>') && !lines[i].startsWith('|||||||')) {
+      while (
+        i < lines.length &&
+        !lines[i].startsWith('>>>>>>>') &&
+        !lines[i].startsWith('|||||||')
+      ) {
         if (lines[i].startsWith('|||||||')) {
           break;
         }
@@ -254,7 +272,7 @@ function parseConflicts(content: string): ConflictSection[] {
  */
 export async function aiResolveConflict(
   filePath: string,
-  repoPath: string
+  repoPath: string,
 ): Promise<{ success: boolean; resolvedContent?: string; error?: string }> {
   try {
     const fullPath = path.join(repoPath, filePath);
@@ -285,7 +303,7 @@ ${c.ours}
 =======
 >>>>>>> THEIRS (incoming branch)
 ${c.theirs}
-`
+`,
   )
   .join('\n')}
 
@@ -328,7 +346,7 @@ Respond with ONLY the complete resolved file content, no explanations:`;
  */
 export async function aiResolveAllConflicts(
   repoPath: string,
-  conflictFiles: string[]
+  conflictFiles: string[],
 ): Promise<{ success: boolean; resolvedFiles: string[]; failedFiles: string[]; error?: string }> {
   const resolvedFiles: string[] = [];
   const failedFiles: string[] = [];

@@ -2,10 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  createEmptyGitProject,
-  inspectProjectCreationTarget,
-} from '../src/utils/projectRoot.js';
+import { createEmptyGitProject, inspectProjectCreationTarget } from '../src/utils/projectRoot.js';
 
 const tempDirs: string[] = [];
 
@@ -60,7 +57,7 @@ describe('projectRoot project creation', () => {
     expect(target.state).toBe('directory_not_empty');
 
     expect(() => createEmptyGitProject(projectPath)).toThrow(
-      `Directory is not empty: ${projectPath}. New projects can only be created in an empty directory.`
+      `Directory is not empty: ${projectPath}. New projects can only be created in an empty directory.`,
     );
     expect(existsSync(path.join(projectPath, '.git'))).toBe(false);
   });

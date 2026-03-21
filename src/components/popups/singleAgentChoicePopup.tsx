@@ -37,13 +37,13 @@ interface SingleAgentChoicePopupProps {
 
 const MAX_VISIBLE_ROWS = 10;
 
-const SingleAgentChoicePopupApp: React.FC<SingleAgentChoicePopupProps> = ({
-  resultFile,
-  data,
-}) => {
+const SingleAgentChoicePopupApp: React.FC<SingleAgentChoicePopupProps> = ({ resultFile, data }) => {
   const { exit } = useApp();
   const options = data.options;
-  const defaultIndex = Math.max(0, options.findIndex((option) => option.default));
+  const defaultIndex = Math.max(
+    0,
+    options.findIndex((option) => option.default),
+  );
   const [selectedIndex, setSelectedIndex] = useState(defaultIndex);
 
   const visibleWindow = useMemo(() => {
@@ -113,10 +113,7 @@ const SingleAgentChoicePopupApp: React.FC<SingleAgentChoicePopupProps> = ({
                 <Text color={isSelected ? POPUP_CONFIG.successColor : 'white'} bold={isSelected}>
                   {marker}
                 </Text>
-                <Text
-                  color={isSelected ? POPUP_CONFIG.titleColor : 'white'}
-                  bold={isSelected}
-                >
+                <Text color={isSelected ? POPUP_CONFIG.titleColor : 'white'} bold={isSelected}>
                   {' '}
                   {option.label || getAgentLabel(option.id)}
                 </Text>
@@ -165,7 +162,7 @@ function main() {
         ...parsed,
         options: validOptions,
       }}
-    />
+    />,
   );
 }
 

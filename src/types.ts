@@ -37,23 +37,23 @@ export interface DmuxPane {
   hidden?: boolean; // Pane is detached from the active dmux window but still running
   projectRoot?: string; // Main repository root this pane belongs to
   projectName?: string; // Display name for pane's project
-  type?: 'worktree' | 'shell';  // Type of pane (defaults to 'worktree' for backward compat)
-  shellType?: string;  // Shell type for shell panes (bash, zsh, fish, fb, etc)
+  type?: 'worktree' | 'shell'; // Type of pane (defaults to 'worktree' for backward compat)
+  shellType?: string; // Shell type for shell panes (bash, zsh, fish, fb, etc)
   worktreePath?: string;
   browserPath?: string; // Root path when a shell pane is a dmux file browser
-  testWindowId?: string;  // Background window for tests
+  testWindowId?: string; // Background window for tests
   testStatus?: 'running' | 'passed' | 'failed';
   testOutput?: string;
-  devWindowId?: string;   // Background window for dev server
+  devWindowId?: string; // Background window for dev server
   devStatus?: 'running' | 'stopped';
-  devUrl?: string;        // Detected dev server URL
+  devUrl?: string; // Detected dev server URL
   agent?: AgentName;
   permissionMode?: PermissionMode;
-  agentStatus?: AgentStatus;  // Agent working/attention status
+  agentStatus?: AgentStatus; // Agent working/attention status
   needsAttention?: boolean; // Pane has settled and is waiting on the user
-  lastAgentCheck?: number;  // Timestamp of last status check
-  lastDeterministicStatus?: 'ambiguous' | 'working';  // For LLM detection coordination
-  llmRequestId?: string;  // Track active LLM request
+  lastAgentCheck?: number; // Timestamp of last status check
+  lastDeterministicStatus?: 'ambiguous' | 'working'; // For LLM detection coordination
+  llmRequestId?: string; // Track active LLM request
   // Options dialog data (when agentStatus is 'waiting')
   optionsQuestion?: string;
   options?: OptionChoice[];
@@ -84,8 +84,8 @@ export interface WindowDimensions {
 export interface ProjectSettings {
   testCommand?: string;
   devCommand?: string;
-  firstTestRun?: boolean;  // Track if test has been run before
-  firstDevRun?: boolean;   // Track if dev has been run before
+  firstTestRun?: boolean; // Track if test has been run before
+  firstDevRun?: boolean; // Track if dev has been run before
 }
 
 export interface DmuxSettings {
@@ -156,13 +156,7 @@ export interface DmuxConfig {
 }
 
 // Hook types - re-exported from hooks utility for convenience
-export type {
-  HookType,
-  HookEnvironment,
-} from './utils/hooks.js';
+export type { HookType, HookEnvironment } from './utils/hooks.js';
 
 // Log types - re-exported from LogService for convenience
-export type {
-  LogLevel,
-  LogEntry,
-} from './services/LogService.js';
+export type { LogLevel, LogEntry } from './services/LogService.js';

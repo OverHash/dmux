@@ -1,8 +1,5 @@
 import { TmuxService } from '../services/TmuxService.js';
-import {
-  buildPromptReadAndDeleteSnippet,
-  writePromptFile,
-} from './promptStore.js';
+import { buildPromptReadAndDeleteSnippet, writePromptFile } from './promptStore.js';
 
 export const AGENT_IDS = [
   'claude',
@@ -18,7 +15,7 @@ export const AGENT_IDS = [
   'crush',
 ] as const;
 
-export type AgentName = typeof AGENT_IDS[number];
+export type AgentName = (typeof AGENT_IDS)[number];
 export type PermissionMode = '' | 'plan' | 'acceptEdits' | 'bypassPermissions';
 export type PromptTransport = 'positional' | 'option' | 'stdin' | 'send-keys';
 
@@ -51,8 +48,7 @@ export interface AgentRegistryEntry {
 }
 
 const HOME = process.env.HOME || '';
-const homePath = (suffix: string): string[] =>
-  HOME ? [`${HOME}/${suffix}`] : [];
+const homePath = (suffix: string): string[] => (HOME ? [`${HOME}/${suffix}`] : []);
 
 export const AGENT_REGISTRY: Readonly<Record<AgentName, AgentRegistryEntry>> = {
   claude: {
@@ -314,7 +310,7 @@ for (const agentId of AGENT_IDS) {
   const shortLabel = AGENT_REGISTRY[agentId].shortLabel;
   if (shortLabel.length !== 2) {
     throw new Error(
-      `Invalid shortLabel for agent "${agentId}": expected 2 characters, received "${shortLabel}"`
+      `Invalid shortLabel for agent "${agentId}": expected 2 characters, received "${shortLabel}"`,
     );
   }
 }
@@ -409,7 +405,7 @@ export function getDefaultEnabledAgents(): AgentName[] {
  * If the user has not configured enabledAgents, fall back to registry defaults.
  */
 export function resolveEnabledAgentsSelection(
-  enabledAgents: readonly string[] | undefined
+  enabledAgents: readonly string[] | undefined,
 ): AgentName[] {
   if (Array.isArray(enabledAgents)) {
     const configured = new Set(enabledAgents.filter(isAgentName));
@@ -441,11 +437,9 @@ export function appendSlugSuffix(baseSlug: string, slugSuffix?: string): string 
   return `${baseSlug}-${normalizedSuffix}`;
 }
 
-export function buildAgentLaunchOptions(
-  availableAgents: AgentName[]
-): AgentLaunchOption[] {
+export function buildAgentLaunchOptions(availableAgents: AgentName[]): AgentLaunchOption[] {
   const uniqueAgents = availableAgents.filter(
-    (agent, index) => availableAgents.indexOf(agent) === index
+    (agent, index) => availableAgents.indexOf(agent) === index,
   );
 
   return uniqueAgents.map((agent) => ({
@@ -461,7 +455,7 @@ export function buildAgentLaunchOptions(
  */
 export function getPermissionFlags(
   agent: AgentName,
-  permissionMode: PermissionMode | undefined
+  permissionMode: PermissionMode | undefined,
 ): string {
   const mode = permissionMode || '';
   if (mode === '') return '';
@@ -470,7 +464,7 @@ export function getPermissionFlags(
 
 export function buildAgentCommand(
   agent: AgentName,
-  permissionMode: PermissionMode | undefined
+  permissionMode: PermissionMode | undefined,
 ): string {
   const definition = AGENT_REGISTRY[agent];
   const baseCommand = definition.noPromptCommand || definition.promptCommand;
@@ -480,7 +474,7 @@ export function buildAgentCommand(
 export function buildInitialPromptCommand(
   agent: AgentName,
   promptToken: string,
-  permissionMode: PermissionMode | undefined
+  permissionMode: PermissionMode | undefined,
 ): string {
   const definition = AGENT_REGISTRY[agent];
   if (definition.promptTransport === 'send-keys') {
@@ -489,7 +483,7 @@ export function buildInitialPromptCommand(
 
   const baseCommand = appendFlags(
     definition.promptCommand,
-    getPermissionFlags(agent, permissionMode)
+    getPermissionFlags(agent, permissionMode),
   );
 
   if (definition.promptTransport === 'stdin') {
@@ -505,7 +499,7 @@ export function buildInitialPromptCommand(
 
 export function buildResumeCommand(
   agent: AgentName,
-  permissionMode: PermissionMode | undefined
+  permissionMode: PermissionMode | undefined,
 ): string | undefined {
   const template = AGENT_REGISTRY[agent].resumeCommandTemplate;
   if (!template) return undefined;
@@ -522,10 +516,9 @@ export function buildResumeCommand(
 
 export function buildAgentResumeOrLaunchCommand(
   agent: AgentName,
-  permissionMode: PermissionMode | undefined
+  permissionMode: PermissionMode | undefined,
 ): string {
-  return buildResumeCommand(agent, permissionMode)
-    || buildAgentCommand(agent, permissionMode);
+  return buildResumeCommand(agent, permissionMode) || buildAgentCommand(agent, permissionMode);
 }
 
 /**

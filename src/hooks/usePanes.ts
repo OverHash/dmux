@@ -19,9 +19,7 @@ import {
   handleLastPaneRemoval,
   destroyWelcomePaneIfNeeded,
 } from './usePaneSync.js';
-import {
-  detectAndAddShellPanes,
-} from './useShellDetection.js';
+import { detectAndAddShellPanes } from './useShellDetection.js';
 import { rebindPaneByTitle } from '../utils/paneRebinding.js';
 import { PaneEventService, type PaneEventMode } from '../services/PaneEventService.js';
 import { enforceControlPaneSize } from '../utils/tmux.js';
@@ -50,7 +48,7 @@ export default function usePanes(
   skipLoading: boolean,
   sessionName?: string,
   controlPaneId?: string,
-  useHooks?: boolean // undefined = not yet decided, true = use hooks, false = use polling
+  useHooks?: boolean, // undefined = not yet decided, true = use hooks, false = use polling
 ) {
   const [panes, setPanes] = useState<DmuxPane[]>([]);
   const panesRef = useRef<DmuxPane[]>([]);
@@ -87,10 +85,11 @@ export default function usePanes(
         pendingLoad.current = false;
 
         // Load panes from file and rebind IDs based on tmux state
-        const { panes: loadedPanes, allPaneIds, titleToId } = await loadAndProcessPanes(
-          panesFile,
-          !initialLoadComplete.current
-        );
+        const {
+          panes: loadedPanes,
+          allPaneIds,
+          titleToId,
+        } = await loadAndProcessPanes(panesFile, !initialLoadComplete.current);
         const loadedSidebarProjects = await loadSidebarProjectsFromFile(panesFile, loadedPanes);
 
         // For initial load, set the loaded panes and mark as complete
@@ -108,7 +107,7 @@ export default function usePanes(
           loadedPanes,
           titleToId,
           allPaneIds,
-          !initialLoadComplete.current
+          !initialLoadComplete.current,
         );
 
         // Recreate worktree panes that were killed (e.g., via Ctrl+b x)
@@ -122,7 +121,7 @@ export default function usePanes(
           const updatedTitleToId = freshData.titleToId;
 
           // Re-rebind after recreation using the utility function
-          finalPanes = finalPanes.map(p => rebindPaneByTitle(p, updatedTitleToId, updatedIds));
+          finalPanes = finalPanes.map((p) => rebindPaneByTitle(p, updatedTitleToId, updatedIds));
         }
 
         // Detect untracked panes (only after initial load)
@@ -131,7 +130,7 @@ export default function usePanes(
           const { updatedPanes, shellPanesAdded: added } = await detectAndAddShellPanes(
             panesFile,
             finalPanes,
-            allPaneIds
+            allPaneIds,
           );
           finalPanes = updatedPanes;
           shellPanesAdded = added;
@@ -147,15 +146,21 @@ export default function usePanes(
         await enforcePaneTitles(finalPanes, allPaneIds, controlPaneId);
 
         // Check if panes changed (compare IDs and paneIds only)
-        const currentPaneIds = panesRef.current.map(p => `${p.id}:${p.paneId}`).sort().join(',');
-        const newPaneIds = finalPanes.map(p => `${p.id}:${p.paneId}`).sort().join(',');
+        const currentPaneIds = panesRef.current
+          .map((p) => `${p.id}:${p.paneId}`)
+          .sort()
+          .join(',');
+        const newPaneIds = finalPanes
+          .map((p) => `${p.id}:${p.paneId}`)
+          .sort()
+          .join(',');
 
         // Check if IDs were remapped
-        const idsChanged = finalPanes.some((pane, idx) =>
-          loadedPanes[idx] && loadedPanes[idx].paneId !== pane.paneId
+        const idsChanged = finalPanes.some(
+          (pane, idx) => loadedPanes[idx] && loadedPanes[idx].paneId !== pane.paneId,
         );
-        const sidebarProjectsChanged = JSON.stringify(sidebarProjectsRef.current)
-          !== JSON.stringify(nextSidebarProjects);
+        const sidebarProjectsChanged =
+          JSON.stringify(sidebarProjectsRef.current) !== JSON.stringify(nextSidebarProjects);
 
         // Update state and save if panes changed OR if shell panes were added/removed
         if (
@@ -188,7 +193,7 @@ export default function usePanes(
                 } catch (error) {
                   LogService.getInstance().debug(
                     `Layout rebalance after shell close failed: ${error instanceof Error ? error.message : String(error)}`,
-                    'usePanes'
+                    'usePanes',
                   );
                 }
               }
@@ -201,7 +206,7 @@ export default function usePanes(
       // Most common errors are transient tmux state issues that resolve on next poll
       LogService.getInstance().debug(
         `Error loading panes: ${error instanceof Error ? error.message : String(error)}`,
-        'usePanes'
+        'usePanes',
       );
     } finally {
       isLoadingPanes.current = false;
@@ -219,7 +224,7 @@ export default function usePanes(
       sidebarProjectsRef.current,
       updatedPanes,
       fallbackProjectRoot,
-      path.basename(fallbackProjectRoot)
+      path.basename(fallbackProjectRoot),
     );
     if (JSON.stringify(sidebarProjectsRef.current) !== JSON.stringify(nextSidebarProjects)) {
       sidebarProjectsRef.current = nextSidebarProjects;
@@ -252,7 +257,7 @@ export default function usePanes(
         newSidebarProjects,
         config.panes || panesRef.current,
         projectRoot,
-        projectName
+        projectName,
       );
 
       config.sidebarProjects = normalizedProjects;
@@ -292,15 +297,9 @@ export default function usePanes(
       try {
         const mode = await service.start(useHooks);
         setEventMode(mode);
-        LogService.getInstance().info(
-          `Pane event mode: ${mode}`,
-          'paneEvents'
-        );
+        LogService.getInstance().info(`Pane event mode: ${mode}`, 'paneEvents');
       } catch (error) {
-        LogService.getInstance().error(
-          `Failed to start pane events: ${error}`,
-          'paneEvents'
-        );
+        LogService.getInstance().error(`Failed to start pane events: ${error}`, 'paneEvents');
         // Fall back to polling with interval
         setEventMode('polling');
       }
@@ -330,7 +329,10 @@ export default function usePanes(
 
     // Listen for pane split events from SIGUSR2 signal (legacy support)
     const handlePaneSplit = () => {
-      LogService.getInstance().debug('Pane split event received, triggering immediate detection', 'shellDetection');
+      LogService.getInstance().debug(
+        'Pane split event received, triggering immediate detection',
+        'shellDetection',
+      );
       loadPanes();
       // Also trigger a force check on the service
       service.forceCheck();
@@ -339,9 +341,12 @@ export default function usePanes(
 
     // Keep a backup polling interval for resilience
     // This is much longer when hooks are active
-    const backupInterval = setInterval(() => {
-      loadPanes();
-    }, eventMode === 'hooks' ? 30000 : PANE_POLLING_INTERVAL); // 30s backup for hooks, 5s for polling
+    const backupInterval = setInterval(
+      () => {
+        loadPanes();
+      },
+      eventMode === 'hooks' ? 30000 : PANE_POLLING_INTERVAL,
+    ); // 30s backup for hooks, 5s for polling
 
     return () => {
       unsubscribe();

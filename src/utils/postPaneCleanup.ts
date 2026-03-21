@@ -25,7 +25,7 @@ export async function handleLastPaneRemoved(projectRoot: string): Promise<void> 
       const { execSync } = await import('child_process');
       controlPaneId = execSync('tmux display-message -p "#{pane_id}"', {
         encoding: 'utf-8',
-        stdio: 'pipe'
+        stdio: 'pipe',
       }).trim();
     } catch (error) {
       return;
@@ -47,14 +47,14 @@ export async function handleLastPaneRemoved(projectRoot: string): Promise<void> 
       controlPaneId,
       [], // No content panes
       dimensions.width,
-      dimensions.height
+      dimensions.height,
     );
   } catch (error) {
     LogService.getInstance().error(
       'Failed to handle last pane removal',
       'postPaneCleanup',
       undefined,
-      error instanceof Error ? error : undefined
+      error instanceof Error ? error : undefined,
     );
   }
 }

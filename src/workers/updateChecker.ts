@@ -36,18 +36,18 @@ async function checkForUpdates() {
     if (shouldShow && updateInfo.hasUpdate) {
       parentPort?.postMessage({
         type: 'update-available',
-        updateInfo
+        updateInfo,
       });
     } else {
       parentPort?.postMessage({
         type: 'no-update',
-        updateInfo
+        updateInfo,
       });
     }
   } catch (error) {
     parentPort?.postMessage({
       type: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }

@@ -31,7 +31,7 @@ describe('copyPathAction', () => {
     // Verify clipboard copy command
     expect(execSync).toHaveBeenCalledWith(
       'echo "/test/project/.dmux/worktrees/my-feature" | pbcopy',
-      { stdio: 'pipe' }
+      { stdio: 'pipe' },
     );
 
     // Verify success result with path in message
@@ -84,10 +84,9 @@ describe('copyPathAction', () => {
     await copyPath(mockPane, mockContext);
 
     // Verify path is properly quoted
-    expect(execSync).toHaveBeenCalledWith(
-      expect.stringContaining('project name with spaces'),
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith(expect.stringContaining('project name with spaces'), {
+      stdio: 'pipe',
+    });
   });
 
   it('should handle very long paths', async () => {

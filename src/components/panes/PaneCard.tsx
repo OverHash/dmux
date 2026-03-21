@@ -35,101 +35,97 @@ const clipToWidth = (value: string, maxWidth: number): string => {
   return clipped;
 };
 
-const PaneCard: React.FC<PaneCardProps> = memo(({ pane, isDevSource, selected }) => {
-  // Get status indicator
-  const getStatusIcon = () => {
-    if (pane.agentStatus === 'working') return { icon: '✻', color: COLORS.working };
-    if (pane.agentStatus === 'analyzing') return { icon: '⟳', color: COLORS.analyzing };
-    if (pane.agentStatus === 'waiting') return { icon: '△', color: COLORS.waiting };
-    if (pane.testStatus === 'running') return { icon: '⧖', color: COLORS.warning };
-    if (pane.testStatus === 'failed') return { icon: '✗', color: COLORS.error };
-    if (pane.testStatus === 'passed') return { icon: '✓', color: COLORS.success };
-    if (pane.devStatus === 'running') return { icon: '▶', color: COLORS.success };
-    return { icon: '◌', color: COLORS.border };
-  };
+const PaneCard: React.FC<PaneCardProps> = memo(
+  ({ pane, isDevSource, selected }) => {
+    // Get status indicator
+    const getStatusIcon = () => {
+      if (pane.agentStatus === 'working') return { icon: '✻', color: COLORS.working };
+      if (pane.agentStatus === 'analyzing') return { icon: '⟳', color: COLORS.analyzing };
+      if (pane.agentStatus === 'waiting') return { icon: '△', color: COLORS.waiting };
+      if (pane.testStatus === 'running') return { icon: '⧖', color: COLORS.warning };
+      if (pane.testStatus === 'failed') return { icon: '✗', color: COLORS.error };
+      if (pane.testStatus === 'passed') return { icon: '✓', color: COLORS.success };
+      if (pane.devStatus === 'running') return { icon: '▶', color: COLORS.success };
+      return { icon: '◌', color: COLORS.border };
+    };
 
-  const status = getStatusIcon();
-  const isFileBrowserPane = pane.type === 'shell' && pane.shellType === 'fb';
-  const paneName = getPaneDisplayName(pane);
+    const status = getStatusIcon();
+    const isFileBrowserPane = pane.type === 'shell' && pane.shellType === 'fb';
+    const paneName = getPaneDisplayName(pane);
 
-  // Right-aligned columns: [cc] = 4 chars, (ap) = 4 chars, space between = 1
-  const hasAgent = pane.type === 'shell' || !!pane.agent;
-  const agentTag = pane.type === 'shell'
-    ? (pane.shellType || 'sh').substring(0, 2)
-    : pane.agent ? getAgentShortLabel(pane.agent) : null;
-  const apTag = pane.autopilot ? 'ap' : null;
+    // Right-aligned columns: [cc] = 4 chars, (ap) = 4 chars, space between = 1
+    const hasAgent = pane.type === 'shell' || !!pane.agent;
+    const agentTag =
+      pane.type === 'shell'
+        ? (pane.shellType || 'sh').substring(0, 2)
+        : pane.agent
+          ? getAgentShortLabel(pane.agent)
+          : null;
+    const apTag = pane.autopilot ? 'ap' : null;
 
-  // Keep non-title segments fixed; only slug is allowed to clip.
-  const prefix = selected ? '▸' : ' ';
-  const statusText = `${status.icon} `;
-  const attentionText = pane.needsAttention ? '! ' : '';
-  const sourceText = isDevSource ? '★ ' : '';
-  const hiddenText = pane.hidden ? ' (hidden)' : '';
-  const agentText = hasAgent ? ` [${agentTag}]` : '     ';
-  const autopilotText = apTag ? ` (${apTag})` : '     ';
-  const shellPrefixText = isFileBrowserPane ? ' ' : '';
-  const fixedLeftWidth = stringWidth(prefix + statusText + attentionText + sourceText + shellPrefixText + hiddenText);
-  const maxSlugWidth = Math.max(0, LEFT_COLUMN_WIDTH - fixedLeftWidth);
-  const slugText = clipToWidth(paneName, maxSlugWidth);
-  const slugColor = isFileBrowserPane
-    ? 'cyan'
-    : selected
-      ? COLORS.selected
-      : COLORS.unselected;
-  const shellTagColor = isFileBrowserPane ? 'yellow' : pane.type === 'shell' ? 'cyan' : 'gray';
+    // Keep non-title segments fixed; only slug is allowed to clip.
+    const prefix = selected ? '▸' : ' ';
+    const statusText = `${status.icon} `;
+    const attentionText = pane.needsAttention ? '! ' : '';
+    const sourceText = isDevSource ? '★ ' : '';
+    const hiddenText = pane.hidden ? ' (hidden)' : '';
+    const agentText = hasAgent ? ` [${agentTag}]` : '     ';
+    const autopilotText = apTag ? ` (${apTag})` : '     ';
+    const shellPrefixText = isFileBrowserPane ? ' ' : '';
+    const fixedLeftWidth = stringWidth(
+      prefix + statusText + attentionText + sourceText + shellPrefixText + hiddenText,
+    );
+    const maxSlugWidth = Math.max(0, LEFT_COLUMN_WIDTH - fixedLeftWidth);
+    const slugText = clipToWidth(paneName, maxSlugWidth);
+    const slugColor = isFileBrowserPane ? 'cyan' : selected ? COLORS.selected : COLORS.unselected;
+    const shellTagColor = isFileBrowserPane ? 'yellow' : pane.type === 'shell' ? 'cyan' : 'gray';
 
-  return (
-    <Box width={ROW_WIDTH}>
-      <Box width={LEFT_COLUMN_WIDTH}>
-        <Text color={selected ? COLORS.selected : COLORS.border}>{prefix}</Text>
-        <Text color={status.color}>{statusText}</Text>
-        {pane.needsAttention && (
-          <Text color={COLORS.warning}>{attentionText}</Text>
-        )}
-        {isDevSource && (
-          <Text color="yellow">{sourceText}</Text>
-        )}
-        {isFileBrowserPane && (
-          <Text color="cyan">{shellPrefixText}</Text>
-        )}
-        <Text color={slugColor} bold={selected || isFileBrowserPane}>
-          {slugText}
-        </Text>
-        {pane.hidden && (
-          <Text color="yellow" dimColor>
-            {hiddenText}
+    return (
+      <Box width={ROW_WIDTH}>
+        <Box width={LEFT_COLUMN_WIDTH}>
+          <Text color={selected ? COLORS.selected : COLORS.border}>{prefix}</Text>
+          <Text color={status.color}>{statusText}</Text>
+          {pane.needsAttention && <Text color={COLORS.warning}>{attentionText}</Text>}
+          {isDevSource && <Text color="yellow">{sourceText}</Text>}
+          {isFileBrowserPane && <Text color="cyan">{shellPrefixText}</Text>}
+          <Text color={slugColor} bold={selected || isFileBrowserPane}>
+            {slugText}
           </Text>
-        )}
+          {pane.hidden && (
+            <Text color="yellow" dimColor>
+              {hiddenText}
+            </Text>
+          )}
+        </Box>
+        <Box width={RIGHT_COLUMN_WIDTH} justifyContent="flex-end">
+          {agentTag ? <Text color={shellTagColor}>{agentText}</Text> : <Text>{agentText}</Text>}
+          {apTag ? (
+            <Text color={COLORS.success}>{autopilotText}</Text>
+          ) : (
+            <Text>{autopilotText}</Text>
+          )}
+        </Box>
       </Box>
-      <Box width={RIGHT_COLUMN_WIDTH} justifyContent="flex-end">
-        {agentTag
-          ? <Text color={shellTagColor}>{agentText}</Text>
-          : <Text>{agentText}</Text>
-        }
-        {apTag
-          ? <Text color={COLORS.success}>{autopilotText}</Text>
-          : <Text>{autopilotText}</Text>
-        }
-      </Box>
-    </Box>
-  );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.pane.id === nextProps.pane.id &&
-    prevProps.pane.slug === nextProps.pane.slug &&
-    prevProps.pane.displayName === nextProps.pane.displayName &&
-    prevProps.pane.agentStatus === nextProps.pane.agentStatus &&
-    prevProps.pane.needsAttention === nextProps.pane.needsAttention &&
-    prevProps.pane.testStatus === nextProps.pane.testStatus &&
-    prevProps.pane.devStatus === nextProps.pane.devStatus &&
-    prevProps.pane.autopilot === nextProps.pane.autopilot &&
-    prevProps.pane.hidden === nextProps.pane.hidden &&
-    prevProps.pane.type === nextProps.pane.type &&
-    prevProps.pane.shellType === nextProps.pane.shellType &&
-    prevProps.pane.agent === nextProps.pane.agent &&
-    prevProps.isDevSource === nextProps.isDevSource &&
-    prevProps.selected === nextProps.selected
-  );
-});
+    );
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.pane.id === nextProps.pane.id &&
+      prevProps.pane.slug === nextProps.pane.slug &&
+      prevProps.pane.displayName === nextProps.pane.displayName &&
+      prevProps.pane.agentStatus === nextProps.pane.agentStatus &&
+      prevProps.pane.needsAttention === nextProps.pane.needsAttention &&
+      prevProps.pane.testStatus === nextProps.pane.testStatus &&
+      prevProps.pane.devStatus === nextProps.pane.devStatus &&
+      prevProps.pane.autopilot === nextProps.pane.autopilot &&
+      prevProps.pane.hidden === nextProps.pane.hidden &&
+      prevProps.pane.type === nextProps.pane.type &&
+      prevProps.pane.shellType === nextProps.pane.shellType &&
+      prevProps.pane.agent === nextProps.pane.agent &&
+      prevProps.isDevSource === nextProps.isDevSource &&
+      prevProps.selected === nextProps.selected
+    );
+  },
+);
 
 export default PaneCard;

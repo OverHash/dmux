@@ -7,7 +7,7 @@ import type { ActionContext } from '../../src/actions/types.js';
 
 export function createMockContext(
   panes: DmuxPane[] = [],
-  overrides?: Partial<ActionContext>
+  overrides?: Partial<ActionContext>,
 ): ActionContext {
   return {
     panes,

@@ -56,7 +56,7 @@ function clamp(value: number, min: number, max: number): number {
 export function getPaneAnchoredPopupOptions(
   pane: PanePosition,
   popupSize: { width: number; height: number },
-  clientSize: { width: number; height: number }
+  clientSize: { width: number; height: number },
 ): Pick<PopupOptions, 'centered' | 'x' | 'y' | 'width' | 'height'> {
   const width = Math.min(popupSize.width, clientSize.width);
   const height = Math.min(popupSize.height, clientSize.height);
@@ -78,16 +78,13 @@ const POPUP_READY_TIMEOUT_MS = 4000;
 /**
  * Calculate actual popup bounds based on tmux terminal dimensions
  */
-function calculatePopupBounds(options: PopupOptions): { x: number; y: number; width: number; height: number } {
-  const {
-    width = 80,
-    height = 20,
-    centered = true,
-    x,
-    y,
-    leftOffset = 0,
-    topOffset = 0,
-  } = options;
+function calculatePopupBounds(options: PopupOptions): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  const { width = 80, height = 20, centered = true, x, y, leftOffset = 0, topOffset = 0 } = options;
 
   try {
     // Get tmux client dimensions using TmuxService
@@ -127,7 +124,7 @@ function calculatePopupBounds(options: PopupOptions): { x: number; y: number; wi
  */
 export async function launchPopup(
   command: string,
-  options: PopupOptions = {}
+  options: PopupOptions = {},
 ): Promise<PopupResult<string>> {
   const {
     width = 80,
@@ -149,9 +146,12 @@ export async function launchPopup(
   const args: string[] = [
     'display-popup',
     '-E', // Close on command exit
-    '-w', width.toString(),
-    '-h', height.toString(),
-    '-d', `"${cwd}"`,
+    '-w',
+    width.toString(),
+    '-h',
+    height.toString(),
+    '-d',
+    `"${cwd}"`,
   ];
 
   // Add border style if supported (tmux 3.2+)
@@ -253,14 +253,14 @@ export async function launchPopup(
 export async function launchNodePopup<T = any>(
   scriptPath: string,
   args: string[] = [],
-  options: PopupOptions = {}
+  options: PopupOptions = {},
 ): Promise<PopupResult<T>> {
   // Get the result file path that the script will write to
   const resultFile = path.join(os.tmpdir(), `dmux-popup-${Date.now()}.json`);
 
   // Build node command with proper escaping
   // Escape each argument for shell: replace backslashes, then single quotes
-  const escapedArgs = [scriptPath, resultFile, ...args].map(arg => {
+  const escapedArgs = [scriptPath, resultFile, ...args].map((arg) => {
     // Escape for shell: replace ' with '\''
     const escaped = arg.replace(/\\/g, '\\\\').replace(/'/g, "'\\''");
     return `'${escaped}'`;
@@ -279,7 +279,7 @@ export async function launchNodePopup<T = any>(
  */
 export function launchPopupNonBlocking(
   command: string,
-  options: PopupOptions = {}
+  options: PopupOptions = {},
 ): PopupHandle<string> {
   const {
     width = 80,
@@ -304,9 +304,12 @@ export function launchPopupNonBlocking(
   const args: string[] = [
     'display-popup',
     '-E', // Close on command exit
-    '-w', width.toString(),
-    '-h', height.toString(),
-    '-d', `"${cwd}"`,
+    '-w',
+    width.toString(),
+    '-h',
+    height.toString(),
+    '-d',
+    `"${cwd}"`,
   ];
 
   // Add border style if supported (tmux 3.2+)
@@ -415,10 +418,7 @@ export function launchPopupNonBlocking(
   };
 }
 
-function waitForPopupReady(
-  child: ChildProcess,
-  readyFile: string
-): Promise<void> {
+function waitForPopupReady(child: ChildProcess, readyFile: string): Promise<void> {
   return new Promise((resolve) => {
     let settled = false;
 
@@ -464,7 +464,7 @@ function waitForPopupReady(
 export function launchNodePopupNonBlocking<T = any>(
   scriptPath: string,
   args: string[] = [],
-  options: PopupOptions = {}
+  options: PopupOptions = {},
 ): PopupHandle<T> {
   const {
     width = 80,
@@ -487,17 +487,15 @@ export function launchNodePopupNonBlocking<T = any>(
   const resultFile = path.join(os.tmpdir(), `dmux-popup-${Date.now()}.json`);
   const readyFile = path.join(
     os.tmpdir(),
-    `dmux-popup-ready-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`
+    `dmux-popup-ready-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`,
   );
 
   // Build node command with proper escaping
-  const escapedArgs = [scriptPath, resultFile, ...args].map(arg => {
+  const escapedArgs = [scriptPath, resultFile, ...args].map((arg) => {
     const escaped = arg.replace(/\\/g, '\\\\').replace(/'/g, "'\\''");
     return `'${escaped}'`;
   });
-  const escapedReadyFile = readyFile
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "'\\''");
+  const escapedReadyFile = readyFile.replace(/\\/g, '\\\\').replace(/'/g, "'\\''");
 
   const command = `DMUX_POPUP_READY_FILE='${escapedReadyFile}' node ${escapedArgs.join(' ')}`;
 
@@ -505,9 +503,12 @@ export function launchNodePopupNonBlocking<T = any>(
   const tmuxArgs: string[] = [
     'display-popup',
     '-E', // Close on command exit
-    '-w', width.toString(),
-    '-h', height.toString(),
-    '-d', `"${cwd}"`,
+    '-w',
+    width.toString(),
+    '-h',
+    height.toString(),
+    '-d',
+    `"${cwd}"`,
   ];
 
   // Add border style if supported (tmux 3.2+)
@@ -701,7 +702,11 @@ export const POPUP_POSITIONING = {
    * Large popup that takes up most of the available space
    * Use for logs viewer and other content-heavy popups
    */
-  large(sidebarWidth: number, terminalWidth: number, terminalHeight: number): Partial<PopupOptions> {
+  large(
+    sidebarWidth: number,
+    terminalWidth: number,
+    terminalHeight: number,
+  ): Partial<PopupOptions> {
     return {
       centered: false,
       leftOffset: sidebarWidth + 1,
@@ -718,7 +723,7 @@ export const POPUP_POSITIONING = {
   overPane(
     pane: PanePosition,
     popupSize: { width: number; height: number },
-    clientSize: { width: number; height: number }
+    clientSize: { width: number; height: number },
   ): Partial<PopupOptions> {
     return getPaneAnchoredPopupOptions(pane, popupSize, clientSize);
   },

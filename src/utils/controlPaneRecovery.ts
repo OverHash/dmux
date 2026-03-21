@@ -76,31 +76,27 @@ function parsePaneRows(output: string): PaneRow[] {
 }
 
 function resolveDistIndexPath(): string {
-  return path.join(
-    path.dirname(fileURLToPath(import.meta.url)),
-    '..',
-    'index.js'
-  );
+  return path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'index.js');
 }
 
 async function recoverControlPaneIfNeeded(): Promise<void> {
   let decodedSession = '';
   if (process.env.DMUX_RECOVERY_SESSION_B64) {
     try {
-      decodedSession = Buffer.from(
-        process.env.DMUX_RECOVERY_SESSION_B64,
-        'base64'
-      ).toString('utf-8');
+      decodedSession = Buffer.from(process.env.DMUX_RECOVERY_SESSION_B64, 'base64').toString(
+        'utf-8',
+      );
     } catch {
       decodedSession = '';
     }
   }
 
   const resolvedSessionFromTmux = runTmux(['display-message', '-p', '#S']);
-  const sessionName = decodedSession
-    || process.env.DMUX_RECOVERY_SESSION
-    || (resolvedSessionFromTmux.ok ? resolvedSessionFromTmux.stdout : '')
-    || '';
+  const sessionName =
+    decodedSession ||
+    process.env.DMUX_RECOVERY_SESSION ||
+    (resolvedSessionFromTmux.ok ? resolvedSessionFromTmux.stdout : '') ||
+    '';
 
   const exitedPaneIdRaw = process.env.DMUX_RECOVERY_EXITED_PANE || '';
   const exitedPaneId = exitedPaneIdRaw.startsWith('#{') ? '' : exitedPaneIdRaw;
@@ -119,20 +115,12 @@ async function recoverControlPaneIfNeeded(): Promise<void> {
     return;
   }
 
-  const controlPaneId = typeof config.controlPaneId === 'string'
-    ? config.controlPaneId
-    : '';
+  const controlPaneId = typeof config.controlPaneId === 'string' ? config.controlPaneId : '';
   if (!controlPaneId) {
     return;
   }
 
-  const paneList = runTmux([
-    'list-panes',
-    '-t',
-    sessionName,
-    '-F',
-    '#{pane_id}\t#{pane_title}',
-  ]);
+  const paneList = runTmux(['list-panes', '-t', sessionName, '-F', '#{pane_id}\t#{pane_title}']);
   if (!paneList.ok) {
     return;
   }
@@ -163,9 +151,10 @@ async function recoverControlPaneIfNeeded(): Promise<void> {
   }
 
   const projectRootFromOption = getSessionOption(sessionName, '@dmux_project_root');
-  const projectRoot = projectRootFromOption
-    || (typeof config.projectRoot === 'string' ? config.projectRoot : '')
-    || path.dirname(path.dirname(configPath));
+  const projectRoot =
+    projectRootFromOption ||
+    (typeof config.projectRoot === 'string' ? config.projectRoot : '') ||
+    path.dirname(path.dirname(configPath));
 
   const anchorPaneId = panes[0]?.paneId;
   if (!anchorPaneId) {

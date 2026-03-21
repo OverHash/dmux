@@ -7,7 +7,7 @@ describe('pane status monitoring eligibility', () => {
       shouldMonitorPaneForStatusTracking({
         type: 'worktree',
         agent: 'claude',
-      })
+      }),
     ).toBe(true);
   });
 
@@ -16,7 +16,7 @@ describe('pane status monitoring eligibility', () => {
       shouldMonitorPaneForStatusTracking({
         type: 'shell',
         agent: undefined,
-      })
+      }),
     ).toBe(false);
   });
 
@@ -25,7 +25,7 @@ describe('pane status monitoring eligibility', () => {
       shouldMonitorPaneForStatusTracking({
         type: 'worktree',
         agent: undefined,
-      })
+      }),
     ).toBe(false);
   });
 });

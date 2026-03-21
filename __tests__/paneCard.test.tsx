@@ -12,9 +12,7 @@ describe('PaneCard', () => {
       agent: 'codex',
     });
 
-    const { lastFrame } = render(
-      <PaneCard pane={pane} isDevSource={false} selected={false} />
-    );
+    const { lastFrame } = render(<PaneCard pane={pane} isDevSource={false} selected={false} />);
 
     expect(stripAnsi(lastFrame() ?? '')).toContain('[cx]');
     expect(stripAnsi(lastFrame() ?? '')).not.toContain('[oc]');
@@ -27,9 +25,7 @@ describe('PaneCard', () => {
       agent: undefined,
     });
 
-    const { lastFrame } = render(
-      <PaneCard pane={pane} isDevSource={false} selected={false} />
-    );
+    const { lastFrame } = render(<PaneCard pane={pane} isDevSource={false} selected={false} />);
 
     expect(stripAnsi(lastFrame() ?? '')).toContain('[zs]');
   });
@@ -43,9 +39,7 @@ describe('PaneCard', () => {
       worktreePath: undefined,
     });
 
-    const { lastFrame } = render(
-      <PaneCard pane={pane} isDevSource={false} selected={false} />
-    );
+    const { lastFrame } = render(<PaneCard pane={pane} isDevSource={false} selected={false} />);
 
     expect(stripAnsi(lastFrame() ?? '')).toContain('[fb]');
     expect(stripAnsi(lastFrame() ?? '')).toContain('');
@@ -58,9 +52,7 @@ describe('PaneCard', () => {
       needsAttention: true,
     });
 
-    const { lastFrame } = render(
-      <PaneCard pane={pane} isDevSource={false} selected={false} />
-    );
+    const { lastFrame } = render(<PaneCard pane={pane} isDevSource={false} selected={false} />);
 
     expect(stripAnsi(lastFrame() ?? '')).toContain('! Attention Pane');
   });

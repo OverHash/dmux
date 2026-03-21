@@ -19,10 +19,10 @@ export async function detectShellType(paneId: string): Promise<string> {
   try {
     // Get the command running in the pane
     const { execSync } = await import('child_process');
-    const command = execSync(
-      `tmux display-message -t '${paneId}' -p '#{pane_current_command}'`,
-      { encoding: 'utf-8', stdio: 'pipe' }
-    ).trim();
+    const command = execSync(`tmux display-message -t '${paneId}' -p '#{pane_current_command}'`, {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    }).trim();
 
     // Common shells
     const knownShells = ['bash', 'zsh', 'fish', 'sh', 'ksh', 'tcsh', 'csh'];
@@ -38,21 +38,21 @@ export async function detectShellType(paneId: string): Promise<string> {
     // If running something else, still try to detect the parent shell
     // This handles cases where a command is running in the shell
     try {
-      const pid = execSync(
-        `tmux display-message -t '${paneId}' -p '#{pane_pid}'`,
-        { encoding: 'utf-8', stdio: 'pipe' }
-      ).trim();
+      const pid = execSync(`tmux display-message -t '${paneId}' -p '#{pane_pid}'`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      }).trim();
 
       // Get parent process
       const ppid = execSync(`ps -o ppid= -p ${pid}`, {
         encoding: 'utf-8',
-        stdio: 'pipe'
+        stdio: 'pipe',
       }).trim();
 
       if (ppid) {
         const parentCommand = execSync(`ps -o comm= -p ${ppid}`, {
           encoding: 'utf-8',
-          stdio: 'pipe'
+          stdio: 'pipe',
         }).trim();
 
         const lowerParent = parentCommand.toLowerCase();
@@ -69,10 +69,10 @@ export async function detectShellType(paneId: string): Promise<string> {
     // Fallback to generic 'shell'
     return 'shell';
   } catch (error) {
-  //     LogService.getInstance().debug(
-  //       `Failed to detect shell type for pane ${paneId}`,
-  //       'shellDetection'
-  //     );
+    //     LogService.getInstance().debug(
+    //       `Failed to detect shell type for pane ${paneId}`,
+    //       'shellDetection'
+    //     );
     return 'shell';
   }
 }
@@ -98,14 +98,14 @@ export async function getUntrackedPanes(
   sessionName: string,
   trackedPaneIds: string[],
   controlPaneId?: string,
-  welcomePaneId?: string
+  welcomePaneId?: string,
 ): Promise<UntrackedPaneInfo[]> {
   try {
     // Get all panes in the current session with ID, title, and current command
     const { execSync } = await import('child_process');
     const output = execSync(
       `tmux list-panes -s -F '#{pane_id}::#{pane_title}::#{pane_current_command}'`,
-      { encoding: 'utf-8', stdio: 'pipe' }
+      { encoding: 'utf-8', stdio: 'pipe' },
     ).trim();
 
     if (!output) return [];
@@ -155,14 +155,14 @@ export async function getUntrackedPanes(
 }
 
 async function detectPaneProjectInfo(
-  paneId: string
+  paneId: string,
 ): Promise<{ projectRoot?: string; projectName?: string }> {
   try {
     const { execSync } = await import('child_process');
-    const panePath = execSync(
-      `tmux display-message -t '${paneId}' -p '#{pane_current_path}'`,
-      { encoding: 'utf-8', stdio: 'pipe' }
-    ).trim();
+    const panePath = execSync(`tmux display-message -t '${paneId}' -p '#{pane_current_path}'`, {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    }).trim();
 
     if (!panePath) {
       return {};
@@ -185,7 +185,11 @@ async function detectPaneProjectInfo(
  * @param existingTitle Optional existing title (used for display but not for tracking)
  * @returns DmuxPane object for the shell pane
  */
-export async function createShellPane(paneId: string, nextId: number, existingTitle?: string): Promise<DmuxPane> {
+export async function createShellPane(
+  paneId: string,
+  nextId: number,
+  existingTitle?: string,
+): Promise<DmuxPane> {
   const tmuxService = TmuxService.getInstance();
   const shellType = await detectShellType(paneId);
   const paneProjectInfo = await detectPaneProjectInfo(paneId);
@@ -228,11 +232,11 @@ export function getNextDmuxId(existingPanes: DmuxPane[]): number {
 
   // Extract numeric IDs from all panes
   const ids = existingPanes
-    .map(p => {
+    .map((p) => {
       const match = p.id.match(/^dmux-(\d+)$/);
       return match ? parseInt(match[1], 10) : 0;
     })
-    .filter(id => id > 0);
+    .filter((id) => id > 0);
 
   if (ids.length === 0) return 1;
 

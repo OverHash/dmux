@@ -3,20 +3,35 @@
 import type { AgentName } from '../utils/agentLaunch.js';
 
 export interface WorkerMessage {
-  id: string;          // Unique message ID for request/response pairing
-  type: string;        // Message type
+  id: string; // Unique message ID for request/response pairing
+  type: string; // Message type
   timestamp: number;
   payload?: any;
 }
 
 // Messages sent from main thread to worker
 export interface InboundMessage extends WorkerMessage {
-  type: 'init' | 'capture' | 'send-keys' | 'analyze-complete' | 'shutdown' | 'resize' | 'get-status';
+  type:
+    | 'init'
+    | 'capture'
+    | 'send-keys'
+    | 'analyze-complete'
+    | 'shutdown'
+    | 'resize'
+    | 'get-status';
 }
 
 // Messages sent from worker to main thread
 export interface OutboundMessage extends WorkerMessage {
-  type: 'ready' | 'status-change' | 'capture-result' | 'analysis-needed' | 'error' | 'shutdown-complete' | 'pane-removed' | 'user-interaction';
+  type:
+    | 'ready'
+    | 'status-change'
+    | 'capture-result'
+    | 'analysis-needed'
+    | 'error'
+    | 'shutdown-complete'
+    | 'pane-removed'
+    | 'user-interaction';
   paneId: string;
 }
 

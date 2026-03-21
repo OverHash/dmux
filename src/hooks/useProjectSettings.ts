@@ -19,7 +19,7 @@ export default function useProjectSettings(settingsFile: string) {
       try {
         const content = await fs.readFile(settingsFile, 'utf-8');
         const parsed = JSON.parse(content);
-        
+
         // Handle both old format (direct settings) and new format (config with settings field)
         if (parsed.settings !== undefined || parsed.panes !== undefined) {
           // New config format
@@ -46,11 +46,11 @@ export default function useProjectSettings(settingsFile: string) {
         config = parsed;
       }
     } catch {}
-    
+
     // Update settings in config
     config.settings = settings;
     config.lastUpdated = new Date().toISOString();
-    
+
     await fs.writeFile(settingsFile, JSON.stringify(config, null, 2));
     setProjectSettings(settings);
   };

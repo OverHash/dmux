@@ -20,16 +20,13 @@ export function sameSidebarProjectRoot(a: string, b: string): boolean {
   return normalizeProjectRoot(a) === normalizeProjectRoot(b);
 }
 
-export function hasSidebarProject(
-  projects: SidebarProject[],
-  projectRoot: string
-): boolean {
+export function hasSidebarProject(projects: SidebarProject[], projectRoot: string): boolean {
   return projects.some((project) => sameSidebarProjectRoot(project.projectRoot, projectRoot));
 }
 
 export function addSidebarProject(
   projects: SidebarProject[],
-  project: SidebarProject
+  project: SidebarProject,
 ): SidebarProject[] {
   if (hasSidebarProject(projects, project.projectRoot)) {
     return projects;
@@ -40,7 +37,7 @@ export function addSidebarProject(
 
 export function removeSidebarProject(
   projects: SidebarProject[],
-  projectRoot: string
+  projectRoot: string,
 ): SidebarProject[] {
   return projects.filter((project) => !sameSidebarProjectRoot(project.projectRoot, projectRoot));
 }
@@ -54,7 +51,7 @@ export function normalizeSidebarProjects(
   sidebarProjects: SidebarProject[] | undefined,
   panes: DmuxPane[],
   fallbackProjectRoot: string,
-  fallbackProjectName: string
+  fallbackProjectName: string,
 ): SidebarProject[] {
   const normalizedProjects: SidebarProject[] = [];
   const seenRoots = new Set<string>();

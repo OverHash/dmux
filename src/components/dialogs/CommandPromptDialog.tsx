@@ -18,14 +18,14 @@ const CommandPromptDialog: React.FC<CommandPromptDialogProps> = ({ type, value, 
         <Text dimColor>
           Enter command to run {type === 'test' ? 'tests' : 'dev server'} in worktrees
         </Text>
-        <Text dimColor>
-          (Press Enter with empty input for suggested command, ESC to cancel)
-        </Text>
+        <Text dimColor>(Press Enter with empty input for suggested command, ESC to cancel)</Text>
         <Box marginTop={1}>
           <StyledTextInput
             value={value}
             onChange={onChange}
-            placeholder={type === 'test' ? 'e.g., npm test, pnpm test' : 'e.g., npm run dev, pnpm dev'}
+            placeholder={
+              type === 'test' ? 'e.g., npm test, pnpm test' : 'e.g., npm run dev, pnpm dev'
+            }
           />
         </Box>
       </Box>

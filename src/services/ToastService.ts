@@ -10,7 +10,7 @@ export interface Toast {
 }
 
 const SINGLE_TOAST_DURATION = 10000; // 10 seconds
-const QUEUED_TOAST_DURATION = 5000;  // 5 seconds
+const QUEUED_TOAST_DURATION = 5000; // 5 seconds
 
 /**
  * ToastService - Manages toast notifications with queue
@@ -99,9 +99,7 @@ export class ToastService extends EventEmitter {
     this.emit('toast-shown', toast);
 
     // Determine timeout based on queue
-    const timeout = this.queue.length > 0
-      ? QUEUED_TOAST_DURATION
-      : SINGLE_TOAST_DURATION;
+    const timeout = this.queue.length > 0 ? QUEUED_TOAST_DURATION : SINGLE_TOAST_DURATION;
 
     // Set auto-dismiss timer
     this.dismissTimer = setTimeout(() => {
@@ -158,9 +156,10 @@ export class ToastService extends EventEmitter {
     return {
       currentToast: this.currentToast,
       queueLength: this.queue.length,
-      queuePosition: this.currentToast && this.queue.length > 0
-        ? 1 // Current is position 1
-        : null,
+      queuePosition:
+        this.currentToast && this.queue.length > 0
+          ? 1 // Current is position 1
+          : null,
     };
   }
 

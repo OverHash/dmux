@@ -24,7 +24,7 @@ export interface APIActionResponse {
   confirmData?: {
     yesLabel: string;
     noLabel: string;
-    callbackId: string;  // ID to use when user responds
+    callbackId: string; // ID to use when user responds
   };
 
   // Choice dialog data
@@ -66,13 +66,16 @@ export interface APIActionResponse {
  * Pending action callbacks stored in memory
  * In production, these should be stored in a session store or database
  */
-const pendingCallbacks = new Map<string, {
-  onConfirm?: () => Promise<ActionResult>;
-  onCancel?: () => Promise<ActionResult>;
-  onSelect?: (optionId: string) => Promise<ActionResult>;
-  onSubmit?: (value: string) => Promise<ActionResult>;
-  timestamp: number;
-}>();
+const pendingCallbacks = new Map<
+  string,
+  {
+    onConfirm?: () => Promise<ActionResult>;
+    onCancel?: () => Promise<ActionResult>;
+    onSelect?: (optionId: string) => Promise<ActionResult>;
+    onSubmit?: (value: string) => Promise<ActionResult>;
+    timestamp: number;
+  }
+>();
 
 /**
  * Clean up old callbacks (older than 5 minutes)
@@ -187,7 +190,7 @@ export function actionResultToAPIResponse(result: ActionResult): APIActionRespon
  */
 export async function handleConfirmResponse(
   callbackId: string,
-  confirmed: boolean
+  confirmed: boolean,
 ): Promise<APIActionResponse> {
   const callback = pendingCallbacks.get(callbackId);
 
@@ -219,7 +222,7 @@ export async function handleConfirmResponse(
  */
 export async function handleChoiceResponse(
   callbackId: string,
-  optionId: string
+  optionId: string,
 ): Promise<APIActionResponse> {
   const callback = pendingCallbacks.get(callbackId);
 
@@ -242,7 +245,7 @@ export async function handleChoiceResponse(
  */
 export async function handleInputResponse(
   callbackId: string,
-  value: string
+  value: string,
 ): Promise<APIActionResponse> {
   const callback = pendingCallbacks.get(callbackId);
 

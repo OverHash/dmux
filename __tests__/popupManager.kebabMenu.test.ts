@@ -20,7 +20,11 @@ function createPopupManager(): PopupManager {
     trackProjectActivity: async (work) => await work(),
   };
 
-  return new PopupManager(config, () => {}, () => {});
+  return new PopupManager(
+    config,
+    () => {},
+    () => {},
+  );
 }
 
 function createPane(id: string): DmuxPane {
@@ -62,7 +66,7 @@ describe('PopupManager launchKebabMenuPopup', () => {
         targetPaneId: pane.paneId,
       }),
       undefined,
-      '/tmp/project'
+      '/tmp/project',
     );
   });
 });

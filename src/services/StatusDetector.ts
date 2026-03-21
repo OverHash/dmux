@@ -100,7 +100,7 @@ export class StatusDetector extends EventEmitter {
     if (this.isShuttingDown) return;
 
     // Update pane ID mappings
-    panes.forEach(pane => {
+    panes.forEach((pane) => {
       if (pane.id && pane.paneId) {
         this.paneIdMap.set(pane.id, pane.paneId);
       }
@@ -113,10 +113,7 @@ export class StatusDetector extends EventEmitter {
   /**
    * Handle status change from worker
    */
-  private async handleStatusChange(
-    paneId: string,
-    message: OutboundMessage
-  ): Promise<void> {
+  private async handleStatusChange(paneId: string, message: OutboundMessage): Promise<void> {
     const { status, previousStatus } = message.payload || {};
 
     if (!status) return;
@@ -135,7 +132,7 @@ export class StatusDetector extends EventEmitter {
     const updateEvent: StatusUpdateEvent = {
       paneId,
       status,
-      previousStatus: oldStatus
+      previousStatus: oldStatus,
     };
 
     // Clear analyzerError when transitioning to working status
@@ -149,10 +146,7 @@ export class StatusDetector extends EventEmitter {
   /**
    * Handle analysis request from worker
    */
-  private async handleAnalysisRequest(
-    paneId: string,
-    message: OutboundMessage
-  ): Promise<void> {
+  private async handleAnalysisRequest(paneId: string, message: OutboundMessage): Promise<void> {
     const { captureSnapshot, reason } = message.payload || {};
 
     if (!captureSnapshot) return;
@@ -164,7 +158,7 @@ export class StatusDetector extends EventEmitter {
     this.paneStatuses.set(paneId, 'analyzing');
     this.emit('status-updated', {
       paneId,
-      status: 'analyzing'
+      status: 'analyzing',
     } as StatusUpdateEvent);
 
     try {
@@ -189,7 +183,7 @@ export class StatusDetector extends EventEmitter {
           tmuxPaneId,
           controller.signal,
           paneId,
-          captureSnapshot
+          captureSnapshot,
         );
 
         // Clear the timeout since analysis completed
@@ -201,8 +195,7 @@ export class StatusDetector extends EventEmitter {
         }
 
         // Determine final status based on analysis
-        const finalStatus: AgentStatus =
-          analysis.state === 'option_dialog' ? 'waiting' : 'idle';
+        const finalStatus: AgentStatus = analysis.state === 'option_dialog' ? 'waiting' : 'idle';
 
         // If we detected an option dialog, add a 2-second delay before allowing
         // the next state detection. This prevents detecting an incomplete state
@@ -222,8 +215,8 @@ export class StatusDetector extends EventEmitter {
           payload: {
             status: finalStatus,
             analysis,
-            delayBeforeNextCheck
-          }
+            delayBeforeNextCheck,
+          },
         });
 
         // Emit event for UI with analysis data
@@ -234,7 +227,7 @@ export class StatusDetector extends EventEmitter {
           optionsQuestion: analysis.question,
           options: analysis.options,
           potentialHarm: analysis.potentialHarm,
-          summary: analysis.summary
+          summary: analysis.summary,
         };
         this.emit('status-updated', statusEvent);
 
@@ -253,7 +246,11 @@ export class StatusDetector extends EventEmitter {
           }
 
           // Request was aborted due to timeout
-          LogService.getInstance().warn(`LLM analysis timeout for pane ${paneId} after 10 seconds`, 'statusDetector', paneId);
+          LogService.getInstance().warn(
+            `LLM analysis timeout for pane ${paneId} after 10 seconds`,
+            'statusDetector',
+            paneId,
+          );
 
           this.paneStatuses.set(paneId, 'idle');
 
@@ -264,15 +261,15 @@ export class StatusDetector extends EventEmitter {
             payload: {
               status: 'idle',
               analysis: { state: 'open_prompt' },
-              delayBeforeNextCheck: 0
-            }
+              delayBeforeNextCheck: 0,
+            },
           });
 
           this.emit('status-updated', {
             paneId,
             status: 'idle',
             previousStatus: 'analyzing',
-            analyzerError: 'Analysis timeout (10s limit)'
+            analyzerError: 'Analysis timeout (10s limit)',
           } as StatusUpdateEvent);
           return;
         }
@@ -280,7 +277,12 @@ export class StatusDetector extends EventEmitter {
         throw error; // Re-throw other errors to outer catch
       }
     } catch (error: any) {
-      LogService.getInstance().error(`LLM analysis error for pane ${paneId}: ${error.message || error}`, 'statusDetector', paneId, error instanceof Error ? error : undefined);
+      LogService.getInstance().error(
+        `LLM analysis error for pane ${paneId}: ${error.message || error}`,
+        'statusDetector',
+        paneId,
+        error instanceof Error ? error : undefined,
+      );
 
       // Extract detailed error message
       let errorMessage = 'Analysis failed';
@@ -324,7 +326,7 @@ export class StatusDetector extends EventEmitter {
         paneId,
         status: 'idle',
         previousStatus: 'analyzing',
-        analyzerError: errorMessage
+        analyzerError: errorMessage,
       } as StatusUpdateEvent);
     } finally {
       this.llmRequests.delete(paneId);
@@ -334,10 +336,7 @@ export class StatusDetector extends EventEmitter {
   /**
    * Cancel LLM request for a pane
    */
-  private cancelLLMRequest(
-    paneId: string,
-    reason: string = LLM_ABORT_REASON_SUPERSEDED
-  ): void {
+  private cancelLLMRequest(paneId: string, reason: string = LLM_ABORT_REASON_SUPERSEDED): void {
     const controller = this.llmRequests.get(paneId);
     if (controller) {
       controller.abort(reason);
@@ -358,7 +357,7 @@ export class StatusDetector extends EventEmitter {
   private async handleAutopilot(
     paneId: string,
     analysis: PaneAnalysis,
-    finalStatus: AgentStatus
+    finalStatus: AgentStatus,
   ): Promise<void> {
     const logService = LogService.getInstance();
 
@@ -368,11 +367,19 @@ export class StatusDetector extends EventEmitter {
     const paneName = pane ? getPaneDisplayName(pane) : paneId;
 
     // Log entry into autopilot handler
-    logService.debug(`Autopilot: Evaluating "${paneName}" (status: ${finalStatus}, state: ${analysis.state})`, 'autopilot', paneId);
+    logService.debug(
+      `Autopilot: Evaluating "${paneName}" (status: ${finalStatus}, state: ${analysis.state})`,
+      'autopilot',
+      paneId,
+    );
 
     // Only proceed if status is 'waiting' (option dialog detected)
     if (finalStatus !== 'waiting') {
-      logService.debug(`Autopilot: Not applicable for "${paneName}" - agent is ${finalStatus}, no decision needed`, 'autopilot', paneId);
+      logService.debug(
+        `Autopilot: Not applicable for "${paneName}" - agent is ${finalStatus}, no decision needed`,
+        'autopilot',
+        paneId,
+      );
       return;
     }
 
@@ -386,14 +393,18 @@ export class StatusDetector extends EventEmitter {
       return;
     }
 
-    logService.debug(`Autopilot: "${paneName}" has autopilot enabled - checking analysis results`, 'autopilot', paneId);
+    logService.debug(
+      `Autopilot: "${paneName}" has autopilot enabled - checking analysis results`,
+      'autopilot',
+      paneId,
+    );
 
     // Check if there's a risk - don't auto-accept risky options
     if (analysis.potentialHarm?.hasRisk) {
       logService.info(
         `Autopilot: Refusing to auto-accept for "${paneName}" - risk detected: ${analysis.potentialHarm.description || 'unknown risk'}`,
         'autopilot',
-        paneId
+        paneId,
       );
       return;
     }
@@ -406,12 +417,20 @@ export class StatusDetector extends EventEmitter {
       return;
     }
 
-    logService.debug(`Autopilot: Found ${analysis.options.length} options for "${paneName}": ${JSON.stringify(analysis.options.map(o => o.action))}`, 'autopilot', paneId);
+    logService.debug(
+      `Autopilot: Found ${analysis.options.length} options for "${paneName}": ${JSON.stringify(analysis.options.map((o) => o.action))}`,
+      'autopilot',
+      paneId,
+    );
 
     // Get the first option (typically the "accept" or "continue" option)
     const firstOption = analysis.options[0];
     if (!firstOption.keys || firstOption.keys.length === 0) {
-      logService.debug(`Autopilot: First option has no keys for "${paneName}"`, 'autopilot', paneId);
+      logService.debug(
+        `Autopilot: First option has no keys for "${paneName}"`,
+        'autopilot',
+        paneId,
+      );
       return;
     }
 
@@ -420,19 +439,23 @@ export class StatusDetector extends EventEmitter {
     logService.info(
       `Autopilot: Auto-accepting option for "${paneName}": "${firstOption.action}" (key: ${keyToSend})`,
       'autopilot',
-      paneId
+      paneId,
     );
 
     try {
       // Send the key through the worker manager
       await this.sendKeysToPane(paneId, keyToSend);
-      logService.debug(`Autopilot: Successfully sent key '${keyToSend}' to "${paneName}"`, 'autopilot', paneId);
+      logService.debug(
+        `Autopilot: Successfully sent key '${keyToSend}' to "${paneName}"`,
+        'autopilot',
+        paneId,
+      );
     } catch (error) {
       logService.error(
         `Autopilot: Failed to send keys for "${paneName}": ${error}`,
         'autopilot',
         paneId,
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -441,7 +464,7 @@ export class StatusDetector extends EventEmitter {
     paneId: string,
     tmuxPaneId: string,
     status: AgentStatus,
-    analysis: PaneAnalysis
+    analysis: PaneAnalysis,
   ): AttentionNeededEvent | null {
     if (status !== 'idle' && status !== 'waiting') {
       return null;
@@ -450,13 +473,13 @@ export class StatusDetector extends EventEmitter {
     const pane = StateManager.getInstance().getPaneById(paneId);
     const subtitle = pane ? getPaneDisplayName(pane) : undefined;
 
-    const title = analysis.attentionTitle
-      || (status === 'waiting'
-        ? 'Decision needed'
-        : 'Ready for the next prompt');
+    const title =
+      analysis.attentionTitle ||
+      (status === 'waiting' ? 'Decision needed' : 'Ready for the next prompt');
 
-    const body = analysis.attentionBody
-      || (status === 'waiting'
+    const body =
+      analysis.attentionBody ||
+      (status === 'waiting'
         ? `${analysis.question || 'The agent is waiting for your input.'} Open the pane and choose how to continue.`
         : `${analysis.summary || 'The agent finished its current step.'} Open the pane and continue the work.`);
 
@@ -502,26 +525,26 @@ export class StatusDetector extends EventEmitter {
    * Send keys to a pane (future feature)
    */
   async sendKeysToPane(paneId: string, keys: string): Promise<void> {
-    return this.workerManager.sendToWorker(paneId, {
-      type: 'send-keys',
-      timestamp: Date.now(),
-      payload: { keys }
-    }).then(() => {});
+    return this.workerManager
+      .sendToWorker(paneId, {
+        type: 'send-keys',
+        timestamp: Date.now(),
+        payload: { keys },
+      })
+      .then(() => {});
   }
 
   /**
    * Resize a pane (future feature)
    */
-  async resizePane(
-    paneId: string,
-    width?: number,
-    height?: number
-  ): Promise<void> {
-    return this.workerManager.sendToWorker(paneId, {
-      type: 'resize',
-      timestamp: Date.now(),
-      payload: { width, height }
-    }).then(() => {});
+  async resizePane(paneId: string, width?: number, height?: number): Promise<void> {
+    return this.workerManager
+      .sendToWorker(paneId, {
+        type: 'resize',
+        timestamp: Date.now(),
+        payload: { width, height },
+      })
+      .then(() => {});
   }
 
   /**
@@ -537,10 +560,10 @@ export class StatusDetector extends EventEmitter {
       idle: 0,
       analyzing: 0,
       waiting: 0,
-      working: 0
+      working: 0,
     };
 
-    this.paneStatuses.forEach(status => {
+    this.paneStatuses.forEach((status) => {
       statusCounts[status]++;
     });
 
@@ -548,7 +571,7 @@ export class StatusDetector extends EventEmitter {
       workerStats: this.workerManager.getStats(),
       messageBusStats: this.messageBus.getStats(),
       statusCounts,
-      llmRequestsInFlight: this.llmRequests.size
+      llmRequestsInFlight: this.llmRequests.size,
     };
   }
 
@@ -559,7 +582,7 @@ export class StatusDetector extends EventEmitter {
     this.isShuttingDown = true;
 
     // Cancel all LLM requests
-    this.llmRequests.forEach(controller => controller.abort());
+    this.llmRequests.forEach((controller) => controller.abort());
     this.llmRequests.clear();
 
     // Shutdown workers

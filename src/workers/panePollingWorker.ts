@@ -52,7 +52,10 @@ function getPaneIds(): string[] {
 /**
  * Compare two snapshots and detect changes
  */
-function detectChanges(oldSnapshot: PaneSnapshot | null, newSnapshot: PaneSnapshot): {
+function detectChanges(
+  oldSnapshot: PaneSnapshot | null,
+  newSnapshot: PaneSnapshot,
+): {
   added: string[];
   removed: string[];
   changed: boolean;
@@ -64,8 +67,8 @@ function detectChanges(oldSnapshot: PaneSnapshot | null, newSnapshot: PaneSnapsh
   const oldSet = new Set(oldSnapshot.paneIds);
   const newSet = new Set(newSnapshot.paneIds);
 
-  const added = newSnapshot.paneIds.filter(id => !oldSet.has(id));
-  const removed = oldSnapshot.paneIds.filter(id => !newSet.has(id));
+  const added = newSnapshot.paneIds.filter((id) => !oldSet.has(id));
+  const removed = oldSnapshot.paneIds.filter((id) => !newSet.has(id));
   const changed = added.length > 0 || removed.length > 0;
 
   return { added, removed, changed };
@@ -97,7 +100,6 @@ async function poll(): Promise<void> {
       }
 
       lastSnapshot = newSnapshot;
-
     } catch (error) {
       parentPort?.postMessage({
         type: 'error',
@@ -106,7 +108,7 @@ async function poll(): Promise<void> {
     }
 
     // Wait for next poll interval
-    await new Promise(resolve => setTimeout(resolve, config.pollInterval));
+    await new Promise((resolve) => setTimeout(resolve, config.pollInterval));
   }
 }
 
@@ -145,7 +147,7 @@ parentPort?.on('message', (message: { type: string; pollInterval?: number }) => 
 
 // Start polling
 parentPort?.postMessage({ type: 'started', pollInterval: config.pollInterval });
-poll().catch(error => {
+poll().catch((error) => {
   parentPort?.postMessage({
     type: 'fatal-error',
     message: error instanceof Error ? error.message : String(error),

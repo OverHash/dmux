@@ -27,18 +27,13 @@ describe('projectActions', () => {
       { projectRoot: '/repo-aux', projectName: 'repo-aux' },
     ];
 
-    const layout = buildProjectActionLayout(
-      panes,
-      sidebarProjects,
-      '/repo-main',
-      'repo-main'
-    );
+    const layout = buildProjectActionLayout(panes, sidebarProjects, '/repo-main', 'repo-main');
 
     expect(layout.multiProjectMode).toBe(true);
     expect(
       layout.actionItems
         .filter((action) => action.kind === 'remove-project')
-        .map((action) => action.projectRoot)
+        .map((action) => action.projectRoot),
     ).toEqual(['/repo-empty']);
   });
 
@@ -50,7 +45,7 @@ describe('projectActions', () => {
         { projectRoot: '/repo-empty', projectName: 'repo-empty' },
       ],
       '/repo-main',
-      'repo-main'
+      'repo-main',
     );
 
     expect(buildVisualNavigationRows(layout)).toEqual([

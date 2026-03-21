@@ -112,51 +112,60 @@ describe('WorktreeCleanupService', () => {
     }));
 
     const worktreeRemovalCalls = gitCalls.filter((call) => call.args[0] === 'worktree');
-    expect(worktreeRemovalCalls).toEqual(expect.arrayContaining([
-      {
-        args: ['worktree', 'remove', '/test/project/.dmux/worktrees/react/docs-ui', '--force'],
-        cwd: '/test/project/docs-ui',
-      },
-      {
-        args: ['worktree', 'remove', '/test/project/.dmux/worktrees/react/theme-schemas', '--force'],
-        cwd: '/test/project/theme-schemas',
-      },
-      {
-        args: ['worktree', 'remove', '/test/project/.dmux/worktrees/react', '--force'],
-        cwd: '/test/project',
-      },
-    ]));
+    expect(worktreeRemovalCalls).toEqual(
+      expect.arrayContaining([
+        {
+          args: ['worktree', 'remove', '/test/project/.dmux/worktrees/react/docs-ui', '--force'],
+          cwd: '/test/project/docs-ui',
+        },
+        {
+          args: [
+            'worktree',
+            'remove',
+            '/test/project/.dmux/worktrees/react/theme-schemas',
+            '--force',
+          ],
+          cwd: '/test/project/theme-schemas',
+        },
+        {
+          args: ['worktree', 'remove', '/test/project/.dmux/worktrees/react', '--force'],
+          cwd: '/test/project',
+        },
+      ]),
+    );
     expect(worktreeRemovalCalls.at(-1)).toEqual({
       args: ['worktree', 'remove', '/test/project/.dmux/worktrees/react', '--force'],
       cwd: '/test/project',
     });
 
-    expect(gitCalls).toEqual(expect.arrayContaining([
-      {
-        args: ['show-ref', '--verify', '--quiet', 'refs/heads/react'],
-        cwd: '/test/project',
-      },
-      {
-        args: ['branch', '-D', 'react'],
-        cwd: '/test/project',
-      },
-      {
-        args: ['show-ref', '--verify', '--quiet', 'refs/heads/react'],
-        cwd: '/test/project/docs-ui',
-      },
-      {
-        args: ['branch', '-D', 'react'],
-        cwd: '/test/project/docs-ui',
-      },
-      {
-        args: ['show-ref', '--verify', '--quiet', 'refs/heads/react'],
-        cwd: '/test/project/theme-schemas',
-      },
-      {
-        args: ['branch', '-D', 'react'],
-        cwd: '/test/project/theme-schemas',
-      },
-    ]));
+    expect(gitCalls).toEqual(
+      expect.arrayContaining([
+        {
+          args: ['show-ref', '--verify', '--quiet', 'refs/heads/react'],
+          cwd: '/test/project',
+        },
+        {
+          args: ['branch', '-D', 'react'],
+          cwd: '/test/project',
+        },
+        {
+          args: ['show-ref', '--verify', '--quiet', 'refs/heads/react'],
+          cwd: '/test/project/docs-ui',
+        },
+        {
+          args: ['branch', '-D', 'react'],
+          cwd: '/test/project/docs-ui',
+        },
+        {
+          args: ['show-ref', '--verify', '--quiet', 'refs/heads/react'],
+          cwd: '/test/project/theme-schemas',
+        },
+        {
+          args: ['branch', '-D', 'react'],
+          cwd: '/test/project/theme-schemas',
+        },
+      ]),
+    );
 
     expect(triggerHookMock).toHaveBeenCalledWith('worktree_removed', '/test/project', pane);
   });

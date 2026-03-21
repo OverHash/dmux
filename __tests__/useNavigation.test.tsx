@@ -6,7 +6,7 @@ import useNavigation from '../src/hooks/useNavigation.js';
 
 type FindCardInDirection = (
   currentIndex: number,
-  direction: 'up' | 'down' | 'left' | 'right'
+  direction: 'up' | 'down' | 'left' | 'right',
 ) => number | null;
 
 function Harness({
@@ -30,17 +30,12 @@ describe('useNavigation', () => {
 
     const { unmount } = render(
       <Harness
-        navigationRows={[
-          [0],
-          [1, 2, 3],
-          [4],
-          [5, 6, 7],
-        ]}
+        navigationRows={[[0], [1, 2, 3], [4], [5, 6, 7]]}
         groupStartRows={[0, 2]}
         onReady={(fn) => {
           findCardInDirection = fn;
         }}
-      />
+      />,
     );
 
     expect(findCardInDirection(1, 'right')).toBe(2);
@@ -60,17 +55,12 @@ describe('useNavigation', () => {
 
     const { unmount } = render(
       <Harness
-        navigationRows={[
-          [0],
-          [1, 2],
-          [3],
-          [4, 5],
-        ]}
+        navigationRows={[[0], [1, 2], [3], [4, 5]]}
         groupStartRows={[0, 2]}
         onReady={(fn) => {
           findCardInDirection = fn;
         }}
-      />
+      />,
     );
 
     expect(findCardInDirection(0, 'right')).toBe(3);

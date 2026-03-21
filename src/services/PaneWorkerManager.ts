@@ -2,11 +2,7 @@ import { Worker } from 'worker_threads';
 import { randomUUID } from 'crypto';
 import type { DmuxPane } from '../types.js';
 import type { WorkerMessageBus } from './WorkerMessageBus.js';
-import type {
-  InboundMessage,
-  OutboundMessage,
-  WorkerConfig
-} from '../workers/WorkerMessages.js';
+import type { InboundMessage, OutboundMessage, WorkerConfig } from '../workers/WorkerMessages.js';
 import { LogService } from './LogService.js';
 import { WORKER_BACKOFF_BASE } from '../constants/timing.js';
 import { resolveDistPath } from '../utils/runtimePaths.js';
@@ -22,7 +18,7 @@ interface WorkerInfo {
 }
 
 export function shouldMonitorPaneForStatusTracking(
-  pane: Pick<DmuxPane, 'type' | 'agent'>
+  pane: Pick<DmuxPane, 'type' | 'agent'>,
 ): boolean {
   return pane.type !== 'shell' && Boolean(pane.agent);
 }
@@ -46,7 +42,11 @@ export class PaneWorkerManager {
    */
   createWorker(pane: DmuxPane): void {
     // Don't create if already exists or shutting down
-    if (this.workers.has(pane.id) || this.isShuttingDown || !shouldMonitorPaneForStatusTracking(pane)) {
+    if (
+      this.workers.has(pane.id) ||
+      this.isShuttingDown ||
+      !shouldMonitorPaneForStatusTracking(pane)
+    ) {
       return;
     }
 
@@ -55,11 +55,11 @@ export class PaneWorkerManager {
         paneId: pane.id,
         tmuxPaneId: pane.paneId,
         agent: pane.agent,
-        pollInterval: 1000 // 1 second polling
+        pollInterval: 1000, // 1 second polling
       };
 
       const worker = new Worker(this.workerPath, {
-        workerData: config
+        workerData: config,
       });
 
       const workerInfo: WorkerInfo = {
@@ -69,7 +69,7 @@ export class PaneWorkerManager {
         paneType: pane.type,
         agent: pane.agent,
         startTime: Date.now(),
-        restartCount: 0
+        restartCount: 0,
       };
 
       // Handle messages from worker
@@ -99,7 +99,12 @@ export class PaneWorkerManager {
     } catch (error) {
       const msg = `Failed to create worker for pane ${pane.id}`;
       console.error(msg, error);
-      LogService.getInstance().error(msg, 'PaneWorkerManager', pane.id, error instanceof Error ? error : undefined);
+      LogService.getInstance().error(
+        msg,
+        'PaneWorkerManager',
+        pane.id,
+        error instanceof Error ? error : undefined,
+      );
     }
   }
 
@@ -108,7 +113,7 @@ export class PaneWorkerManager {
    */
   async sendToWorker(
     paneId: string,
-    message: Omit<InboundMessage, 'id'>
+    message: Omit<InboundMessage, 'id'>,
   ): Promise<OutboundMessage> {
     const workerInfo = this.workers.get(paneId);
     if (!workerInfo) {
@@ -119,7 +124,7 @@ export class PaneWorkerManager {
     const fullMessage: InboundMessage = {
       ...message,
       id: messageId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // Set up response promise before sending
@@ -134,10 +139,7 @@ export class PaneWorkerManager {
   /**
    * Send notification to a worker without waiting for response
    */
-  notifyWorker(
-    paneId: string,
-    message: Omit<InboundMessage, 'id'>
-  ): void {
+  notifyWorker(paneId: string, message: Omit<InboundMessage, 'id'>): void {
     const workerInfo = this.workers.get(paneId);
     if (!workerInfo) {
       const msg = `No worker found for pane ${paneId}`;
@@ -149,7 +151,7 @@ export class PaneWorkerManager {
     const fullMessage: InboundMessage = {
       ...message,
       id: randomUUID(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     try {
@@ -157,7 +159,12 @@ export class PaneWorkerManager {
     } catch (error) {
       const msg = `Failed to notify worker ${paneId}`;
       console.error(msg, error);
-      LogService.getInstance().error(msg, 'PaneWorkerManager', paneId, error instanceof Error ? error : undefined);
+      LogService.getInstance().error(
+        msg,
+        'PaneWorkerManager',
+        paneId,
+        error instanceof Error ? error : undefined,
+      );
     }
   }
 
@@ -170,13 +177,18 @@ export class PaneWorkerManager {
         const fullMessage: InboundMessage = {
           ...message,
           id: randomUUID(),
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
         workerInfo.worker.postMessage(fullMessage);
       } catch (error) {
         const msg = `Failed to broadcast to worker ${paneId}`;
         console.error(msg, error);
-        LogService.getInstance().error(msg, 'PaneWorkerManager', paneId, error instanceof Error ? error : undefined);
+        LogService.getInstance().error(
+          msg,
+          'PaneWorkerManager',
+          paneId,
+          error instanceof Error ? error : undefined,
+        );
       }
     });
   }
@@ -192,18 +204,23 @@ export class PaneWorkerManager {
       // Send shutdown message
       await this.sendToWorker(paneId, {
         type: 'shutdown',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }).catch(() => {});
 
       // Wait a bit for graceful shutdown
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Force terminate if still running
       await workerInfo.worker.terminate();
     } catch (error) {
       const msg = `Error destroying worker ${paneId}`;
       console.error(msg, error);
-      LogService.getInstance().error(msg, 'PaneWorkerManager', paneId, error instanceof Error ? error : undefined);
+      LogService.getInstance().error(
+        msg,
+        'PaneWorkerManager',
+        paneId,
+        error instanceof Error ? error : undefined,
+      );
     } finally {
       this.workers.delete(paneId);
     }
@@ -214,7 +231,7 @@ export class PaneWorkerManager {
    */
   async updateWorkers(panes: DmuxPane[]): Promise<void> {
     const monitoredPanes = panes.filter(shouldMonitorPaneForStatusTracking);
-    const currentPaneIds = new Set(monitoredPanes.map(p => p.id));
+    const currentPaneIds = new Set(monitoredPanes.map((p) => p.id));
 
     // Create workers for new panes
     for (const pane of monitoredPanes) {
@@ -239,7 +256,7 @@ export class PaneWorkerManager {
       }
     }
 
-    await Promise.all(workersToRemove.map(id => this.destroyWorker(id)));
+    await Promise.all(workersToRemove.map((id) => this.destroyWorker(id)));
   }
 
   /**
@@ -301,7 +318,7 @@ export class PaneWorkerManager {
     }
 
     // Wait before restart with exponential backoff
-    await new Promise(resolve => setTimeout(resolve, WORKER_BACKOFF_BASE * restartCount));
+    await new Promise((resolve) => setTimeout(resolve, WORKER_BACKOFF_BASE * restartCount));
 
     // Create new worker with updated restart count
     if (!this.isShuttingDown) {
@@ -335,12 +352,12 @@ export class PaneWorkerManager {
     const workers = Array.from(this.workers.entries()).map(([paneId, info]) => ({
       paneId,
       uptime: Date.now() - info.startTime,
-      restartCount: info.restartCount
+      restartCount: info.restartCount,
     }));
 
     return {
       workerCount: this.workers.size,
-      workers
+      workers,
     };
   }
 
@@ -351,8 +368,8 @@ export class PaneWorkerManager {
     this.isShuttingDown = true;
 
     // Send shutdown to all workers
-    const shutdownPromises = Array.from(this.workers.keys()).map(paneId =>
-      this.destroyWorker(paneId)
+    const shutdownPromises = Array.from(this.workers.keys()).map((paneId) =>
+      this.destroyWorker(paneId),
     );
 
     await Promise.all(shutdownPromises);

@@ -10,10 +10,7 @@ import { getPaneDisplayName } from '../../utils/paneTitle.js';
 /**
  * View/Jump to a pane
  */
-export async function viewPane(
-  pane: DmuxPane,
-  context: ActionContext
-): Promise<ActionResult> {
+export async function viewPane(pane: DmuxPane, context: ActionContext): Promise<ActionResult> {
   const paneName = getPaneDisplayName(pane);
 
   if (pane.hidden) {

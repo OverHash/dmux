@@ -17,10 +17,7 @@ describe('openRouterApiKeySetup', () => {
     const homeDir = '/tmp/example-home';
     const candidates = getShellConfigCandidates('/bin/zsh', homeDir);
 
-    expect(candidates).toEqual([
-      '/tmp/example-home/.zshrc',
-      '/tmp/example-home/.zprofile',
-    ]);
+    expect(candidates).toEqual(['/tmp/example-home/.zshrc', '/tmp/example-home/.zprofile']);
   });
 
   it('upserts managed block into empty content', () => {
@@ -84,9 +81,9 @@ describe('openRouterApiKeySetup', () => {
             },
           },
           null,
-          2
+          2,
         ),
-        'utf-8'
+        'utf-8',
       );
 
       await writeOpenRouterOnboardingState(homeDir, 'configured', join(homeDir, '.zshrc'));

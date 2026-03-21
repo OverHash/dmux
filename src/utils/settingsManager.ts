@@ -103,10 +103,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: 'Default Agent',
     description: 'Skip agent selection and use this agent for all new panes',
     type: 'select',
-    options: [
-      { value: '', label: 'Ask each time' },
-      ...AGENT_OPTIONS,
-    ],
+    options: [{ value: '', label: 'Ask each time' }, ...AGENT_OPTIONS],
   },
   {
     key: 'enabledAgents' as any,
@@ -117,19 +114,22 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   {
     key: 'enabledNotificationSounds' as any,
     label: 'Attention Notification Sounds',
-    description: 'Select the macOS helper sounds that dmux randomizes between for background alerts',
+    description:
+      'Select the macOS helper sounds that dmux randomizes between for background alerts',
     type: 'action' as any,
   },
   {
     key: 'showFooterTips',
     label: 'Show Footer Tips',
-    description: 'Rotate short dmux tips in the footer. Disable this if you prefer a quieter sidebar.',
+    description:
+      'Rotate short dmux tips in the footer. Disable this if you prefer a quieter sidebar.',
     type: 'boolean',
   },
   {
     key: 'useTmuxHooks',
     label: 'Use Tmux Hooks',
-    description: 'Use tmux hooks for event-driven updates (lower CPU). If disabled, uses polling in a worker thread.',
+    description:
+      'Use tmux hooks for event-driven updates (lower CPU). If disabled, uses polling in a worker thread.',
     type: 'boolean',
   },
   {
@@ -141,7 +141,8 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   {
     key: 'branchPrefix',
     label: 'Branch Name Prefix',
-    description: 'Prefix for new branch names (e.g. "feat/" produces branch "feat/fix-auth"). Leave empty for no prefix.',
+    description:
+      'Prefix for new branch names (e.g. "feat/" produces branch "feat/fix-auth"). Leave empty for no prefix.',
     type: 'select',
     options: [
       { value: '', label: 'No prefix (default)' },
@@ -225,7 +226,7 @@ export class SettingsManager {
   }
 
   private resolveGlobalPaneWidths(
-    overrides?: Partial<Pick<DmuxSettings, 'minPaneWidth' | 'maxPaneWidth'>>
+    overrides?: Partial<Pick<DmuxSettings, 'minPaneWidth' | 'maxPaneWidth'>>,
   ): { minPaneWidth: number; maxPaneWidth: number } {
     const hasMinOverride = overrides?.minPaneWidth !== undefined;
     const hasMaxOverride = overrides?.maxPaneWidth !== undefined;
@@ -294,10 +295,14 @@ export class SettingsManager {
   updateSetting<K extends keyof DmuxSettings>(
     key: K,
     value: DmuxSettings[K],
-    scope: SettingsScope
+    scope: SettingsScope,
   ): void {
     // Validate branch-related settings
-    if ((key === 'baseBranch' || key === 'branchPrefix') && typeof value === 'string' && value !== '') {
+    if (
+      (key === 'baseBranch' || key === 'branchPrefix') &&
+      typeof value === 'string' &&
+      value !== ''
+    ) {
       if (!isValidBranchName(value)) {
         throw new Error(`Invalid ${key}: contains characters not allowed in git branch names`);
       }
@@ -325,12 +330,12 @@ export class SettingsManager {
     }
     if (key === 'minPaneWidth' && !isValidMinPaneWidth(value)) {
       throw new Error(
-        `Invalid minPaneWidth: expected an integer between ${MIN_MIN_PANE_WIDTH} and ${MAX_MIN_PANE_WIDTH}`
+        `Invalid minPaneWidth: expected an integer between ${MIN_MIN_PANE_WIDTH} and ${MAX_MIN_PANE_WIDTH}`,
       );
     }
     if (key === 'maxPaneWidth' && !isValidMaxPaneWidth(value)) {
       throw new Error(
-        `Invalid maxPaneWidth: expected an integer between ${MIN_MAX_PANE_WIDTH} and ${MAX_MAX_PANE_WIDTH}`
+        `Invalid maxPaneWidth: expected an integer between ${MIN_MAX_PANE_WIDTH} and ${MAX_MAX_PANE_WIDTH}`,
       );
     }
 
@@ -382,9 +387,7 @@ export class SettingsManager {
       if (!Array.isArray(settings.enabledAgents)) {
         throw new Error('Invalid enabledAgents: expected an array of agent IDs');
       }
-      const invalidAgents = settings.enabledAgents.filter(
-        (agent) => !isAgentName(agent)
-      );
+      const invalidAgents = settings.enabledAgents.filter((agent) => !isAgentName(agent));
       if (invalidAgents.length > 0) {
         throw new Error(`Invalid enabledAgents: ${invalidAgents.join(', ')}`);
       }
@@ -395,27 +398,36 @@ export class SettingsManager {
         throw new Error('Invalid enabledNotificationSounds: expected an array of sound IDs');
       }
       const invalidSoundIds = settings.enabledNotificationSounds.filter(
-        (soundId) => !isNotificationSoundId(soundId)
+        (soundId) => !isNotificationSoundId(soundId),
       );
       if (invalidSoundIds.length > 0) {
         throw new Error(`Invalid enabledNotificationSounds: ${invalidSoundIds.join(', ')}`);
       }
-      settings.enabledNotificationSounds = settings.enabledNotificationSounds as NotificationSoundId[];
+      settings.enabledNotificationSounds =
+        settings.enabledNotificationSounds as NotificationSoundId[];
     }
-    if (typeof settings.baseBranch === 'string' && settings.baseBranch !== '' && !isValidBranchName(settings.baseBranch)) {
+    if (
+      typeof settings.baseBranch === 'string' &&
+      settings.baseBranch !== '' &&
+      !isValidBranchName(settings.baseBranch)
+    ) {
       throw new Error('Invalid baseBranch: contains characters not allowed in git branch names');
     }
-    if (typeof settings.branchPrefix === 'string' && settings.branchPrefix !== '' && !isValidBranchName(settings.branchPrefix)) {
+    if (
+      typeof settings.branchPrefix === 'string' &&
+      settings.branchPrefix !== '' &&
+      !isValidBranchName(settings.branchPrefix)
+    ) {
       throw new Error('Invalid branchPrefix: contains characters not allowed in git branch names');
     }
     if (settings.minPaneWidth !== undefined && !isValidMinPaneWidth(settings.minPaneWidth)) {
       throw new Error(
-        `Invalid minPaneWidth: expected an integer between ${MIN_MIN_PANE_WIDTH} and ${MAX_MIN_PANE_WIDTH}`
+        `Invalid minPaneWidth: expected an integer between ${MIN_MIN_PANE_WIDTH} and ${MAX_MIN_PANE_WIDTH}`,
       );
     }
     if (settings.maxPaneWidth !== undefined && !isValidMaxPaneWidth(settings.maxPaneWidth)) {
       throw new Error(
-        `Invalid maxPaneWidth: expected an integer between ${MIN_MAX_PANE_WIDTH} and ${MAX_MAX_PANE_WIDTH}`
+        `Invalid maxPaneWidth: expected an integer between ${MIN_MAX_PANE_WIDTH} and ${MAX_MAX_PANE_WIDTH}`,
       );
     }
 

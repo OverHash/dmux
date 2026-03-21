@@ -24,25 +24,28 @@ interface ActionInputDialogProps {
  */
 function colorizeDiffStat(text: string): string {
   // Match lines with file stats (e.g., "file.ts | 10 ++--")
-  return text.split('\n').map(line => {
-    // Check if line contains diff markers
-    if (line.includes('|')) {
-      // Split by | to separate file path from changes
-      const parts = line.split('|');
-      if (parts.length === 2) {
-        const filePart = parts[0];
-        const statPart = parts[1];
+  return text
+    .split('\n')
+    .map((line) => {
+      // Check if line contains diff markers
+      if (line.includes('|')) {
+        // Split by | to separate file path from changes
+        const parts = line.split('|');
+        if (parts.length === 2) {
+          const filePart = parts[0];
+          const statPart = parts[1];
 
-        // Colorize + and - in the stat part
-        const colorizedStat = statPart
-          .replace(/\+/g, chalk.green('+'))
-          .replace(/-/g, chalk.red('-'));
+          // Colorize + and - in the stat part
+          const colorizedStat = statPart
+            .replace(/\+/g, chalk.green('+'))
+            .replace(/-/g, chalk.red('-'));
 
-        return filePart + chalk.dim('|') + colorizedStat;
+          return filePart + chalk.dim('|') + colorizedStat;
+        }
       }
-    }
-    return line;
-  }).join('\n');
+      return line;
+    })
+    .join('\n');
 }
 
 const ActionInputDialog: React.FC<ActionInputDialogProps> = ({
@@ -50,7 +53,7 @@ const ActionInputDialog: React.FC<ActionInputDialogProps> = ({
   message,
   placeholder = '',
   value,
-  onValueChange
+  onValueChange,
 }) => {
   // Check if message contains "Files changed:" section for colorization
   const hasFilesChanged = message.includes('Files changed:');
@@ -65,7 +68,9 @@ const ActionInputDialog: React.FC<ActionInputDialogProps> = ({
       marginTop={1}
     >
       <Box marginBottom={1}>
-        <Text bold color={COLORS.accent}>{title}</Text>
+        <Text bold color={COLORS.accent}>
+          {title}
+        </Text>
       </Box>
 
       <Box marginBottom={1}>
@@ -73,11 +78,7 @@ const ActionInputDialog: React.FC<ActionInputDialogProps> = ({
       </Box>
 
       <Box marginTop={1}>
-        <CleanTextInput
-          value={value}
-          onChange={onValueChange}
-          placeholder={placeholder}
-        />
+        <CleanTextInput value={value} onChange={onValueChange} placeholder={placeholder} />
       </Box>
 
       <Box marginTop={1}>

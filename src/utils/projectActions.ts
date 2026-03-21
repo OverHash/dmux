@@ -1,9 +1,6 @@
 import path from 'path';
 import type { DmuxPane, SidebarProject } from '../types.js';
-import {
-  groupPanesByProject,
-  type PaneProjectGroup,
-} from './paneGrouping.js';
+import { groupPanesByProject, type PaneProjectGroup } from './paneGrouping.js';
 
 export type ProjectActionKind = 'new-agent' | 'terminal' | 'remove-project';
 
@@ -36,13 +33,13 @@ export function buildProjectActionLayout(
   panes: DmuxPane[],
   sidebarProjects: SidebarProject[],
   fallbackProjectRoot: string,
-  fallbackProjectName: string
+  fallbackProjectName: string,
 ): ProjectActionLayout {
   const groups = groupPanesByProject(
     panes,
     fallbackProjectRoot,
     fallbackProjectName,
-    sidebarProjects
+    sidebarProjects,
   );
   const multiProjectMode = groups.length >= 2;
   const actionItems: ProjectActionItem[] = [];
@@ -106,7 +103,7 @@ export function buildProjectActionLayout(
 
 export function getProjectActionByIndex(
   actionItems: ProjectActionItem[],
-  index: number
+  index: number,
 ): ProjectActionItem | undefined {
   return actionItems.find((item) => item.index === index);
 }
@@ -117,9 +114,7 @@ export function getProjectActionByIndex(
  * Each inner array represents one visible row of selectable cards/buttons.
  * This is the canonical source for arrow-key navigation.
  */
-export function buildVisualNavigationRows(
-  layout: ProjectActionLayout
-): number[][] {
+export function buildVisualNavigationRows(layout: ProjectActionLayout): number[][] {
   const rows: number[][] = [];
   const actionByProject = new Map<
     string,
@@ -182,9 +177,7 @@ export function buildVisualNavigationRows(
  * Build an array of row indices where each project group starts.
  * Used by left/right navigation to jump between project groups.
  */
-export function buildGroupStartRows(
-  layout: ProjectActionLayout
-): number[] {
+export function buildGroupStartRows(layout: ProjectActionLayout): number[] {
   if (!layout.multiProjectMode) return [];
 
   const starts: number[] = [];

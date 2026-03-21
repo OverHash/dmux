@@ -20,10 +20,7 @@ export interface MockTmuxSession {
 /**
  * Create a mock tmux session with specified number of panes
  */
-export function createMockTmuxSession(
-  sessionName: string,
-  numPanes: number = 1
-): MockTmuxSession {
+export function createMockTmuxSession(sessionName: string, numPanes: number = 1): MockTmuxSession {
   const panes: MockTmuxPaneInfo[] = [];
 
   for (let i = 0; i < numPanes; i++) {
@@ -56,10 +53,7 @@ export function mockListPanesOutput(session: MockTmuxSession): string {
 /**
  * Generate tmux command output for display-message -p
  */
-export function mockDisplayMessageOutput(
-  format: string,
-  pane: MockTmuxPaneInfo
-): string {
+export function mockDisplayMessageOutput(format: string, pane: MockTmuxPaneInfo): string {
   const replacements: Record<string, string> = {
     '#{pane_id}': pane.paneId,
     '#{pane_title}': pane.title,

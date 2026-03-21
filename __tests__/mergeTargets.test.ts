@@ -48,7 +48,7 @@ describe('merge target resolution', () => {
         paneId: '%1',
         worktreePath: '/repo/.dmux/worktrees/feature-parent',
       },
-      '/repo'
+      '/repo',
     );
 
     expect(chain).toEqual([
@@ -84,13 +84,12 @@ describe('merge target resolution', () => {
   });
 
   it('uses the parent worktree when it still exists and has not been merged upstream', () => {
-    mocked.existsSync.mockImplementation((value: string) => (
-      value === '/repo/.dmux/worktrees/feature-parent'
-      || value === '/repo'
-    ));
-    mocked.getCurrentBranch.mockImplementation((value: string) => (
-      value === '/repo/.dmux/worktrees/feature-parent' ? 'feature-parent' : 'main'
-    ));
+    mocked.existsSync.mockImplementation(
+      (value: string) => value === '/repo/.dmux/worktrees/feature-parent' || value === '/repo',
+    );
+    mocked.getCurrentBranch.mockImplementation((value: string) =>
+      value === '/repo/.dmux/worktrees/feature-parent' ? 'feature-parent' : 'main',
+    );
     mocked.branchExists.mockReturnValue(true);
     mocked.hasCommitsToMerge.mockReturnValue(true);
 
@@ -151,25 +150,26 @@ describe('merge target resolution', () => {
       requiresConfirmation: true,
       fallbackReason: 'missing',
     });
-    expect(buildFallbackMergeMessage(
-      {
-        id: '3',
-        slug: 'feature-child',
-        prompt: 'test',
-        paneId: '%3',
-      },
-      resolution!
-    )).toContain('no longer available');
+    expect(
+      buildFallbackMergeMessage(
+        {
+          id: '3',
+          slug: 'feature-child',
+          prompt: 'test',
+          paneId: '%3',
+        },
+        resolution!,
+      ),
+    ).toContain('no longer available');
   });
 
   it('falls back to the next ancestor when the parent branch is already merged upstream', () => {
-    mocked.existsSync.mockImplementation((value: string) => (
-      value === '/repo/.dmux/worktrees/feature-parent'
-      || value === '/repo'
-    ));
-    mocked.getCurrentBranch.mockImplementation((value: string) => (
-      value === '/repo/.dmux/worktrees/feature-parent' ? 'feature-parent' : 'main'
-    ));
+    mocked.existsSync.mockImplementation(
+      (value: string) => value === '/repo/.dmux/worktrees/feature-parent' || value === '/repo',
+    );
+    mocked.getCurrentBranch.mockImplementation((value: string) =>
+      value === '/repo/.dmux/worktrees/feature-parent' ? 'feature-parent' : 'main',
+    );
     mocked.branchExists.mockReturnValue(true);
     mocked.hasCommitsToMerge.mockReturnValue(false);
 
@@ -199,14 +199,16 @@ describe('merge target resolution', () => {
       requiresConfirmation: true,
       fallbackReason: 'merged',
     });
-    expect(buildFallbackMergeMessage(
-      {
-        id: '4',
-        slug: 'feature-child',
-        prompt: 'test',
-        paneId: '%4',
-      },
-      resolution!
-    )).toContain('already been merged upstream');
+    expect(
+      buildFallbackMergeMessage(
+        {
+          id: '4',
+          slug: 'feature-child',
+          prompt: 'test',
+          paneId: '%4',
+        },
+        resolution!,
+      ),
+    ).toContain('already been merged upstream');
   });
 });

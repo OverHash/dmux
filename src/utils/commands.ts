@@ -2,11 +2,14 @@ import { execSync } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 
-export const detectPackageManager = async (): Promise<{ manager: string | null, hasPackageJson: boolean }> => {
+export const detectPackageManager = async (): Promise<{
+  manager: string | null;
+  hasPackageJson: boolean;
+}> => {
   try {
-    const projectRoot = execSync('git rev-parse --show-toplevel', { 
+    const projectRoot = execSync('git rev-parse --show-toplevel', {
       encoding: 'utf-8',
-      stdio: 'pipe'
+      stdio: 'pipe',
     }).trim();
 
     try {

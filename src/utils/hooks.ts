@@ -63,9 +63,9 @@ export interface HookEnvironment {
  */
 export function findHook(projectRoot: string, hookName: HookType): string | null {
   const searchPaths = [
-    path.join(projectRoot, '.dmux-hooks', hookName),        // Team hooks (VC)
-    path.join(projectRoot, '.dmux', 'hooks', hookName),     // Local override
-    path.join(os.homedir(), '.dmux', 'hooks', hookName),    // Global hooks
+    path.join(projectRoot, '.dmux-hooks', hookName), // Team hooks (VC)
+    path.join(projectRoot, '.dmux', 'hooks', hookName), // Local override
+    path.join(os.homedir(), '.dmux', 'hooks', hookName), // Global hooks
   ];
 
   for (const hookPath of searchPaths) {
@@ -92,7 +92,7 @@ export function findHook(projectRoot: string, hookName: HookType): string | null
 export async function buildHookEnvironment(
   projectRoot: string,
   pane?: DmuxPane,
-  extraData?: Record<string, string>
+  extraData?: Record<string, string>,
 ): Promise<HookEnvironment> {
   const env: HookEnvironment = {
     DMUX_ROOT: projectRoot,
@@ -138,7 +138,7 @@ export async function triggerHook(
   hookName: HookType,
   projectRoot: string,
   pane?: DmuxPane,
-  extraData?: Record<string, string>
+  extraData?: Record<string, string>,
 ): Promise<void> {
   // Initialize hooks directory on first use (lazy init)
   initializeHooksDirectory(projectRoot);
@@ -186,12 +186,22 @@ export async function triggerHook(
     child.on('error', (error) => {
       const msg = `${hookName} failed to start: ${error.message}`;
       // console.error('[Hooks]', msg);
-      LogService.getInstance().error(msg, 'hooks', undefined, error instanceof Error ? error : undefined);
+      LogService.getInstance().error(
+        msg,
+        'hooks',
+        undefined,
+        error instanceof Error ? error : undefined,
+      );
     });
   } catch (error) {
     const msg = `Failed to execute ${hookName}`;
     // console.error('[Hooks]', msg, error);
-    LogService.getInstance().error(msg, 'hooks', undefined, error instanceof Error ? error : undefined);
+    LogService.getInstance().error(
+      msg,
+      'hooks',
+      undefined,
+      error instanceof Error ? error : undefined,
+    );
   }
 }
 
@@ -206,7 +216,7 @@ export async function triggerHookSync(
   projectRoot: string,
   pane?: DmuxPane,
   extraData?: Record<string, string>,
-  timeoutMs: number = 30000
+  timeoutMs: number = 30000,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   const hookPath = findHook(projectRoot, hookName);
 
@@ -237,7 +247,12 @@ export async function triggerHookSync(
     const errorMsg = error.message || String(error);
     const msg = `${hookName} failed: ${errorMsg}`;
     // console.error('[Hooks]', msg);
-    LogService.getInstance().error(msg, 'hooks', undefined, error instanceof Error ? error : undefined);
+    LogService.getInstance().error(
+      msg,
+      'hooks',
+      undefined,
+      error instanceof Error ? error : undefined,
+    );
     return {
       success: false,
       error: errorMsg,
@@ -285,16 +300,16 @@ export function initializeHooksDirectory(projectRoot: string): void {
   const readmePath = path.join(hooksDir, 'README.md');
   const examplesDir = path.join(hooksDir, 'examples');
   const examplePaths = Object.keys(EXAMPLE_HOOKS).map((filename) =>
-    path.join(examplesDir, filename)
+    path.join(examplesDir, filename),
   );
 
   // Fast path for the common case: everything already initialized
   if (
-    existsSync(agentsPath)
-    && existsSync(claudePath)
-    && existsSync(readmePath)
-    && existsSync(examplesDir)
-    && examplePaths.every((examplePath) => existsSync(examplePath))
+    existsSync(agentsPath) &&
+    existsSync(claudePath) &&
+    existsSync(readmePath) &&
+    existsSync(examplesDir) &&
+    examplePaths.every((examplePath) => existsSync(examplePath))
   ) {
     return;
   }
@@ -313,11 +328,7 @@ export function initializeHooksDirectory(projectRoot: string): void {
 
     // Ensure AGENTS.md (complete reference)
     if (!existsSync(agentsPath)) {
-      writeFileSync(
-        agentsPath,
-        HOOKS_DOCUMENTATION,
-        'utf-8'
-      );
+      writeFileSync(agentsPath, HOOKS_DOCUMENTATION, 'utf-8');
       madeChanges = true;
     }
 
@@ -330,21 +341,13 @@ export function initializeHooksDirectory(projectRoot: string): void {
         // Keep default HOOKS_DOCUMENTATION fallback
       }
 
-      writeFileSync(
-        claudePath,
-        claudeContent,
-        'utf-8'
-      );
+      writeFileSync(claudePath, claudeContent, 'utf-8');
       madeChanges = true;
     }
 
     // Ensure README.md
     if (!existsSync(readmePath)) {
-      writeFileSync(
-        readmePath,
-        HOOKS_README,
-        'utf-8'
-      );
+      writeFileSync(readmePath, HOOKS_README, 'utf-8');
       madeChanges = true;
     }
 

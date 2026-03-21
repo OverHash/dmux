@@ -7,11 +7,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { render, Box, Text, useInput, useApp, useStdout } from 'ink';
-import {
-  PopupContainer,
-  PopupWrapper,
-  writeCancelAndExit,
-} from './shared/index.js';
+import { PopupContainer, PopupWrapper, writeCancelAndExit } from './shared/index.js';
 import { POPUP_CONFIG } from './config.js';
 
 interface DiffPeekPopupData {
@@ -78,9 +74,10 @@ const DiffPeekPopupApp: React.FC<DiffPeekPopupProps> = ({ resultFile, data }) =>
     }
   });
 
-  const comparatorLabel = data.diffMode === 'target-branch'
-    ? `Compared to ${data.targetBranch}`
-    : 'Compared to working tree base';
+  const comparatorLabel =
+    data.diffMode === 'target-branch'
+      ? `Compared to ${data.targetBranch}`
+      : 'Compared to working tree base';
 
   return (
     <PopupWrapper resultFile={resultFile}>
@@ -91,17 +88,14 @@ const DiffPeekPopupApp: React.FC<DiffPeekPopupProps> = ({ resultFile, data }) =>
           </Text>
           <Text dimColor>{comparatorLabel}</Text>
           <Text dimColor>
-            Lines {Math.min(scrollOffset + 1, lines.length)}-{Math.min(scrollOffset + maxVisibleLines, lines.length)} of {lines.length}
+            Lines {Math.min(scrollOffset + 1, lines.length)}-
+            {Math.min(scrollOffset + maxVisibleLines, lines.length)} of {lines.length}
           </Text>
         </Box>
 
         <Box flexDirection="column">
           {visibleLines.map((line, index) => (
-            <Text
-              key={`${scrollOffset + index}`}
-              color={getLineColor(line)}
-              wrap="truncate-end"
-            >
+            <Text key={`${scrollOffset + index}`} color={getLineColor(line)} wrap="truncate-end">
               {line.length > 0 ? line : ' '}
             </Text>
           ))}

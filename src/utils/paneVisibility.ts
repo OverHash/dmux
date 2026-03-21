@@ -1,9 +1,9 @@
-import path from "path";
-import type { DmuxPane } from "../types.js";
-import { getPaneProjectRoot } from "./paneProject.js";
+import path from 'path';
+import type { DmuxPane } from '../types.js';
+import { getPaneProjectRoot } from './paneProject.js';
 
-export type PaneBulkVisibilityAction = "hide-others" | "show-others";
-export type PaneProjectVisibilityAction = "focus-project" | "show-all";
+export type PaneBulkVisibilityAction = 'hide-others' | 'show-others';
+export type PaneProjectVisibilityAction = 'focus-project' | 'show-all';
 
 function sameProjectRoot(a: string, b: string): boolean {
   return path.resolve(a) === path.resolve(b);
@@ -15,7 +15,7 @@ export function getVisiblePanes(panes: DmuxPane[]): DmuxPane[] {
 
 export function syncHiddenStateFromCurrentWindow(
   panes: DmuxPane[],
-  currentWindowPaneIds: string[]
+  currentWindowPaneIds: string[],
 ): DmuxPane[] {
   if (currentWindowPaneIds.length === 0) {
     return panes;
@@ -29,7 +29,7 @@ export function syncHiddenStateFromCurrentWindow(
 
 export function getBulkVisibilityAction(
   panes: DmuxPane[],
-  selectedPane: DmuxPane
+  selectedPane: DmuxPane,
 ): PaneBulkVisibilityAction | null {
   const otherPanes = panes.filter((pane) => pane.id !== selectedPane.id);
   if (otherPanes.length === 0) {
@@ -37,11 +37,11 @@ export function getBulkVisibilityAction(
   }
 
   if (otherPanes.some((pane) => !pane.hidden)) {
-    return "hide-others";
+    return 'hide-others';
   }
 
   if (otherPanes.some((pane) => pane.hidden)) {
-    return "show-others";
+    return 'show-others';
   }
 
   return null;
@@ -50,7 +50,7 @@ export function getBulkVisibilityAction(
 export function partitionPanesByProject(
   panes: DmuxPane[],
   targetProjectRoot: string,
-  fallbackProjectRoot: string
+  fallbackProjectRoot: string,
 ): { projectPanes: DmuxPane[]; otherPanes: DmuxPane[] } {
   const projectPanes: DmuxPane[] = [];
   const otherPanes: DmuxPane[] = [];
@@ -70,12 +70,12 @@ export function partitionPanesByProject(
 export function getProjectVisibilityAction(
   panes: DmuxPane[],
   targetProjectRoot: string,
-  fallbackProjectRoot: string
+  fallbackProjectRoot: string,
 ): PaneProjectVisibilityAction | null {
   const { projectPanes, otherPanes } = partitionPanesByProject(
     panes,
     targetProjectRoot,
-    fallbackProjectRoot
+    fallbackProjectRoot,
   );
 
   if (projectPanes.length === 0) {
@@ -85,11 +85,11 @@ export function getProjectVisibilityAction(
   const hasHiddenProjectPanes = projectPanes.some((pane) => pane.hidden);
   const hasVisibleOtherPanes = otherPanes.some((pane) => !pane.hidden);
   if (hasHiddenProjectPanes || hasVisibleOtherPanes) {
-    return "focus-project";
+    return 'focus-project';
   }
 
   if (otherPanes.some((pane) => pane.hidden)) {
-    return "show-all";
+    return 'show-all';
   }
 
   return null;

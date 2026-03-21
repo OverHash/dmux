@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { deriveProjectRootFromWorktreePath, getPaneProjectName, getPaneProjectRoot } from '../src/utils/paneProject.js';
+import {
+  deriveProjectRootFromWorktreePath,
+  getPaneProjectName,
+  getPaneProjectRoot,
+} from '../src/utils/paneProject.js';
 import type { DmuxPane } from '../src/types.js';
 
 describe('paneProject helpers', () => {

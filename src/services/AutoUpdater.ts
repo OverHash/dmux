@@ -57,15 +57,17 @@ export class AutoUpdater {
     try {
       const content = await fs.readFile(this.configFile, 'utf-8');
       const config = JSON.parse(content);
-      return config.updateSettings || {
-        checkIntervalHours: 24,
-        autoUpdateEnabled: true
-      };
+      return (
+        config.updateSettings || {
+          checkIntervalHours: 24,
+          autoUpdateEnabled: true,
+        }
+      );
     } catch (error) {
       this.logger.warn('Failed to load update settings, using defaults', 'AutoUpdater');
       return {
         checkIntervalHours: 24,
-        autoUpdateEnabled: true
+        autoUpdateEnabled: true,
       };
     }
   }
@@ -78,7 +80,7 @@ export class AutoUpdater {
     } catch {
       // Expected - config file may not exist yet
     }
-    
+
     config.updateSettings = settings;
     config.lastUpdated = new Date().toISOString();
     await atomicWriteJson(this.configFile, config);
@@ -87,7 +89,7 @@ export class AutoUpdater {
   async shouldCheckForUpdates(): Promise<boolean> {
     const settings = await this.loadSettings();
     const now = Date.now();
-    
+
     if (!settings.lastCheckTime) {
       return true;
     }
@@ -104,10 +106,7 @@ export class AutoUpdater {
       return null;
     }
 
-    if (
-      !settings.cachedLatestVersion ||
-      typeof settings.cachedHasUpdate !== 'boolean'
-    ) {
+    if (!settings.cachedLatestVersion || typeof settings.cachedHasUpdate !== 'boolean') {
       return null;
     }
 
@@ -116,7 +115,7 @@ export class AutoUpdater {
       latestVersion: settings.cachedLatestVersion,
       hasUpdate: settings.cachedHasUpdate,
       packageManager: null,
-      installMethod: 'unknown'
+      installMethod: 'unknown',
     };
   }
 
@@ -126,9 +125,9 @@ export class AutoUpdater {
       const result = execSync(`npm view ${packageJson.name} version`, {
         encoding: 'utf-8',
         stdio: 'pipe',
-        timeout: 10000
+        timeout: 10000,
       }).trim();
-      
+
       if (result && this.isValidVersion(result)) {
         return result;
       }
@@ -138,12 +137,12 @@ export class AutoUpdater {
         const response = await fetch(`https://registry.npmjs.org/${packageJson.name}/latest`, {
           method: 'GET',
           headers: {
-            'User-Agent': `${packageJson.name}/${packageJson.version}`
-          }
+            'User-Agent': `${packageJson.name}/${packageJson.version}`,
+          },
         });
-        
+
         if (response.ok) {
-          const data = await response.json() as any;
+          const data = (await response.json()) as any;
           if (data.version && this.isValidVersion(data.version)) {
             return data.version;
           }
@@ -152,7 +151,7 @@ export class AutoUpdater {
         // Network error or API unavailable
       }
     }
-    
+
     return null;
   }
 
@@ -161,31 +160,34 @@ export class AutoUpdater {
   }
 
   private compareVersions(current: string, latest: string): boolean {
-    const currentParts = current.split('.').map(n => parseInt(n));
-    const latestParts = latest.split('.').map(n => parseInt(n));
-    
+    const currentParts = current.split('.').map((n) => parseInt(n));
+    const latestParts = latest.split('.').map((n) => parseInt(n));
+
     for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
       const currentPart = currentParts[i] || 0;
       const latestPart = latestParts[i] || 0;
-      
+
       if (latestPart > currentPart) return true;
       if (latestPart < currentPart) return false;
     }
-    
+
     return false;
   }
 
-  async detectInstallMethod(): Promise<{ packageManager: 'npm' | 'pnpm' | 'yarn' | null, installMethod: 'global' | 'local' | 'unknown' }> {
+  async detectInstallMethod(): Promise<{
+    packageManager: 'npm' | 'pnpm' | 'yarn' | null;
+    installMethod: 'global' | 'local' | 'unknown';
+  }> {
     try {
       // Check if dmux is globally installed and how
-      
+
       // Method 1: Check npm global packages
       try {
         const npmGlobals = execSync('npm list -g --depth=0', {
           encoding: 'utf-8',
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
-        
+
         if (npmGlobals.includes(`${packageJson.name}@`)) {
           return { packageManager: 'npm', installMethod: 'global' };
         }
@@ -197,9 +199,9 @@ export class AutoUpdater {
       try {
         const pnpmGlobals = execSync('pnpm list -g --depth=0', {
           encoding: 'utf-8',
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
-        
+
         if (pnpmGlobals.includes(`${packageJson.name}@`)) {
           return { packageManager: 'pnpm', installMethod: 'global' };
         }
@@ -211,9 +213,9 @@ export class AutoUpdater {
       try {
         const yarnGlobals = execSync('yarn global list --depth=0', {
           encoding: 'utf-8',
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
-        
+
         if (yarnGlobals.includes(`${packageJson.name}@`)) {
           return { packageManager: 'yarn', installMethod: 'global' };
         }
@@ -225,9 +227,9 @@ export class AutoUpdater {
       try {
         const dmuxPath = execSync('which dmux', {
           encoding: 'utf-8',
-          stdio: 'pipe'
+          stdio: 'pipe',
         }).trim();
-        
+
         if (dmuxPath.includes('/.npm/') || dmuxPath.includes('/npm/')) {
           return { packageManager: 'npm', installMethod: 'global' };
         } else if (dmuxPath.includes('/.pnpm/')) {
@@ -253,9 +255,9 @@ export class AutoUpdater {
     const latestVersion = await this.getLatestVersion();
     const currentVersion = packageJson.version;
     const { packageManager, installMethod } = await this.detectInstallMethod();
-    
+
     const hasUpdate = latestVersion ? this.compareVersions(currentVersion, latestVersion) : false;
-    
+
     // Update last check time
     const settings = await this.loadSettings();
     settings.lastCheckTime = Date.now();
@@ -265,24 +267,28 @@ export class AutoUpdater {
       settings.cachedHasUpdate = hasUpdate;
     }
     await this.saveSettings(settings);
-    
+
     return {
       currentVersion,
       latestVersion: latestVersion || 'unknown',
       hasUpdate,
       packageManager,
-      installMethod
+      installMethod,
     };
   }
 
   async performUpdate(updateInfo: UpdateInfo): Promise<boolean> {
-    if (!updateInfo.hasUpdate || !updateInfo.packageManager || updateInfo.installMethod !== 'global') {
+    if (
+      !updateInfo.hasUpdate ||
+      !updateInfo.packageManager ||
+      updateInfo.installMethod !== 'global'
+    ) {
       return false;
     }
 
     try {
       let updateCommand: string;
-      
+
       switch (updateInfo.packageManager) {
         case 'npm':
           updateCommand = `npm update -g ${packageJson.name}`;
@@ -300,7 +306,7 @@ export class AutoUpdater {
       // Run the update command with a timeout
       execSync(updateCommand, {
         stdio: 'pipe',
-        timeout: 60000 // 1 minute timeout
+        timeout: 60000, // 1 minute timeout
       });
 
       // Verify the update was successful
@@ -324,12 +330,12 @@ export class AutoUpdater {
     }
 
     const settings = await this.loadSettings();
-    
+
     // Don't show if user has disabled auto-updates
     if (settings.autoUpdateEnabled === false) {
       return false;
     }
-    
+
     // Don't show if user has skipped this version
     if (settings.skipVersion === updateInfo.latestVersion) {
       return false;

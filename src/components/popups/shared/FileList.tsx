@@ -12,15 +12,13 @@ interface FileListProps {
  * Displays a scrollable list of files with the selected file highlighted
  * Used for @ file autocomplete in the new pane popup
  */
-export const FileList: React.FC<FileListProps> = ({
-  files,
-  selectedIndex,
-  maxVisible = 10
-}) => {
+export const FileList: React.FC<FileListProps> = ({ files, selectedIndex, maxVisible = 10 }) => {
   if (files.length === 0) {
     return (
       <Box marginTop={1}>
-        <Text dimColor italic>No files found</Text>
+        <Text dimColor italic>
+          No files found
+        </Text>
       </Box>
     );
   }
@@ -87,7 +85,8 @@ export const FileList: React.FC<FileListProps> = ({
                 backgroundColor={isSelected ? 'cyan' : undefined}
                 bold={isSelected}
               >
-                {isSelected ? '▶ ' : '  '}{file}
+                {isSelected ? '▶ ' : '  '}
+                {file}
               </Text>
             </Box>
           );

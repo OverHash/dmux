@@ -26,7 +26,7 @@ function createDeferred<T>() {
 }
 
 function createPopupManager(
-  trackProjectActivity: PopupManagerConfig['trackProjectActivity']
+  trackProjectActivity: PopupManagerConfig['trackProjectActivity'],
 ): PopupManager {
   const config: PopupManagerConfig = {
     sidebarWidth: 40,
@@ -45,7 +45,11 @@ function createPopupManager(
     trackProjectActivity,
   };
 
-  return new PopupManager(config, () => {}, () => {});
+  return new PopupManager(
+    config,
+    () => {},
+    () => {},
+  );
 }
 
 describe('PopupManager popup readiness tracking', () => {
@@ -80,7 +84,7 @@ describe('PopupManager popup readiness tracking', () => {
       'Which agent would you like to use to resolve merge conflicts?',
       [{ id: 'claude', label: 'Claude', default: true }],
       undefined,
-      '/tmp/project/feature'
+      '/tmp/project/feature',
     );
 
     await Promise.resolve();
@@ -95,9 +99,6 @@ describe('PopupManager popup readiness tracking', () => {
     result.resolve({ success: true, data: 'claude' });
 
     await expect(popupPromise).resolves.toBe('claude');
-    expect(trackProjectActivity).toHaveBeenCalledWith(
-      expect.any(Function),
-      '/tmp/project/feature'
-    );
+    expect(trackProjectActivity).toHaveBeenCalledWith(expect.any(Function), '/tmp/project/feature');
   });
 });

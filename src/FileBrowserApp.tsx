@@ -31,10 +31,18 @@ interface SortOption {
 
 const SORT_OPTIONS: SortOption[] = [
   { id: 'sort-name', label: 'Sort by name', description: 'Alphabetical tree order' },
-  { id: 'sort-modified', label: 'Sort by modified time', description: 'Recently touched files first' },
+  {
+    id: 'sort-modified',
+    label: 'Sort by modified time',
+    description: 'Recently touched files first',
+  },
   { id: 'sort-status', label: 'Sort by git status', description: 'Changed files first' },
   { id: 'filter-all', label: 'Show all files', description: 'Tracked and untracked files' },
-  { id: 'filter-diffed', label: 'Show changed files only', description: 'Only files with git changes' },
+  {
+    id: 'filter-diffed',
+    label: 'Show changed files only',
+    description: 'Only files with git changes',
+  },
 ];
 
 function clipToWidth(value: string, maxWidth: number): string {
@@ -177,12 +185,12 @@ function isFilterTypingInput(input: string, key: Record<string, boolean>): boole
   }
 
   if (
-    key.upArrow
-    || key.downArrow
-    || key.leftArrow
-    || key.rightArrow
-    || key.pageUp
-    || key.pageDown
+    key.upArrow ||
+    key.downArrow ||
+    key.leftArrow ||
+    key.rightArrow ||
+    key.pageUp ||
+    key.pageDown
   ) {
     return false;
   }
@@ -278,7 +286,7 @@ const FileBrowserApp: React.FC = () => {
         filterQuery: '',
         activePath: viewerPath || selectedPath,
       }),
-    [snapshot, sortMode, filterMode, modifiedTimes, viewerPath, selectedPath]
+    [snapshot, sortMode, filterMode, modifiedTimes, viewerPath, selectedPath],
   );
 
   const visibleEntries = useMemo(() => {
@@ -308,7 +316,7 @@ const FileBrowserApp: React.FC = () => {
 
   const entryByPath = useMemo(
     () => new Map(visibleEntries.map((entry) => [entry.path, entry])),
-    [visibleEntries]
+    [visibleEntries],
   );
 
   useEffect(() => {
@@ -324,13 +332,16 @@ const FileBrowserApp: React.FC = () => {
   }, [visibleEntries, selectedPath, entryByPath]);
 
   const selectedIndex = selectedPath
-    ? Math.max(0, visibleEntries.findIndex((entry) => entry.path === selectedPath))
+    ? Math.max(
+        0,
+        visibleEntries.findIndex((entry) => entry.path === selectedPath),
+      )
     : 0;
   const selectedEntry = visibleEntries[selectedIndex];
 
   const viewerFile = useMemo(
     () => snapshot.files.find((file) => file.path === viewerPath),
-    [snapshot, viewerPath]
+    [snapshot, viewerPath],
   );
 
   const previewLines = useMemo(() => {
@@ -363,7 +374,12 @@ const FileBrowserApp: React.FC = () => {
     setSnapshot(nextSnapshot);
 
     if (sortMode === 'modified') {
-      setModifiedTimes(computeModifiedTimes(rootPath, nextSnapshot.files.map((file) => file.path)));
+      setModifiedTimes(
+        computeModifiedTimes(
+          rootPath,
+          nextSnapshot.files.map((file) => file.path),
+        ),
+      );
     } else {
       setModifiedTimes(null);
     }
@@ -378,7 +394,7 @@ const FileBrowserApp: React.FC = () => {
 
     const nextTimes = computeModifiedTimes(
       rootPath,
-      nextSnapshot.files.map((file) => file.path)
+      nextSnapshot.files.map((file) => file.path),
     );
     setModifiedTimes(nextTimes);
     return nextTimes;
@@ -454,7 +470,7 @@ const FileBrowserApp: React.FC = () => {
       setStatusMessage(`Opened ${targetPath}`);
     } catch (error) {
       setStatusMessage(
-        `Failed to open ${targetPath}: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to open ${targetPath}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   };
@@ -732,10 +748,7 @@ const FileBrowserApp: React.FC = () => {
 
   const listRange = getVisibleRange(selectedIndex, visibleEntries.length, listBodyRows);
   const visibleListItems = visibleEntries.slice(listRange.start, listRange.end);
-  const visiblePreviewLines = previewLines.slice(
-    viewerScroll,
-    viewerScroll + viewerBodyRows
-  );
+  const visiblePreviewLines = previewLines.slice(viewerScroll, viewerScroll + viewerBodyRows);
 
   const frameWidth = Math.max(30, terminalWidth - 2);
   const searchWidth = frameWidth;
@@ -746,7 +759,7 @@ const FileBrowserApp: React.FC = () => {
   const statusColumnWidth = 4;
   const itemLabelWidth = Math.max(
     10,
-    contentWidth - rowMarkerWidth - searchIconWidth - statusColumnWidth
+    contentWidth - rowMarkerWidth - searchIconWidth - statusColumnWidth,
   );
   const filterFocused = !viewerPath && !sortMenuOpen && !listFocused;
   const filterDisplay = filterQuery || 'Search files and directories';
@@ -765,7 +778,7 @@ const FileBrowserApp: React.FC = () => {
   const sectionSummary = viewerPath
     ? `${viewerMode === 'code' ? 'Code view' : 'Diff view'} • Lines ${Math.min(
         viewerScroll + 1,
-        previewLines.length
+        previewLines.length,
       )}-${Math.min(viewerScroll + viewerBodyRows, previewLines.length)} of ${previewLines.length}`
     : sortMenuOpen
       ? 'Choose a sort or filter mode'
@@ -801,7 +814,10 @@ const FileBrowserApp: React.FC = () => {
         flexDirection="column"
       >
         <Box width={searchInnerWidth}>
-          <Text bold color={filterFocused ? POPUP_CONFIG.inputBorderColor : POPUP_CONFIG.borderColor}>
+          <Text
+            bold
+            color={filterFocused ? POPUP_CONFIG.inputBorderColor : POPUP_CONFIG.borderColor}
+          >
             {' '}
           </Text>
           <Text
@@ -812,19 +828,15 @@ const FileBrowserApp: React.FC = () => {
             {renderSingleLine(
               clipToWidth(
                 `${filterDisplay}${filterQuery ? filterCursor : filterFocused ? filterCursor : ''}`,
-                searchInnerWidth - 2
-              )
+                searchInnerWidth - 2,
+              ),
             )}
           </Text>
         </Box>
       </Box>
 
       {viewerPath ? (
-        <Box
-          flexDirection="column"
-          width={contentWidth}
-          height={contentBoxHeight}
-        >
+        <Box flexDirection="column" width={contentWidth} height={contentBoxHeight}>
           <Box width={contentWidth}>
             <Text bold color="yellow" wrap="truncate-end">
               {renderSingleLine(clipToWidth(`${sectionTitle} • ${viewerPath}`, contentWidth))}
@@ -848,11 +860,7 @@ const FileBrowserApp: React.FC = () => {
           ))}
         </Box>
       ) : sortMenuOpen ? (
-        <Box
-          flexDirection="column"
-          width={contentWidth}
-          height={contentBoxHeight}
-        >
+        <Box flexDirection="column" width={contentWidth} height={contentBoxHeight}>
           <Box width={contentWidth}>
             <Text bold color="cyan" wrap="truncate-end">
               {sectionTitle}
@@ -871,8 +879,8 @@ const FileBrowserApp: React.FC = () => {
                   {renderSingleLine(
                     clipToWidth(
                       `${selected ? '▌ ' : '  '}${option.label} • ${option.description}`,
-                      contentWidth
-                    )
+                      contentWidth,
+                    ),
                   )}
                 </Text>
               </Box>
@@ -885,17 +893,9 @@ const FileBrowserApp: React.FC = () => {
           ))}
         </Box>
       ) : (
-        <Box
-          flexDirection="column"
-          width={contentWidth}
-          height={contentBoxHeight}
-        >
+        <Box flexDirection="column" width={contentWidth} height={contentBoxHeight}>
           <Box width={contentWidth}>
-            <Text
-              bold
-              color={listFocused ? POPUP_CONFIG.borderColor : 'gray'}
-              wrap="truncate-end"
-            >
+            <Text bold color={listFocused ? POPUP_CONFIG.borderColor : 'gray'} wrap="truncate-end">
               {renderSingleLine(clipToWidth(`${sectionTitle} • ${sectionSummary}`, contentWidth))}
             </Text>
           </Box>
@@ -917,14 +917,15 @@ const FileBrowserApp: React.FC = () => {
               {visibleListItems.map((entry) => {
                 const selected = listFocused && entry.path === selectedPath;
                 const rowBackground = selected ? COLORS.accent : undefined;
-                const statusText = statusColumnWidth > 1
-                  ? (entry.statusLabel || '').padStart(statusColumnWidth - 1, ' ')
-                  : entry.statusLabel || '';
+                const statusText =
+                  statusColumnWidth > 1
+                    ? (entry.statusLabel || '').padStart(statusColumnWidth - 1, ' ')
+                    : entry.statusLabel || '';
                 const selectionMarker = selected ? '▌ ' : '  ';
                 const entryLabel = filterActive
                   ? clipPathToWidth(
                       entry.type === 'directory' ? `${entry.path}/` : entry.path,
-                      itemLabelWidth
+                      itemLabelWidth,
                     )
                   : clipToWidth(entry.displayLabel, itemLabelWidth);
                 const entryColor = selected

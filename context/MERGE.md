@@ -5,6 +5,7 @@ This document explains the complete flow when merging a worktree with conflicts.
 ## Overview
 
 The merge system implements a **2-phase merge strategy**:
+
 1. **Phase 1**: Merge main → worktree (get latest changes, detect/resolve conflicts)
 2. **Phase 2**: Merge worktree → main (bring changes back to main branch)
 
@@ -15,6 +16,7 @@ Conflicts are detected **before** attempting the actual merge using `git merge-t
 ## Complete Flow: User Presses 'm' on a Worktree Pane
 
 ### **Step 1: Pre-Validation**
+
 **File**: `src/actions/implementations/mergeAction.ts:21-43`
 
 - Calls `validateMerge()` which runs `git merge-tree` simulation
@@ -23,6 +25,7 @@ Conflicts are detected **before** attempting the actual merge using `git merge-t
 - Returns validation result with `canMerge: false` and `merge_conflict` issue
 
 ### **Step 2: Issue Routing**
+
 **File**: `src/actions/implementations/mergeAction.ts:72-102`
 
 - Since `canMerge: false`, routes to `handleMergeIssues()`
@@ -33,6 +36,7 @@ Conflicts are detected **before** attempting the actual merge using `git merge-t
 ### **Step 3: User Choice Dialog**
 
 Shows choice dialog with 3 options:
+
 - **AI-assisted merge** (default)
 - Manual resolution
 - Cancel
@@ -42,6 +46,7 @@ Shows choice dialog with 3 options:
 ## Path A: AI-Assisted Merge
 
 ### **Step 4: Create Conflict Resolution Pane**
+
 **File**: `src/actions/merge/conflictResolution.ts:14-67`
 
 - Detects available agents (Claude Code, opencode)
@@ -49,6 +54,7 @@ Shows choice dialog with 3 options:
 - If only one agent, uses it directly
 
 ### **Step 5: Launch Conflict Pane**
+
 **File**: `src/actions/merge/conflictResolution.ts:73-150`
 
 - Calls `createConflictResolutionPane()` utility
@@ -76,12 +82,14 @@ Shows choice dialog with 3 options:
 - **Note**: Any changes made by the agent are immediately visible in the original pane since they share the same worktree
 
 ### **Step 7: Monitor Detects Completion**
+
 **File**: `src/utils/conflictMonitor.ts:54-60`
 
 - `areConflictsResolved()` returns true
 - Calls `onResolved()` callback
 
 ### **Step 8: Auto-Cleanup Flow**
+
 **File**: `src/actions/merge/conflictResolution.ts:107-140`
 
 1. **Kills conflict pane**: `tmux kill-pane -t '${conflictPane.paneId}'`
@@ -90,6 +98,7 @@ Shows choice dialog with 3 options:
 4. **Re-runs `executeMerge()`** with the original pane
 
 ### **Step 9: Execute Merge**
+
 **File**: `src/actions/merge/mergeExecution.ts:86-227`
 
 1. **Phase 1**: `mergeMainIntoWorktree()` - now succeeds because conflicts were resolved
@@ -98,6 +107,7 @@ Shows choice dialog with 3 options:
 4. **Shows cleanup confirmation dialog** via `onActionResult` callback
 
 ### **Step 10: User Confirms Cleanup**
+
 **File**: `src/actions/merge/mergeExecution.ts:191-227`
 
 1. **Kills original worktree pane**: `tmux kill-pane -t '${pane.paneId}'`
@@ -113,11 +123,13 @@ Shows choice dialog with 3 options:
 ## Path B: Manual Resolution
 
 ### **Step 4-Alt: Manual Flow**
+
 **File**: `src/actions/merge/issueHandlers/mergeConflictHandler.ts:49-52`
 
 - Calls `executeMergeWithConflictHandling()` with `strategy: 'manual'`
 
 ### **Step 5-Alt: Start Merge**
+
 **File**: `src/actions/merge/mergeExecution.ts:15-78`
 
 - Calls `mergeMainIntoWorktree()` - this will fail with conflicts
@@ -148,6 +160,7 @@ Shows choice dialog with 3 options:
 ### Monitor Watches the Worktree
 
 The conflict monitor watches `pane.worktreePath!` (not the main repo) because:
+
 - Conflicts are resolved in the worktree
 - Agent runs in the worktree directory
 - MERGE_HEAD file exists in worktree during conflict state
@@ -189,18 +202,21 @@ This prevents polluting main with conflict markers and allows safe experimentati
 ## Files Involved
 
 ### Action System
+
 - `src/actions/implementations/mergeAction.ts` - Main entry point, orchestration
 - `src/actions/merge/mergeExecution.ts` - Merge execution logic
 - `src/actions/merge/conflictResolution.ts` - Conflict pane creation and monitoring
 - `src/actions/merge/issueHandlers/mergeConflictHandler.ts` - Conflict dialog
 
 ### Utilities
+
 - `src/utils/mergeValidation.ts` - Pre-merge validation and git operations
 - `src/utils/mergeExecution.ts` - Low-level merge operations
 - `src/utils/conflictMonitor.ts` - Background monitoring system
 - `src/utils/conflictResolutionPane.ts` - Conflict pane creation
 
 ### Adapters
+
 - `src/hooks/useActionSystem.ts` - React hook bridging actions to TUI
 - `src/DmuxApp.tsx` - TUI rendering and `onActionResult` callback
 
@@ -209,16 +225,19 @@ This prevents polluting main with conflict markers and allows safe experimentati
 ## Recent Bug Fixes
 
 ### Bug #6: Monitoring Wrong Repository
+
 - **Problem**: Monitor was checking `targetRepoPath` (main repo) instead of worktree
 - **Fix**: Changed to `pane.worktreePath!` in conflictResolution.ts:106
 - **Impact**: Monitor now correctly detects when conflicts are resolved
 
 ### Bug #7: Wrong Pane Getting Cleaned Up
+
 - **Problem**: Stale context caused cleanup to remove original pane instead of conflict pane
 - **Fix**: Created `updatedContext` with fresh pane list before calling `executeMerge()`
 - **Impact**: Cleanup now targets the correct pane (original worktree, not conflict pane)
 
 ### Bug #8: Zombie Panes in tmux
+
 - **Problem**: Cleanup removed pane from dmux state but didn't kill tmux process
 - **Fix**: Added `execSync(\`tmux kill-pane -t '${pane.paneId}'\`)` in mergeExecution.ts:204-210
 - **Also fixed**: Changed callback from `onPaneUpdate` to `onPaneRemove`

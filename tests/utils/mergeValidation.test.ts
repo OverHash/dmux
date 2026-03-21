@@ -38,7 +38,7 @@ describe('mergeValidation', () => {
         expect.objectContaining({
           cwd: '/repo',
           encoding: 'utf-8',
-        })
+        }),
       );
     });
 
@@ -53,7 +53,7 @@ describe('mergeValidation', () => {
         expect.objectContaining({
           cwd: '/repo',
           encoding: 'utf-8',
-        })
+        }),
       );
     });
   });
@@ -84,7 +84,7 @@ describe('mergeValidation', () => {
       });
 
       const result = validateMerge('/repo/main', '/repo/worktree', 'feature/test');
-      const issueTypes = result.issues.map(issue => issue.type);
+      const issueTypes = result.issues.map((issue) => issue.type);
 
       expect(issueTypes).toContain('main_dirty');
       expect(issueTypes).not.toContain('nothing_to_merge');

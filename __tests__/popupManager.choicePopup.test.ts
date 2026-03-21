@@ -20,7 +20,11 @@ function createPopupManager(availableAgents: AgentName[]): PopupManager {
     trackProjectActivity: async (work) => await work(),
   };
 
-  return new PopupManager(config, () => {}, () => {});
+  return new PopupManager(
+    config,
+    () => {},
+    () => {},
+  );
 }
 
 describe('PopupManager launchChoicePopup', () => {
@@ -44,7 +48,7 @@ describe('PopupManager launchChoicePopup', () => {
       'Main Branch Has Uncommitted Changes',
       'Resolve before merge',
       [{ id: 'commit_automatic', label: 'AI commit' }],
-      mergeData
+      mergeData,
     );
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
@@ -59,7 +63,7 @@ describe('PopupManager launchChoicePopup', () => {
         message: 'Resolve before merge',
         options: [{ id: 'commit_automatic', label: 'AI commit' }],
       }),
-      undefined
+      undefined,
     );
   });
 
@@ -75,7 +79,7 @@ describe('PopupManager launchChoicePopup', () => {
       'Choose Option',
       'Pick one',
       [{ id: 'cancel', label: 'Cancel' }],
-      { kind: 'not_merge_uncommitted' }
+      { kind: 'not_merge_uncommitted' },
     );
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
@@ -87,7 +91,7 @@ describe('PopupManager launchChoicePopup', () => {
         message: 'Pick one',
         options: [{ id: 'cancel', label: 'Cancel' }],
       },
-      undefined
+      undefined,
     );
   });
 
@@ -111,7 +115,7 @@ describe('PopupManager launchChoicePopup', () => {
       'Close Pane',
       message,
       [{ id: 'kill_only', label: 'Just close pane', description: 'Keep worktree and branch' }],
-      undefined
+      undefined,
     );
 
     const [, , popupOptions] = manager.launchPopup.mock.calls[0];

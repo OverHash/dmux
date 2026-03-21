@@ -40,7 +40,8 @@ export default function useCommandRunner({
     }
 
     const command = type === 'test' ? projectSettings.testCommand : projectSettings.devCommand;
-    const isFirstRun = type === 'test' ? !projectSettings.firstTestRun : !projectSettings.firstDevRun;
+    const isFirstRun =
+      type === 'test' ? !projectSettings.firstTestRun : !projectSettings.firstDevRun;
 
     if (!command) {
       setShowCommandPrompt(type);
@@ -57,7 +58,11 @@ export default function useCommandRunner({
     await runCommandInternal(type, pane);
   };
 
-  const handleFirstRunResponse = async (accepted: boolean, type: 'test' | 'dev', pane: DmuxPane) => {
+  const handleFirstRunResponse = async (
+    accepted: boolean,
+    type: 'test' | 'dev',
+    pane: DmuxPane,
+  ) => {
     if (!pane.worktreePath) return;
     if (accepted) await copyNonGitFiles(pane.worktreePath);
 

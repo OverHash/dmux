@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calculateOptimalColumns, MIN_COMFORTABLE_WIDTH, MIN_COMFORTABLE_HEIGHT, generateSidebarGridLayout } from '../src/utils/tmux.js';
+import {
+  calculateOptimalColumns,
+  MIN_COMFORTABLE_WIDTH,
+  MIN_COMFORTABLE_HEIGHT,
+  generateSidebarGridLayout,
+} from '../src/utils/tmux.js';
 import { calculateOptimalLayout, DEFAULT_LAYOUT_CONFIG } from '../src/utils/layoutManager.js';
 
 describe('layout calculation', () => {
@@ -112,7 +117,7 @@ describe('layout calculation', () => {
         203, // window width
         60, // window height
         3, // columns
-        80 // max comfortable width
+        80, // max comfortable width
       );
 
       // Checksum should be exactly 4 hex digits
@@ -130,15 +135,7 @@ describe('layout calculation', () => {
       ];
 
       testCases.forEach(({ width, panes }) => {
-        const layout = generateSidebarGridLayout(
-          '%0',
-          panes,
-          40,
-          width,
-          60,
-          2,
-          80
-        );
+        const layout = generateSidebarGridLayout('%0', panes, 40, width, 60, 2, 80);
 
         const checksum = layout.split(',')[0];
         expect(checksum).toHaveLength(4);
@@ -154,7 +151,7 @@ describe('layout calculation', () => {
         201,
         60,
         3,
-        80
+        80,
       );
 
       const layout2 = generateSidebarGridLayout(
@@ -164,7 +161,7 @@ describe('layout calculation', () => {
         201,
         60,
         3,
-        80
+        80,
       );
 
       // Layouts should be identical (deterministic)
@@ -180,7 +177,7 @@ describe('layout calculation', () => {
         201,
         60,
         3,
-        80
+        80,
       );
 
       expect(layout).toBeTruthy();
@@ -198,7 +195,7 @@ describe('layout calculation', () => {
         203,
         60,
         3,
-        80
+        80,
       );
 
       expect(layout).toBeTruthy();
@@ -210,15 +207,7 @@ describe('layout calculation', () => {
     it('correctly calculates pane widths with remainder distribution', () => {
       // 3 columns, 160 width content = 53.33 per pane
       // Should distribute as: 54, 53, 53 (first pane gets remainder)
-      const layout = generateSidebarGridLayout(
-        '%0',
-        ['%1', '%2', '%3'],
-        40,
-        201,
-        60,
-        3,
-        80
-      );
+      const layout = generateSidebarGridLayout('%0', ['%1', '%2', '%3'], 40, 201, 60, 3, 80);
 
       // First pane should be 54 wide
       expect(layout).toContain('54x');
@@ -227,15 +216,7 @@ describe('layout calculation', () => {
     });
 
     it('generates correct absolute coordinates', () => {
-      const layout = generateSidebarGridLayout(
-        '%0',
-        ['%1', '%2'],
-        40,
-        200,
-        60,
-        2,
-        80
-      );
+      const layout = generateSidebarGridLayout('%0', ['%1', '%2'], 40, 200, 60, 2, 80);
 
       // Content should start at X=41 (sidebar 40 + border 1)
       expect(layout).toContain(',41,');
@@ -249,7 +230,7 @@ describe('layout calculation', () => {
     it('chooses appropriate layout for 5 panes at various widths', () => {
       const widths = [180, 200, 201, 203, 220, 240];
 
-      widths.forEach(width => {
+      widths.forEach((width) => {
         const layout = calculateOptimalLayout(5, width, 60, DEFAULT_LAYOUT_CONFIG);
 
         // Should always produce valid layout
@@ -277,7 +258,9 @@ describe('layout calculation', () => {
       expect(layout.windowWidth).toBeLessThan(500);
 
       // Pane width should not exceed MAX_COMFORTABLE_WIDTH
-      expect(layout.actualPaneWidth).toBeLessThanOrEqual(DEFAULT_LAYOUT_CONFIG.MAX_COMFORTABLE_WIDTH);
+      expect(layout.actualPaneWidth).toBeLessThanOrEqual(
+        DEFAULT_LAYOUT_CONFIG.MAX_COMFORTABLE_WIDTH,
+      );
     });
 
     it('distributes panes evenly across columns', () => {

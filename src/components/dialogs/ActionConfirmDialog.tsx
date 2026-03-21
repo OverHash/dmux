@@ -20,18 +20,14 @@ const ActionConfirmDialog: React.FC<ActionConfirmDialogProps> = ({
   message,
   yesLabel,
   noLabel,
-  selectedIndex = 0
+  selectedIndex = 0,
 }) => {
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="cyan"
-      paddingX={1}
-      marginTop={1}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} marginTop={1}>
       <Box marginBottom={1}>
-        <Text bold color="cyan">{title}</Text>
+        <Text bold color="cyan">
+          {title}
+        </Text>
       </Box>
 
       <Box marginBottom={1}>
@@ -43,11 +39,13 @@ const ActionConfirmDialog: React.FC<ActionConfirmDialogProps> = ({
         <Box>
           {selectedIndex === 0 ? (
             <Text color="green" bold inverse>
-              {'► '}{yesLabel}{' '}
+              {'► '}
+              {yesLabel}{' '}
             </Text>
           ) : (
             <Text>
-              {'  '}{yesLabel}
+              {'  '}
+              {yesLabel}
             </Text>
           )}
         </Box>
@@ -56,11 +54,13 @@ const ActionConfirmDialog: React.FC<ActionConfirmDialogProps> = ({
         <Box>
           {selectedIndex === 1 ? (
             <Text color="red" bold inverse>
-              {'► '}{noLabel}{' '}
+              {'► '}
+              {noLabel}{' '}
             </Text>
           ) : (
             <Text>
-              {'  '}{noLabel}
+              {'  '}
+              {noLabel}
             </Text>
           )}
         </Box>

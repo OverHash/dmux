@@ -49,7 +49,7 @@ export function groupPanesByProject(
   panes: DmuxPane[],
   fallbackProjectRoot: string,
   fallbackProjectName: string,
-  sidebarProjects: SidebarProject[] = []
+  sidebarProjects: SidebarProject[] = [],
 ): PaneProjectGroup[] {
   const groupMap = new Map<string, PaneProjectGroup>();
   const groups: PaneProjectGroup[] = [];
@@ -58,7 +58,7 @@ export function groupPanesByProject(
     sidebarProjects,
     panes,
     fallbackProjectRoot,
-    fallbackProjectName
+    fallbackProjectName,
   )) {
     const projectKey = path.resolve(project.projectRoot);
     const existingGroup = groupMap.get(projectKey);

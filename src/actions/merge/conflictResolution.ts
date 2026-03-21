@@ -23,7 +23,7 @@ export async function createConflictResolutionPaneForMerge(
   pane: DmuxPane,
   context: ActionContext,
   targetBranch: string,
-  targetRepoPath: string
+  targetRepoPath: string,
 ): Promise<ActionResult> {
   // First, check which agents are available and enabled.
   const { filterEnabledAgents, getInstalledAgents } = await import('../../utils/agentDetection.js');
@@ -46,7 +46,7 @@ export async function createConflictResolutionPaneForMerge(
       type: 'choice',
       title: 'Choose AI Agent for Conflict Resolution',
       message: 'Which agent would you like to use to resolve merge conflicts?',
-      options: availableAgents.map(agent => ({
+      options: availableAgents.map((agent) => ({
         id: agent,
         label: getAgentLabel(agent),
         description: getAgentDescription(agent),
@@ -60,13 +60,7 @@ export async function createConflictResolutionPaneForMerge(
             dismissable: true,
           };
         }
-        return createAndLaunchConflictPane(
-          pane,
-          context,
-          targetBranch,
-          targetRepoPath,
-          agentId
-        );
+        return createAndLaunchConflictPane(pane, context, targetBranch, targetRepoPath, agentId);
       },
       dismissable: true,
     };
@@ -78,7 +72,7 @@ export async function createConflictResolutionPaneForMerge(
     context,
     targetBranch,
     targetRepoPath,
-    availableAgents[0]
+    availableAgents[0],
   );
 }
 
@@ -90,7 +84,7 @@ async function createAndLaunchConflictPane(
   context: ActionContext,
   targetBranch: string,
   targetRepoPath: string,
-  agent: AgentName
+  agent: AgentName,
 ): Promise<ActionResult> {
   try {
     const { createConflictResolutionPane } = await import('../../utils/conflictResolutionPane.js');
@@ -124,7 +118,9 @@ async function createAndLaunchConflictPane(
       onResolved: async () => {
         // Conflicts resolved! Close the conflict pane and trigger cleanup
         try {
-          console.error(`[conflictResolution] Conflicts resolved for ${pane.slug}, cleaning up conflict pane ${conflictPane.id}`);
+          console.error(
+            `[conflictResolution] Conflicts resolved for ${pane.slug}, cleaning up conflict pane ${conflictPane.id}`,
+          );
           const tmuxService = TmuxService.getInstance();
 
           // Kill the conflict pane first
@@ -136,11 +132,17 @@ async function createAndLaunchConflictPane(
           const { StateManager } = await import('../../shared/StateManager.js');
           const stateManager = StateManager.getInstance();
           const currentPanes = stateManager.getPanes();
-          console.error(`[conflictResolution] Current panes: ${currentPanes.map(p => p.id).join(', ')}`);
+          console.error(
+            `[conflictResolution] Current panes: ${currentPanes.map((p) => p.id).join(', ')}`,
+          );
 
           // Remove conflict pane from state
-          const panesWithoutConflictPane = currentPanes.filter((p: DmuxPane) => p.id !== conflictPane.id);
-          console.error(`[conflictResolution] Removing conflict pane ${conflictPane.id}, remaining: ${panesWithoutConflictPane.map(p => p.id).join(', ')}`);
+          const panesWithoutConflictPane = currentPanes.filter(
+            (p: DmuxPane) => p.id !== conflictPane.id,
+          );
+          console.error(
+            `[conflictResolution] Removing conflict pane ${conflictPane.id}, remaining: ${panesWithoutConflictPane.map((p) => p.id).join(', ')}`,
+          );
           await context.savePanes(panesWithoutConflictPane);
 
           // Now trigger the cleanup flow for the original pane
@@ -156,8 +158,16 @@ async function createAndLaunchConflictPane(
           // Re-run executeMerge which will now succeed (conflicts are resolved)
           // This will return the cleanup confirmation dialog
           // IMPORTANT: Pass skipWorktreeMerge=true because agent already resolved conflicts
-          console.error(`[conflictResolution] Executing merge for original pane ${pane.id} (${pane.slug})`);
-          const result = await executeMerge(pane, updatedContext, targetBranch, targetRepoPath, true);
+          console.error(
+            `[conflictResolution] Executing merge for original pane ${pane.id} (${pane.slug})`,
+          );
+          const result = await executeMerge(
+            pane,
+            updatedContext,
+            targetBranch,
+            targetRepoPath,
+            true,
+          );
 
           // If we have the onActionResult callback, use it to show the dialog
           if (context.onActionResult) {

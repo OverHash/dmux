@@ -16,7 +16,7 @@ import {
   writeSuccessAndExit,
   writeCancelAndExit,
   writeErrorAndExit,
-  type PopupResult
+  type PopupResult,
 } from './shared/index.js';
 
 interface MergeIssue {
@@ -80,8 +80,12 @@ const MergePopupApp: React.FC<MergePopupProps> = ({
         if (!result.canMerge) {
           // Check issue types
           const mainDirty = result.issues.find((i: MergeIssue) => i.type === 'main_dirty');
-          const worktreeUncommitted = result.issues.find((i: MergeIssue) => i.type === 'worktree_uncommitted');
-          const nothingToMerge = result.issues.find((i: MergeIssue) => i.type === 'nothing_to_merge');
+          const worktreeUncommitted = result.issues.find(
+            (i: MergeIssue) => i.type === 'worktree_uncommitted',
+          );
+          const nothingToMerge = result.issues.find(
+            (i: MergeIssue) => i.type === 'nothing_to_merge',
+          );
 
           if (nothingToMerge) {
             setStep('error');
@@ -159,7 +163,8 @@ const MergePopupApp: React.FC<MergePopupProps> = ({
   // Commit changes
   const commitChanges = async (repoPath: string, message: string) => {
     try {
-      const { stageAllChanges, commitChanges: doCommit } = await import('../../utils/mergeValidation.js');
+      const { stageAllChanges, commitChanges: doCommit } =
+        await import('../../utils/mergeValidation.js');
 
       const stageResult = stageAllChanges(repoPath);
       if (!stageResult.success) {
@@ -297,7 +302,7 @@ const MergePopupApp: React.FC<MergePopupProps> = ({
         {(step === 'main_dirty' || step === 'worktree_uncommitted') && (
           <Box flexDirection="column">
             {validation?.issues
-              .filter(i => i.type === step)
+              .filter((i) => i.type === step)
               .map((issue, idx) => (
                 <Box key={idx} marginBottom={1} flexDirection="column">
                   <Text>{issue.message}</Text>
@@ -320,12 +325,15 @@ const MergePopupApp: React.FC<MergePopupProps> = ({
               {['AI commit (auto)', 'AI commit (editable)', 'Manual commit', 'Cancel'].map(
                 (option, idx) => (
                   <Box key={idx}>
-                    <Text color={selectedIndex === idx ? POPUP_CONFIG.titleColor : 'white'} bold={selectedIndex === idx}>
+                    <Text
+                      color={selectedIndex === idx ? POPUP_CONFIG.titleColor : 'white'}
+                      bold={selectedIndex === idx}
+                    >
                       {selectedIndex === idx ? '▶ ' : '  '}
                       {option}
                     </Text>
                   </Box>
-                )
+                ),
               )}
             </Box>
 
@@ -443,7 +451,7 @@ function main() {
       worktreePath={data.worktreePath}
       mainRepoPath={data.mainRepoPath}
       mainBranch={data.mainBranch}
-    />
+    />,
   );
 }
 

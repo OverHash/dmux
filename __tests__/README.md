@@ -61,12 +61,14 @@ pnpm test __tests__/actions/ --reporter=verbose
 ### 1. Unit Tests (Current)
 
 Test individual actions in isolation:
+
 - Mock all external dependencies (execSync, StateManager, hooks, fs)
 - Create mock ActionContext and DmuxPane fixtures
 - Assert on ActionResult types and callback chains
 - Test happy paths and error scenarios
 
 **Example:**
+
 ```typescript
 it('should jump to pane successfully', async () => {
   const mockPane = createMockPane({ paneId: '%42' });
@@ -84,6 +86,7 @@ it('should jump to pane successfully', async () => {
 ### 2. Integration Tests (Future)
 
 Test adapters with actions:
+
 - TUI adapter using `ink-testing-library`
 - API adapter using mock HTTP requests
 - Verify UI rendering and user interactions
@@ -91,6 +94,7 @@ Test adapters with actions:
 ### 3. E2E Tests (Future)
 
 Test complete workflows in real tmux:
+
 - Full merge → commit → cleanup flow
 - Close → worktree removal → layout recalc
 - Following pattern in `dmux.e2e.create-pane.test.ts`
@@ -100,6 +104,7 @@ Test complete workflows in real tmux:
 ### Fixtures
 
 **mockContext.ts** - Creates mock ActionContext:
+
 ```typescript
 const context = createMockContext(panes, {
   onPaneUpdate: vi.fn(),
@@ -108,6 +113,7 @@ const context = createMockContext(panes, {
 ```
 
 **mockPanes.ts** - Creates mock DmuxPane objects:
+
 ```typescript
 const pane = createMockPane({ slug: 'my-feature' });
 const shellPane = createShellPane();
@@ -117,6 +123,7 @@ const worktreePane = createWorktreePane();
 ### Assertions
 
 **actionAssertions.ts** - Custom matchers for ActionResult:
+
 ```typescript
 expectSuccess(result, 'message substring');
 expectError(result, 'error substring');
@@ -131,6 +138,7 @@ expectNavigation(result, targetPaneId);
 ### 1. Async Callback Chains
 
 Actions return ActionResults with async callbacks (`onConfirm`, `onSubmit`, `onSelect`). Tests must:
+
 - Await the initial action call
 - Await callback execution
 - Assert on nested results
@@ -138,6 +146,7 @@ Actions return ActionResults with async callbacks (`onConfirm`, `onSubmit`, `onS
 ### 2. Mocking External Dependencies
 
 Actions depend on:
+
 - `execSync` for tmux/git commands
 - `StateManager` singleton
 - `triggerHook` for lifecycle events
@@ -149,6 +158,7 @@ Actions depend on:
 ### 3. Testing Error Recovery
 
 Actions have complex error handling:
+
 - Try/catch blocks with fallback behavior
 - Finally blocks ensuring cleanup (resume config watcher)
 - Non-fatal errors (tmux title update failures)

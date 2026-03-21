@@ -37,20 +37,13 @@ describe('agent launch utils', () => {
 
   it('builds single-agent options from available agents', () => {
     const options = buildAgentLaunchOptions(['claude', 'codex']);
-    expect(options.map((option) => option.id)).toEqual([
-      'claude',
-      'codex',
-    ]);
+    expect(options.map((option) => option.id)).toEqual(['claude', 'codex']);
     expect(options[1]?.agents).toEqual(['codex']);
   });
 
   it('builds one option per available agent', () => {
     const options = buildAgentLaunchOptions(['claude', 'opencode', 'codex']);
-    expect(options.map((option) => option.id)).toEqual([
-      'claude',
-      'opencode',
-      'codex',
-    ]);
+    expect(options.map((option) => option.id)).toEqual(['claude', 'opencode', 'codex']);
   });
 
   it('uses 2-character short labels for all agents', () => {
@@ -83,7 +76,9 @@ describe('getPermissionFlags', () => {
     });
 
     it('returns bypass permissions flags', () => {
-      expect(getPermissionFlags('claude', 'bypassPermissions')).toBe('--dangerously-skip-permissions');
+      expect(getPermissionFlags('claude', 'bypassPermissions')).toBe(
+        '--dangerously-skip-permissions',
+      );
     });
   });
 
@@ -102,7 +97,9 @@ describe('getPermissionFlags', () => {
     });
 
     it('returns bypass permissions flags', () => {
-      expect(getPermissionFlags('codex', 'bypassPermissions')).toBe('--dangerously-bypass-approvals-and-sandbox');
+      expect(getPermissionFlags('codex', 'bypassPermissions')).toBe(
+        '--dangerously-bypass-approvals-and-sandbox',
+      );
     });
   });
 
@@ -135,27 +132,25 @@ describe('getPermissionFlags', () => {
 
 describe('command builders', () => {
   it('builds command without an initial prompt', () => {
-    expect(buildAgentCommand('claude', 'acceptEdits')).toBe(
-      'claude --permission-mode acceptEdits'
-    );
+    expect(buildAgentCommand('claude', 'acceptEdits')).toBe('claude --permission-mode acceptEdits');
   });
 
   it('builds option-style initial prompt command', () => {
     expect(buildInitialPromptCommand('copilot', '"fix it"', 'acceptEdits')).toBe(
-      'copilot --allow-tool write -i "fix it"'
+      'copilot --allow-tool write -i "fix it"',
     );
   });
 
   it('builds stdin-style initial prompt command', () => {
     expect(buildInitialPromptCommand('amp', '"fix it"', 'bypassPermissions')).toBe(
-      "printf '%s\\n' \"fix it\" | amp --dangerously-allow-all"
+      'printf \'%s\\n\' "fix it" | amp --dangerously-allow-all',
     );
   });
 
   it('uses send-keys startup mode for crush initial prompts', () => {
     expect(getPromptTransport('crush')).toBe('send-keys');
     expect(buildInitialPromptCommand('crush', '"fix it"', 'bypassPermissions')).toBe(
-      'crush --yolo'
+      'crush --yolo',
     );
     expect(getSendKeysPrePrompt('crush')).toEqual(['Escape', 'Tab']);
     expect(getSendKeysSubmit('crush')).toEqual(['Enter']);
@@ -165,34 +160,30 @@ describe('command builders', () => {
 
   it('uses send-keys startup mode for cline initial prompts', () => {
     expect(getPromptTransport('cline')).toBe('send-keys');
-    expect(buildInitialPromptCommand('cline', '"fix it"', 'acceptEdits')).toBe(
-      'cline --act'
-    );
+    expect(buildInitialPromptCommand('cline', '"fix it"', 'acceptEdits')).toBe('cline --act');
     expect(getSendKeysPostPasteDelayMs('cline')).toBe(120);
     expect(getSendKeysReadyDelayMs('cline')).toBe(2500);
   });
 
   it('uses interactive prompt option for gemini', () => {
     expect(buildInitialPromptCommand('gemini', '"fix it"', 'bypassPermissions')).toBe(
-      'gemini --approval-mode yolo --prompt-interactive "fix it"'
+      'gemini --approval-mode yolo --prompt-interactive "fix it"',
     );
   });
 
   it('builds gemini resume command', () => {
     expect(buildResumeCommand('gemini', 'bypassPermissions')).toBe(
-      'gemini --resume latest --approval-mode yolo'
+      'gemini --resume latest --approval-mode yolo',
     );
   });
 
   it('builds codex resume command with per-agent permissions', () => {
     expect(buildResumeCommand('codex', 'bypassPermissions')).toBe(
-      'codex resume --last --dangerously-bypass-approvals-and-sandbox'
+      'codex resume --last --dangerously-bypass-approvals-and-sandbox',
     );
   });
 
   it('falls back to launch command when an agent has no resume template', () => {
-    expect(buildAgentResumeOrLaunchCommand('opencode', 'bypassPermissions')).toBe(
-      'opencode'
-    );
+    expect(buildAgentResumeOrLaunchCommand('opencode', 'bypassPermissions')).toBe('opencode');
   });
 });

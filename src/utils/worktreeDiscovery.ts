@@ -43,7 +43,7 @@ function scanForWorktrees(
   dirPath: string,
   rootWorktreePath: string,
   worktrees: WorktreeInfo[],
-  depth: number
+  depth: number,
 ): void {
   try {
     const entries = readdirSync(dirPath, { withFileTypes: true });
@@ -100,7 +100,7 @@ function getWorktreeInfo(
   worktreePath: string,
   rootWorktreePath: string,
   isRoot: boolean,
-  depth: number = 0
+  depth: number = 0,
 ): WorktreeInfo | null {
   try {
     // Get the parent repo path using git rev-parse

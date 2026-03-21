@@ -50,11 +50,7 @@ function parseGitStatusLine(line: string): { statusCode: string; filename: strin
 }
 
 function shouldIgnoreGitStatusEntry(statusCode: string, filename: string): boolean {
-  if (
-    filename === '.dmux'
-    || filename === '.dmux/'
-    || filename.startsWith('.dmux/')
-  ) {
+  if (filename === '.dmux' || filename === '.dmux/' || filename.startsWith('.dmux/')) {
     return true;
   }
 
@@ -62,10 +58,7 @@ function shouldIgnoreGitStatusEntry(statusCode: string, filename: string): boole
     return false;
   }
 
-  return (
-    DMUX_HOOK_SCAFFOLD_PATHS.has(filename)
-    || filename.startsWith('.dmux-hooks/examples/')
-  );
+  return DMUX_HOOK_SCAFFOLD_PATHS.has(filename) || filename.startsWith('.dmux-hooks/examples/');
 }
 
 /**
@@ -83,34 +76,29 @@ export function getGitStatus(repoPath: string): GitStatus {
     const entries = statusOutput
       .trim()
       .split('\n')
-      .filter(line => line.trim())
-      .map(line => {
+      .filter((line) => line.trim())
+      .map((line) => {
         const parsed = parseGitStatusLine(line);
         LogService.getInstance().info(
           `Git status: "${line}" → "${parsed.filename}"`,
-          'mergeValidation'
+          'mergeValidation',
         );
         return { line, ...parsed };
       });
 
-    const visibleEntries = entries
-      .filter(({ statusCode, filename, line }) => {
-        const shouldIgnore = shouldIgnoreGitStatusEntry(statusCode, filename);
-        if (shouldIgnore) {
-          LogService.getInstance().info(
-            `Ignoring git status entry: "${line}"`,
-            'mergeValidation'
-          );
-        }
-        return !shouldIgnore;
-      });
+    const visibleEntries = entries.filter(({ statusCode, filename, line }) => {
+      const shouldIgnore = shouldIgnoreGitStatusEntry(statusCode, filename);
+      if (shouldIgnore) {
+        LogService.getInstance().info(`Ignoring git status entry: "${line}"`, 'mergeValidation');
+      }
+      return !shouldIgnore;
+    });
 
-    const files = visibleEntries
-      .map(({ filename }) => filename);
+    const files = visibleEntries.map(({ filename }) => filename);
 
     LogService.getInstance().info(
       `Final files for ${repoPath}: ${JSON.stringify(files)}`,
-      'mergeValidation'
+      'mergeValidation',
     );
 
     return {
@@ -154,7 +142,7 @@ export function hasCommitsToMerge(repoPath: string, fromBranch: string, toBranch
     const errorMsg = error instanceof Error ? error.message : String(error);
     LogService.getInstance().warn(
       `Failed commit check for ${toBranch}..${fromBranch} in ${repoPath}: ${errorMsg}`,
-      'mergeValidation'
+      'mergeValidation',
     );
     return false;
   }
@@ -166,7 +154,7 @@ export function hasCommitsToMerge(repoPath: string, fromBranch: string, toBranch
 export function detectMergeConflicts(
   repoPath: string,
   sourceBranch: string,
-  targetBranch: string
+  targetBranch: string,
 ): { hasConflicts: boolean; conflictFiles: string[] } {
   try {
     // Use git merge-tree to simulate merge without touching working directory
@@ -176,7 +164,7 @@ export function detectMergeConflicts(
         cwd: repoPath,
         encoding: 'utf-8',
         stdio: 'pipe',
-      }
+      },
     );
 
     // Check for conflict markers in output
@@ -213,7 +201,7 @@ export function detectMergeConflicts(
           cwd: repoPath,
           encoding: 'utf-8',
           stdio: 'pipe',
-        }
+        },
       );
 
       const [behind, ahead] = diverged.trim().split('\t').map(Number);
@@ -222,14 +210,14 @@ export function detectMergeConflicts(
       // If only one side has commits, it's a fast-forward merge (no conflicts)
       if (behind > 0 && ahead > 0) {
         // Get list of changed files on both sides
-        const changedFiles = execSync(
-          `git diff --name-only ${targetBranch}...${sourceBranch}`,
-          {
-            cwd: repoPath,
-            encoding: 'utf-8',
-            stdio: 'pipe',
-          }
-        ).trim().split('\n').filter(Boolean);
+        const changedFiles = execSync(`git diff --name-only ${targetBranch}...${sourceBranch}`, {
+          cwd: repoPath,
+          encoding: 'utf-8',
+          stdio: 'pipe',
+        })
+          .trim()
+          .split('\n')
+          .filter(Boolean);
 
         return { hasConflicts: true, conflictFiles: changedFiles };
       }
@@ -249,7 +237,7 @@ export function detectMergeConflicts(
 export function validateMerge(
   mainRepoPath: string,
   worktreePath: string,
-  worktreeBranch: string
+  worktreeBranch: string,
 ): MergeValidationResult {
   const issues: MergeIssue[] = [];
 
@@ -271,7 +259,7 @@ export function validateMerge(
   const worktreeStatus = getGitStatus(worktreePath);
   LogService.getInstance().info(
     `Worktree status: hasChanges=${worktreeStatus.hasChanges}, files=${JSON.stringify(worktreeStatus.files)}`,
-    'mergeValidation'
+    'mergeValidation',
   );
   if (worktreeStatus.hasChanges) {
     issues.push({
@@ -288,7 +276,7 @@ export function validateMerge(
   const hasCommits = hasCommitsToMerge(mainRepoPath, worktreeBranch, mainBranch);
   LogService.getInstance().info(
     `Merge check: hasCommits=${hasCommits}, worktreeHasChanges=${worktreeStatus.hasChanges}`,
-    'mergeValidation'
+    'mergeValidation',
   );
   if (!hasCommits && !worktreeStatus.hasChanges && !mainStatus.hasChanges) {
     LogService.getInstance().info('Adding nothing_to_merge issue', 'mergeValidation');
@@ -303,7 +291,7 @@ export function validateMerge(
   const { hasConflicts, conflictFiles } = detectMergeConflicts(
     mainRepoPath,
     worktreeBranch,
-    mainBranch
+    mainBranch,
   );
 
   if (hasConflicts) {
@@ -345,13 +333,19 @@ export function stageAllChanges(repoPath: string): { success: boolean; error?: s
       LogService.getInstance().warn(`No changes were staged in: ${repoPath}`, 'stageAllChanges');
     } catch {
       // Good - there are staged changes
-      LogService.getInstance().info(`Changes staged successfully in: ${repoPath}`, 'stageAllChanges');
+      LogService.getInstance().info(
+        `Changes staged successfully in: ${repoPath}`,
+        'stageAllChanges',
+      );
     }
 
     return { success: true };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    LogService.getInstance().error(`Failed to stage changes in ${repoPath}: ${errorMsg}`, 'stageAllChanges');
+    LogService.getInstance().error(
+      `Failed to stage changes in ${repoPath}: ${errorMsg}`,
+      'stageAllChanges',
+    );
     return {
       success: false,
       error: errorMsg,
@@ -364,7 +358,7 @@ export function stageAllChanges(repoPath: string): { success: boolean; error?: s
  */
 export function commitChanges(
   repoPath: string,
-  message: string
+  message: string,
 ): { success: boolean; error?: string } {
   try {
     LogService.getInstance().info(`Committing changes in: ${repoPath}`, 'commitChanges');
@@ -396,15 +390,17 @@ export function commitChanges(
       // execSync errors have stderr in the error object
       const execError = error as Error & { stderr?: Buffer | string };
       if (execError.stderr) {
-        const stderr = typeof execError.stderr === 'string'
-          ? execError.stderr
-          : execError.stderr.toString();
+        const stderr =
+          typeof execError.stderr === 'string' ? execError.stderr : execError.stderr.toString();
         if (stderr.trim()) {
           errorMessage = stderr.trim();
         }
       }
     }
-    LogService.getInstance().error(`Commit failed in ${repoPath}: ${errorMessage}`, 'commitChanges');
+    LogService.getInstance().error(
+      `Commit failed in ${repoPath}: ${errorMessage}`,
+      'commitChanges',
+    );
     return {
       success: false,
       error: errorMessage,

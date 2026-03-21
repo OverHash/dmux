@@ -55,9 +55,7 @@ export const ShortcutsPopupApp: React.FC<ShortcutsPopupAppProps> = ({
     { key: 'p', description: 'Add project to sidebar' },
     { key: 'R', description: 'Remove selected empty project from sidebar' },
     { key: 'r', description: 'Reopen closed worktree' },
-    ...(isDevMode
-      ? [{ key: 'S', description: '[DEV] Toggle source pane' }]
-      : []),
+    ...(isDevMode ? [{ key: 'S', description: '[DEV] Toggle source pane' }] : []),
     { key: 'l', description: 'View logs' },
     { key: 's', description: 'Open settings' },
     { key: 'e', description: 'Manage hooks with AI (from this popup)' },
@@ -73,20 +71,27 @@ export const ShortcutsPopupApp: React.FC<ShortcutsPopupAppProps> = ({
     <PopupWrapper resultFile={resultFile} allowEscapeToCancel={false}>
       <Box flexDirection="column" padding={1}>
         <Box marginBottom={1}>
-          <Text bold color={POPUP_CONFIG.titleColor}>Keyboard Shortcuts</Text>
+          <Text bold color={POPUP_CONFIG.titleColor}>
+            Keyboard Shortcuts
+          </Text>
         </Box>
 
         {shortcuts.map((shortcut, index) => (
           <Box key={index} marginBottom={0}>
             <Box width={16}>
-              <Text color="yellow" bold>[{shortcut.key}]</Text>
+              <Text color="yellow" bold>
+                [{shortcut.key}]
+              </Text>
             </Box>
             <Text>{shortcut.description}</Text>
           </Box>
         ))}
 
         <Box marginTop={1}>
-          <Text dimColor>Press Alt+Shift+M in any focused pane to open that pane&apos;s menu without returning to the sidebar. Press e for hooks, or Esc/? to close</Text>
+          <Text dimColor>
+            Press Alt+Shift+M in any focused pane to open that pane&apos;s menu without returning to
+            the sidebar. Press e for hooks, or Esc/? to close
+          </Text>
         </Box>
       </Box>
     </PopupWrapper>
@@ -109,18 +114,20 @@ const main = async () => {
 
   try {
     const data = JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
-    render(<ShortcutsPopupApp
-      resultFile={resultFile}
-      hasSidebarLayout={data.hasSidebarLayout || false}
-      isDevMode={data.isDevMode === true}
-    />);
+    render(
+      <ShortcutsPopupApp
+        resultFile={resultFile}
+        hasSidebarLayout={data.hasSidebarLayout || false}
+        isDevMode={data.isDevMode === true}
+      />,
+    );
   } catch (error) {
     console.error('Failed to read data file:', error);
     process.exit(1);
   }
 };
 
-const entryPointHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : "";
+const entryPointHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';
 if (import.meta.url === entryPointHref) {
   void main();
 }

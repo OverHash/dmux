@@ -27,10 +27,7 @@ export interface ExecAsyncOptions extends Omit<SpawnOptions, 'stdio'> {
  * // Silent mode (returns empty string on error)
  * const output = await execAsync('tmux has-session -t foo', { silent: true });
  */
-export function execAsync(
-  command: string,
-  options: ExecAsyncOptions = {}
-): Promise<string> {
+export function execAsync(command: string, options: ExecAsyncOptions = {}): Promise<string> {
   const { timeout = 30000, silent = false, ...spawnOptions } = options;
 
   return new Promise((resolve, reject) => {
@@ -111,15 +108,11 @@ export function execAsync(
  */
 export async function execAsyncParallel(
   commands: string[],
-  options: ExecAsyncOptions = {}
+  options: ExecAsyncOptions = {},
 ): Promise<Array<string | Error>> {
-  const results = await Promise.allSettled(
-    commands.map(cmd => execAsync(cmd, options))
-  );
+  const results = await Promise.allSettled(commands.map((cmd) => execAsync(cmd, options)));
 
-  return results.map(result =>
-    result.status === 'fulfilled' ? result.value : result.reason
-  );
+  return results.map((result) => (result.status === 'fulfilled' ? result.value : result.reason));
 }
 
 /**
@@ -139,9 +132,9 @@ export async function execAsyncParallel(
  */
 export async function execAsyncAll(
   commands: string[],
-  options: ExecAsyncOptions = {}
+  options: ExecAsyncOptions = {},
 ): Promise<string[]> {
-  return Promise.all(commands.map(cmd => execAsync(cmd, options)));
+  return Promise.all(commands.map((cmd) => execAsync(cmd, options)));
 }
 
 /**
@@ -163,11 +156,9 @@ export async function execAsyncAll(
  */
 export async function execAsyncRace(
   commands: string[],
-  options: Omit<ExecAsyncOptions, 'silent'> = {}
+  options: Omit<ExecAsyncOptions, 'silent'> = {},
 ): Promise<string> {
   // Use Promise.any to get first success
   // Each command must NOT be silent so failures actually reject
-  return Promise.any(
-    commands.map(cmd => execAsync(cmd, { ...options, silent: false }))
-  );
+  return Promise.any(commands.map((cmd) => execAsync(cmd, { ...options, silent: false })));
 }

@@ -50,7 +50,9 @@ export function isValidBranchName(name: string): boolean {
 export async function getMainBranchAsync(): Promise<string> {
   // Try the most reliable method first
   try {
-    const originHead = await execAsync('git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null', { silent: true });
+    const originHead = await execAsync('git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null', {
+      silent: true,
+    });
     if (originHead) {
       const match = originHead.match(/refs\/remotes\/origin\/(.+)/);
       if (match) {
@@ -93,7 +95,7 @@ export function getMainBranch(): string {
     // First try to get the default branch from origin
     const originHead = execSync('git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null', {
       encoding: 'utf8',
-      stdio: 'pipe'
+      stdio: 'pipe',
     }).trim();
 
     if (originHead) {
@@ -185,7 +187,7 @@ export function hasUncommittedChanges(cwd?: string): boolean {
     const status = execSync('git status --porcelain', {
       cwd,
       encoding: 'utf8',
-      stdio: 'pipe'
+      stdio: 'pipe',
     });
     return status.trim().length > 0;
   } catch {
@@ -202,8 +204,8 @@ export async function getConflictedFilesAsync(cwd?: string): Promise<string[]> {
 
     return status
       .split('\n')
-      .filter(line => line.startsWith('UU ') || line.startsWith('AA '))
-      .map(line => line.substring(3).trim())
+      .filter((line) => line.startsWith('UU ') || line.startsWith('AA '))
+      .map((line) => line.substring(3).trim())
       .filter(Boolean);
   } catch {
     return [];
@@ -219,13 +221,13 @@ export function getConflictedFiles(cwd?: string): string[] {
     const status = execSync('git status --porcelain', {
       cwd,
       encoding: 'utf8',
-      stdio: 'pipe'
+      stdio: 'pipe',
     });
 
     return status
       .split('\n')
-      .filter(line => line.startsWith('UU ') || line.startsWith('AA '))
-      .map(line => line.substring(3).trim())
+      .filter((line) => line.startsWith('UU ') || line.startsWith('AA '))
+      .map((line) => line.substring(3).trim())
       .filter(Boolean);
   } catch {
     return [];
@@ -249,7 +251,7 @@ export interface OrphanedWorktree {
  */
 export async function getOrphanedWorktreesAsync(
   projectRoot: string,
-  activePaneSlugs: string[]
+  activePaneSlugs: string[],
 ): Promise<OrphanedWorktree[]> {
   const worktreesDir = path.join(projectRoot, '.dmux', 'worktrees');
 
@@ -266,7 +268,7 @@ export async function getOrphanedWorktreesAsync(
 
     // Process worktrees in parallel for better performance
     const worktreePromises = entries
-      .filter(entry => entry.isDirectory() && !activePaneSlugs.includes(entry.name))
+      .filter((entry) => entry.isDirectory() && !activePaneSlugs.includes(entry.name))
       .map(async (entry) => {
         const slug = entry.name;
         const worktreePath = path.join(worktreesDir, slug);
@@ -284,7 +286,7 @@ export async function getOrphanedWorktreesAsync(
         try {
           const [stats, gitStats] = await Promise.all([
             fsPromises.stat(worktreePath),
-            fsPromises.stat(gitFile)
+            fsPromises.stat(gitFile),
           ]);
           lastModified = stats.mtime > gitStats.mtime ? stats.mtime : gitStats.mtime;
         } catch {
@@ -293,8 +295,8 @@ export async function getOrphanedWorktreesAsync(
 
         // Get branch name and check for changes in parallel
         const [branch, hasChanges] = await Promise.all([
-          getCurrentBranchAsync(worktreePath).then(b => b || slug),
-          hasUncommittedChangesAsync(worktreePath)
+          getCurrentBranchAsync(worktreePath).then((b) => b || slug),
+          hasUncommittedChangesAsync(worktreePath),
         ]);
 
         return {
@@ -311,7 +313,6 @@ export async function getOrphanedWorktreesAsync(
 
     // Sort by most recently modified first
     orphaned.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
-
   } catch {
     // Return empty array if directory read fails
   }
@@ -326,7 +327,7 @@ export async function getOrphanedWorktreesAsync(
  */
 export function getOrphanedWorktrees(
   projectRoot: string,
-  activePaneSlugs: string[]
+  activePaneSlugs: string[],
 ): OrphanedWorktree[] {
   const worktreesDir = path.join(projectRoot, '.dmux', 'worktrees');
 
@@ -370,11 +371,12 @@ export function getOrphanedWorktrees(
       // Get the branch name
       let branch = slug; // Default to slug
       try {
-        branch = execSync('git branch --show-current', {
-          cwd: worktreePath,
-          encoding: 'utf-8',
-          stdio: 'pipe',
-        }).trim() || slug;
+        branch =
+          execSync('git branch --show-current', {
+            cwd: worktreePath,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          }).trim() || slug;
       } catch {
         // Use slug as fallback
       }
@@ -393,7 +395,6 @@ export function getOrphanedWorktrees(
 
     // Sort by most recently modified first
     orphaned.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
-
   } catch {
     // Return empty array if directory read fails
   }

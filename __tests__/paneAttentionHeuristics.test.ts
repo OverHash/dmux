@@ -38,28 +38,17 @@ describe('paneAttentionHeuristics', () => {
   });
 
   it('does not treat large multi-line changes as user typing', () => {
-    const previous = [
-      'Reading files',
-      'Checking auth.ts',
-      '> fix auth bug',
-    ].join('\n');
-    const current = [
-      'Updated auth.ts',
-      'Added tests',
-      'Build succeeded',
-    ].join('\n');
+    const previous = ['Reading files', 'Checking auth.ts', '> fix auth bug'].join('\n');
+    const current = ['Updated auth.ts', 'Added tests', 'Build succeeded'].join('\n');
 
     expect(isLikelyUserTyping(previous, current)).toBe(false);
   });
 
   it('ignores top-of-window context shifts when building activity fingerprints', () => {
     const stableTail = Array.from({ length: 12 }, (_, index) => `stable line ${index + 1}`);
-    const previous = [
-      'older context 1',
-      'older context 2',
-      'older context 3',
-      ...stableTail,
-    ].join('\n');
+    const previous = ['older context 1', 'older context 2', 'older context 3', ...stableTail].join(
+      '\n',
+    );
     const current = [
       'different context a',
       'different context b',
@@ -67,8 +56,6 @@ describe('paneAttentionHeuristics', () => {
       ...stableTail,
     ].join('\n');
 
-    expect(buildPaneActivityFingerprint(previous)).toBe(
-      buildPaneActivityFingerprint(current)
-    );
+    expect(buildPaneActivityFingerprint(previous)).toBe(buildPaneActivityFingerprint(current));
   });
 });

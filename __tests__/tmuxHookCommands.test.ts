@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildPaneExitedHookCommandForSession,
-} from '../src/utils/tmuxHookCommands.js';
+import { buildPaneExitedHookCommandForSession } from '../src/utils/tmuxHookCommands.js';
 
 describe('tmuxHookCommands', () => {
   it('builds pane-exited hook with recovery + SIGUSR2 notification', () => {

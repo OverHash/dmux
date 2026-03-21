@@ -12,9 +12,7 @@ describe('mergeValidation', () => {
   });
 
   it('ignores dmux metadata directories when checking git status', () => {
-    vi.mocked(execSync).mockReturnValue(
-      '?? .dmux/\nM  .dmux/worktrees/feature-a\n'
-    );
+    vi.mocked(execSync).mockReturnValue('?? .dmux/\nM  .dmux/worktrees/feature-a\n');
 
     const status = getGitStatus('/repo');
 
@@ -33,25 +31,20 @@ describe('mergeValidation', () => {
         '?? .dmux-hooks/examples/pre_merge.example',
         ' M .dmux-hooks/pre_merge',
         '?? .dmux-hooks/custom_hook',
-      ].join('\n')
+      ].join('\n'),
     );
 
     const status = getGitStatus('/repo');
 
     expect(status).toEqual({
       hasChanges: true,
-      files: [
-        '.dmux-hooks/pre_merge',
-        '.dmux-hooks/custom_hook',
-      ],
+      files: ['.dmux-hooks/pre_merge', '.dmux-hooks/custom_hook'],
       summary: ' M .dmux-hooks/pre_merge\n?? .dmux-hooks/custom_hook',
     });
   });
 
   it('keeps non-dmux files in the dirty-state result', () => {
-    vi.mocked(execSync).mockReturnValue(
-      ' M src/index.ts\nM package.json\n'
-    );
+    vi.mocked(execSync).mockReturnValue(' M src/index.ts\nM package.json\n');
 
     const status = getGitStatus('/repo');
 

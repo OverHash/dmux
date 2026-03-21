@@ -16,15 +16,14 @@ describe('notification sounds', () => {
   });
 
   it('filters invalid sound ids and preserves definition order', () => {
-    expect(
-      resolveNotificationSoundsSelection(['war-horn', 'invalid-sound', 'harp'])
-    ).toEqual(['harp', 'war-horn']);
+    expect(resolveNotificationSoundsSelection(['war-horn', 'invalid-sound', 'harp'])).toEqual([
+      'harp',
+      'war-horn',
+    ]);
   });
 
   it('picks a bundled sound deterministically for a given random value', () => {
-    expect(
-      pickNotificationSound(['default-system-sound', 'harp', 'war-horn'], 0.6)
-    ).toMatchObject({
+    expect(pickNotificationSound(['default-system-sound', 'harp', 'war-horn'], 0.6)).toMatchObject({
       id: 'harp',
       resourceFileName: 'dmux-harp.caf',
     });

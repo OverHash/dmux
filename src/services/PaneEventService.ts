@@ -85,7 +85,7 @@ export class PaneEventService extends EventEmitter {
       // Try to use hooks
       const hooksAvailable = await this.hookManager.areHooksInstalled();
 
-      if (hooksAvailable || await this.hookManager.installHooks()) {
+      if (hooksAvailable || (await this.hookManager.installHooks())) {
         this.mode = 'hooks';
         this.startHookMode();
         this.logger.info('Pane events: Using tmux hooks (low CPU)', 'paneEvents');
@@ -150,7 +150,10 @@ export class PaneEventService extends EventEmitter {
             break;
 
           case 'started':
-            this.logger.debug(`Polling worker started (interval: ${message.pollInterval}ms)`, 'paneEvents');
+            this.logger.debug(
+              `Polling worker started (interval: ${message.pollInterval}ms)`,
+              'paneEvents',
+            );
             break;
         }
       });
@@ -165,7 +168,6 @@ export class PaneEventService extends EventEmitter {
         }
         this.pollingWorker = null;
       });
-
     } catch (error) {
       this.logger.error(`Failed to start polling worker: ${error}`, 'paneEvents');
       throw error;

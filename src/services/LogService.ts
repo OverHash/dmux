@@ -14,10 +14,10 @@ export interface LogEntry {
   timestamp: number;
   level: LogLevel;
   message: string;
-  source?: string;  // e.g., 'git', 'tmux', 'paneActions', 'api'
-  paneId?: string;  // Associate log with a specific pane
+  source?: string; // e.g., 'git', 'tmux', 'paneActions', 'api'
+  paneId?: string; // Associate log with a specific pane
   read: boolean;
-  stack?: string;   // Stack trace for errors
+  stack?: string; // Stack trace for errors
 }
 
 /**
@@ -94,12 +94,12 @@ class CircularBuffer<T> {
    * Used for clearForPane which is rare
    */
   removeMatching(predicate: (item: T) => boolean): number {
-    const kept = this.filter(item => !predicate(item));
+    const kept = this.filter((item) => !predicate(item));
     const removed = this.size - kept.length;
 
     if (removed > 0) {
       this.clear();
-      kept.forEach(item => this.push(item));
+      kept.forEach((item) => this.push(item));
     }
 
     return removed;
@@ -144,7 +144,13 @@ export class LogService extends EventEmitter {
   /**
    * Add a log entry (O(1) operation with circular buffer)
    */
-  private addLog(level: LogLevel, message: string, source?: string, paneId?: string, stack?: string): void {
+  private addLog(
+    level: LogLevel,
+    message: string,
+    source?: string,
+    paneId?: string,
+    stack?: string,
+  ): void {
     const entry: LogEntry = {
       id: `log-${Date.now()}-${this.logCounter++}`,
       timestamp: Date.now(),
@@ -226,19 +232,19 @@ export class LogService extends EventEmitter {
     if (filter) {
       if (filter.level) {
         const levels = Array.isArray(filter.level) ? filter.level : [filter.level];
-        filtered = filtered.filter(log => levels.includes(log.level));
+        filtered = filtered.filter((log) => levels.includes(log.level));
       }
 
       if (filter.source) {
-        filtered = filtered.filter(log => log.source === filter.source);
+        filtered = filtered.filter((log) => log.source === filter.source);
       }
 
       if (filter.paneId) {
-        filtered = filtered.filter(log => log.paneId === filter.paneId);
+        filtered = filtered.filter((log) => log.paneId === filter.paneId);
       }
 
       if (filter.unreadOnly) {
-        filtered = filtered.filter(log => !log.read);
+        filtered = filtered.filter((log) => !log.read);
       }
     }
 
@@ -250,14 +256,14 @@ export class LogService extends EventEmitter {
    * Get count of unread errors
    */
   getUnreadErrorCount(): number {
-    return this.logs.filter(log => log.level === 'error' && !log.read).length;
+    return this.logs.filter((log) => log.level === 'error' && !log.read).length;
   }
 
   /**
    * Get count of unread warnings
    */
   getUnreadWarningCount(): number {
-    return this.logs.filter(log => log.level === 'warn' && !log.read).length;
+    return this.logs.filter((log) => log.level === 'warn' && !log.read).length;
   }
 
   /**
@@ -265,7 +271,7 @@ export class LogService extends EventEmitter {
    */
   markAsRead(logIds: string[]): void {
     const idsSet = new Set(logIds);
-    this.logs.forEach(log => {
+    this.logs.forEach((log) => {
       if (idsSet.has(log.id)) {
         log.read = true;
       }
@@ -277,7 +283,7 @@ export class LogService extends EventEmitter {
    * Mark all logs as read
    */
   markAllAsRead(): void {
-    this.logs.forEach(log => {
+    this.logs.forEach((log) => {
       log.read = true;
     });
     this.emit('all-logs-marked-read');
@@ -288,7 +294,7 @@ export class LogService extends EventEmitter {
    */
   markLevelAsRead(level: LogLevel): void {
     const markedIds: string[] = [];
-    this.logs.forEach(log => {
+    this.logs.forEach((log) => {
       if (log.level === level && !log.read) {
         log.read = true;
         markedIds.push(log.id);
@@ -312,7 +318,7 @@ export class LogService extends EventEmitter {
    */
   clearForPane(paneId: string): void {
     const before = this.logs.getSize();
-    const removed = this.logs.removeMatching(log => log.paneId === paneId);
+    const removed = this.logs.removeMatching((log) => log.paneId === paneId);
     if (removed > 0) {
       this.emit('logs-cleared', { paneId, count: removed });
     }
@@ -331,8 +337,8 @@ export class LogService extends EventEmitter {
     const allLogs = this.logs.toArray();
     return {
       total: allLogs.length,
-      errors: allLogs.filter(l => l.level === 'error').length,
-      warnings: allLogs.filter(l => l.level === 'warn').length,
+      errors: allLogs.filter((l) => l.level === 'error').length,
+      warnings: allLogs.filter((l) => l.level === 'warn').length,
       unreadErrors: this.getUnreadErrorCount(),
       unreadWarnings: this.getUnreadWarningCount(),
     };

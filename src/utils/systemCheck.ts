@@ -29,7 +29,7 @@ function checkTmuxVersion(minVersion: string): DependencyCheck {
     if (!versionMatch) {
       return {
         valid: false,
-        errors: [`Could not parse tmux version: ${version}`]
+        errors: [`Could not parse tmux version: ${version}`],
       };
     }
 
@@ -41,19 +41,21 @@ function checkTmuxVersion(minVersion: string): DependencyCheck {
       return {
         valid: true,
         version: installedVersion,
-        errors: []
+        errors: [],
       };
     } else {
       return {
         valid: false,
         version: installedVersion,
-        errors: [`tmux version ${installedVersion} is below minimum required version ${minVersion}`]
+        errors: [
+          `tmux version ${installedVersion} is below minimum required version ${minVersion}`,
+        ],
       };
     }
   } catch (error) {
     return {
       valid: false,
-      errors: ['tmux is not installed or not in PATH']
+      errors: ['tmux is not installed or not in PATH'],
     };
   }
 }
@@ -70,7 +72,7 @@ function checkGitVersion(minVersion: string): DependencyCheck {
     if (!versionMatch) {
       return {
         valid: false,
-        errors: [`Could not parse git version: ${version}`]
+        errors: [`Could not parse git version: ${version}`],
       };
     }
 
@@ -82,29 +84,28 @@ function checkGitVersion(minVersion: string): DependencyCheck {
       return {
         valid: true,
         version: installedVersion,
-        errors: []
+        errors: [],
       };
     } else {
       return {
         valid: false,
         version: installedVersion,
-        errors: [`git version ${installedVersion} is below minimum required version ${minVersion}`]
+        errors: [`git version ${installedVersion} is below minimum required version ${minVersion}`],
       };
     }
   } catch (error) {
     return {
       valid: false,
-      errors: ['git is not installed or not in PATH']
+      errors: ['git is not installed or not in PATH'],
     };
   }
 }
-
 
 /**
  * Parse version string into comparable array [major, minor, patch]
  */
 function parseVersion(version: string): number[] {
-  return version.split('.').map(v => {
+  return version.split('.').map((v) => {
     const num = parseInt(v.replace(/[^\d]/g, ''), 10);
     return isNaN(num) ? 0 : num;
   });
@@ -148,7 +149,7 @@ export async function validateSystemRequirements(): Promise<ValidationResult> {
   return {
     canRun: checks.tmux.valid && checks.git.valid,
     warnings,
-    errors
+    errors,
   };
 }
 
@@ -161,7 +162,7 @@ export function printValidationResults(result: ValidationResult): void {
 
   if (result.errors.length > 0) {
     console.error(chalk.red.bold('\n❌ System Requirements Check Failed:\n'));
-    result.errors.forEach(error => {
+    result.errors.forEach((error) => {
       console.error(chalk.red(`  • ${error}`));
       logger.error(error, 'systemCheck');
     });
@@ -171,7 +172,7 @@ export function printValidationResults(result: ValidationResult): void {
 
   if (result.warnings.length > 0) {
     // Log warnings using logger instead of console.warn
-    result.warnings.forEach(warning => {
+    result.warnings.forEach((warning) => {
       logger.warn(warning, 'systemCheck');
     });
   }

@@ -26,17 +26,25 @@ const HOOK_DESCRIPTIONS: Record<string, string> = {
   run_dev: 'When dev server triggered',
 };
 
-const HooksDialog: React.FC<HooksDialogProps> = ({
-  hooks,
-  selectedIndex,
-}) => {
-  const activeCount = hooks.filter(h => h.active).length;
+const HooksDialog: React.FC<HooksDialogProps> = ({ hooks, selectedIndex }) => {
+  const activeCount = hooks.filter((h) => h.active).length;
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={1} marginTop={1}>
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="magenta"
+      paddingX={1}
+      marginTop={1}
+    >
       <Box marginBottom={1}>
-        <Text bold color="magenta">Hooks Management</Text>
-        <Text dimColor> ({activeCount}/{hooks.length} active)</Text>
+        <Text bold color="magenta">
+          Hooks Management
+        </Text>
+        <Text dimColor>
+          {' '}
+          ({activeCount}/{hooks.length} active)
+        </Text>
       </Box>
 
       {hooks.map((hook, index) => {
@@ -51,7 +59,8 @@ const HooksDialog: React.FC<HooksDialogProps> = ({
                 {hook.name}
               </Text>
               <Text color={hook.active ? 'green' : 'gray'} dimColor={!isSelected}>
-                {' '}[{hook.active ? '✓ active' : 'inactive'}]
+                {' '}
+                [{hook.active ? '✓ active' : 'inactive'}]
               </Text>
             </Box>
             {isSelected && description && (
@@ -65,7 +74,9 @@ const HooksDialog: React.FC<HooksDialogProps> = ({
 
       <Box marginTop={1} flexDirection="column">
         <Box>
-          <Text bold color="yellow">Edit hooks using an agent</Text>
+          <Text bold color="yellow">
+            Edit hooks using an agent
+          </Text>
         </Box>
         <Box marginLeft={2}>
           <Text dimColor>Press 'e' to create a pane for editing hooks</Text>

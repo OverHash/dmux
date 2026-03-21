@@ -38,7 +38,10 @@ function quoteForFish(value: string): string {
 }
 
 function isFishShell(shellPath?: string): boolean {
-  return path.basename(shellPath || '').toLowerCase().includes('fish');
+  return path
+    .basename(shellPath || '')
+    .toLowerCase()
+    .includes('fish');
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -54,10 +57,7 @@ export function getShellConfigCandidates(shellPath: string | undefined, homeDir:
   const shellName = path.basename(shellPath || '').toLowerCase();
 
   if (shellName.includes('zsh')) {
-    return [
-      path.join(homeDir, '.zshrc'),
-      path.join(homeDir, '.zprofile'),
-    ];
+    return [path.join(homeDir, '.zshrc'), path.join(homeDir, '.zprofile')];
   }
 
   if (shellName.includes('bash')) {
@@ -69,15 +69,16 @@ export function getShellConfigCandidates(shellPath: string | undefined, homeDir:
   }
 
   if (shellName.includes('fish')) {
-    return [
-      path.join(homeDir, '.config', 'fish', 'config.fish'),
-    ];
+    return [path.join(homeDir, '.config', 'fish', 'config.fish')];
   }
 
   return [path.join(homeDir, '.profile')];
 }
 
-export async function resolveShellConfigPath(shellPath: string | undefined, homeDir: string): Promise<string> {
+export async function resolveShellConfigPath(
+  shellPath: string | undefined,
+  homeDir: string,
+): Promise<string> {
   const candidates = getShellConfigCandidates(shellPath, homeDir);
 
   for (const candidate of candidates) {
@@ -103,7 +104,7 @@ export function upsertOpenRouterKeyBlock(existingContent: string, exportLine: st
   const block = `${OPENROUTER_BLOCK_START}\n${exportLine}\n${OPENROUTER_BLOCK_END}`;
   const blockPattern = new RegExp(
     `${escapeRegex(OPENROUTER_BLOCK_START)}[\\s\\S]*?${escapeRegex(OPENROUTER_BLOCK_END)}\\n?`,
-    'm'
+    'm',
   );
 
   if (blockPattern.test(normalizedContent)) {
@@ -124,7 +125,7 @@ export function upsertOpenRouterKeyBlock(existingContent: string, exportLine: st
 
 export async function persistOpenRouterApiKeyToShell(
   apiKey: string,
-  options?: { shellPath?: string; homeDir?: string }
+  options?: { shellPath?: string; homeDir?: string },
 ): Promise<{ shellConfigPath: string; exportLine: string }> {
   const homeDir = options?.homeDir || process.env.HOME || os.homedir();
   if (!homeDir) {
@@ -177,7 +178,7 @@ export async function hasCompletedOpenRouterOnboarding(homeDir: string): Promise
 export async function writeOpenRouterOnboardingState(
   homeDir: string,
   outcome: OpenRouterOnboardingOutcome,
-  shellConfigPath?: string
+  shellConfigPath?: string,
 ): Promise<void> {
   const statePath = getOnboardingStatePath(homeDir);
   const currentState = await readOnboardingState(homeDir);

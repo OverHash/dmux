@@ -41,13 +41,8 @@ export class TerminalStreamer extends EventEmitter {
   /**
    * Start streaming a pane to a client
    */
-  async startStream(
-    paneId: string,
-    tmuxPaneId: string,
-    client: StreamClient
-  ): Promise<void> {
+  async startStream(paneId: string, tmuxPaneId: string, client: StreamClient): Promise<void> {
     if (this.isShuttingDown) return;
-
 
     // Get or create stream info for this pane
     let stream = this.streams.get(paneId);
@@ -89,10 +84,7 @@ export class TerminalStreamer extends EventEmitter {
   /**
    * Initialize stream info for a pane
    */
-  private async initializeStream(
-    paneId: string,
-    tmuxPaneId: string
-  ): Promise<StreamInfo> {
+  private async initializeStream(paneId: string, tmuxPaneId: string): Promise<StreamInfo> {
     // Get pane dimensions
     const dimensions = await this.getPaneDimensions(tmuxPaneId);
 
@@ -110,17 +102,14 @@ export class TerminalStreamer extends EventEmitter {
       width: dimensions.width,
       height: dimensions.height,
       lastContent: content,
-      isActive: false
+      isActive: false,
     };
   }
 
   /**
    * Send initial state to a new client
    */
-  private async sendInitialState(
-    stream: StreamInfo,
-    client: StreamClient
-  ): Promise<void> {
+  private async sendInitialState(stream: StreamInfo, client: StreamClient): Promise<void> {
     // Get cursor position from tmux
     const cursorPos = await this.getCursorPosition(stream.tmuxPaneId);
 
@@ -132,7 +121,7 @@ export class TerminalStreamer extends EventEmitter {
       content: stream.lastContent,
       cursorRow: cursorPos.row,
       cursorCol: cursorPos.col,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     try {
@@ -150,7 +139,7 @@ export class TerminalStreamer extends EventEmitter {
     try {
       const output = execSync(
         `tmux display-message -p -t ${tmuxPaneId} -F "#{cursor_y},#{cursor_x}"`,
-        { encoding: 'utf-8', stdio: 'pipe' }
+        { encoding: 'utf-8', stdio: 'pipe' },
       ).trim();
 
       const [row, col] = output.split(',').map(Number);
@@ -182,7 +171,7 @@ export class TerminalStreamer extends EventEmitter {
       execSync(pipeCmd, { stdio: 'pipe' });
 
       // Small delay to ensure pipe-pane is ready
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Start tailing the pipe file
       stream.tailProcess = spawn('tail', ['-f', stream.pipePath]);
@@ -201,7 +190,8 @@ export class TerminalStreamer extends EventEmitter {
       const findIncompleteEscape = (str: string): number => {
         // Check last few characters for start of escape sequences
         for (let i = Math.max(0, str.length - 10); i < str.length; i++) {
-          if (str.charCodeAt(i) === 27) { // ESC
+          if (str.charCodeAt(i) === 27) {
+            // ESC
             const remaining = str.substring(i);
             // ESC without following character
             if (remaining.length === 1) return i;
@@ -234,11 +224,13 @@ export class TerminalStreamer extends EventEmitter {
             if (remaining[1] === ']') {
               let hasTerminator = false;
               for (let j = 2; j < remaining.length; j++) {
-                if (remaining.charCodeAt(j) === 7) { // BEL
+                if (remaining.charCodeAt(j) === 7) {
+                  // BEL
                   hasTerminator = true;
                   break;
                 }
-                if (remaining.charCodeAt(j) === 27 && remaining[j + 1] === '\\') { // ESC\
+                if (remaining.charCodeAt(j) === 27 && remaining[j + 1] === '\\') {
+                  // ESC\
                   hasTerminator = true;
                   break;
                 }
@@ -329,10 +321,10 @@ export class TerminalStreamer extends EventEmitter {
           content: content,
           cursorRow: cursorPos.row,
           cursorCol: cursorPos.col,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
 
-        stream.clients.forEach(client => {
+        stream.clients.forEach((client) => {
           try {
             client.push(formatStreamMessage(refreshMessage));
           } catch (error) {
@@ -408,18 +400,20 @@ export class TerminalStreamer extends EventEmitter {
     // Keep \r\n sequences - frontend handles them properly
     const patchMessage: PatchMessage = {
       type: 'patch',
-      changes: [{
-        row: 0,
-        col: 0,
-        text: output
-      }],
+      changes: [
+        {
+          row: 0,
+          col: 0,
+          text: output,
+        },
+      ],
       cursorRow: cursorPos.row,
       cursorCol: cursorPos.col,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // Send to all connected clients
-    stream.clients.forEach(client => {
+    stream.clients.forEach((client) => {
       try {
         // Send as delimited message using protocol formatter
         client.push(formatStreamMessage(patchMessage));
@@ -454,10 +448,10 @@ export class TerminalStreamer extends EventEmitter {
         width: dimensions.width,
         height: dimensions.height,
         content: content,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
-      stream.clients.forEach(client => {
+      stream.clients.forEach((client) => {
         try {
           // Send as delimited message using protocol formatter
           client.push(formatStreamMessage(resizeMessage));
@@ -515,7 +509,7 @@ export class TerminalStreamer extends EventEmitter {
     try {
       const output = execSync(
         `tmux display-message -p -t ${tmuxPaneId} -F "#{pane_width}x#{pane_height}"`,
-        { encoding: 'utf-8', stdio: 'pipe' }
+        { encoding: 'utf-8', stdio: 'pipe' },
       ).trim();
 
       const [width, height] = output.split('x').map(Number);
@@ -537,10 +531,10 @@ export class TerminalStreamer extends EventEmitter {
       // -e: include escape sequences
       // -J: join wrapped lines
       // Captures only visible pane (no -S means current screen)
-      return execSync(
-        `tmux capture-pane -epJ -t ${tmuxPaneId}`,
-        { encoding: 'utf-8', stdio: 'pipe' }
-      );
+      return execSync(`tmux capture-pane -epJ -t ${tmuxPaneId}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      });
     } catch (error) {
       // Return empty on error
       return '';
@@ -562,7 +556,7 @@ export class TerminalStreamer extends EventEmitter {
     const streams = Array.from(this.streams.entries()).map(([paneId, stream]) => ({
       paneId,
       clients: stream.clients.size,
-      dimensions: `${stream.width}x${stream.height}`
+      dimensions: `${stream.width}x${stream.height}`,
     }));
 
     const totalClients = streams.reduce((sum, s) => sum + s.clients, 0);
@@ -570,7 +564,7 @@ export class TerminalStreamer extends EventEmitter {
     return {
       activeStreams: this.streams.size,
       totalClients,
-      streams
+      streams,
     };
   }
 

@@ -18,24 +18,32 @@ import { getPaneBranchName, isValidBranchName } from '../src/utils/git.js';
 describe('getPaneBranchName', () => {
   it('returns branchName when set', () => {
     const pane = {
-      id: 'dmux-1', slug: 'fix-auth', branchName: 'feat/fix-auth',
-      prompt: 'test', paneId: '%1',
+      id: 'dmux-1',
+      slug: 'fix-auth',
+      branchName: 'feat/fix-auth',
+      prompt: 'test',
+      paneId: '%1',
     };
     expect(getPaneBranchName(pane)).toBe('feat/fix-auth');
   });
 
   it('falls back to slug when branchName is not set', () => {
     const pane = {
-      id: 'dmux-1', slug: 'fix-auth',
-      prompt: 'test', paneId: '%1',
+      id: 'dmux-1',
+      slug: 'fix-auth',
+      prompt: 'test',
+      paneId: '%1',
     };
     expect(getPaneBranchName(pane)).toBe('fix-auth');
   });
 
   it('falls back to slug when branchName is undefined', () => {
     const pane = {
-      id: 'dmux-1', slug: 'fix-auth', branchName: undefined,
-      prompt: 'test', paneId: '%1',
+      id: 'dmux-1',
+      slug: 'fix-auth',
+      branchName: undefined,
+      prompt: 'test',
+      paneId: '%1',
     };
     expect(getPaneBranchName(pane)).toBe('fix-auth');
   });
@@ -93,33 +101,56 @@ describe('SettingsManager validation', () => {
   it('rejects invalid baseBranch values', async () => {
     vi.mock('fs', async (importOriginal) => {
       const actual = await importOriginal<typeof import('fs')>();
-      return { ...actual, existsSync: vi.fn(() => false), writeFileSync: vi.fn(), mkdirSync: vi.fn() };
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+      };
     });
 
     const { SettingsManager } = await import('../src/utils/settingsManager.js');
     const manager = new SettingsManager('/tmp/test-project');
 
-    expect(() => manager.updateSetting('baseBranch', 'main; rm -rf /', 'global')).toThrow('Invalid baseBranch');
-    expect(() => manager.updateSetting('baseBranch', '$(whoami)', 'global')).toThrow('Invalid baseBranch');
+    expect(() => manager.updateSetting('baseBranch', 'main; rm -rf /', 'global')).toThrow(
+      'Invalid baseBranch',
+    );
+    expect(() => manager.updateSetting('baseBranch', '$(whoami)', 'global')).toThrow(
+      'Invalid baseBranch',
+    );
   });
 
   it('rejects invalid branchPrefix values', async () => {
     vi.mock('fs', async (importOriginal) => {
       const actual = await importOriginal<typeof import('fs')>();
-      return { ...actual, existsSync: vi.fn(() => false), writeFileSync: vi.fn(), mkdirSync: vi.fn() };
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+      };
     });
 
     const { SettingsManager } = await import('../src/utils/settingsManager.js');
     const manager = new SettingsManager('/tmp/test-project');
 
-    expect(() => manager.updateSetting('branchPrefix', '`id`/', 'global')).toThrow('Invalid branchPrefix');
-    expect(() => manager.updateSetting('branchPrefix', 'feat && echo pwned/', 'project')).toThrow('Invalid branchPrefix');
+    expect(() => manager.updateSetting('branchPrefix', '`id`/', 'global')).toThrow(
+      'Invalid branchPrefix',
+    );
+    expect(() => manager.updateSetting('branchPrefix', 'feat && echo pwned/', 'project')).toThrow(
+      'Invalid branchPrefix',
+    );
   });
 
   it('accepts valid baseBranch and branchPrefix values', async () => {
     vi.mock('fs', async (importOriginal) => {
       const actual = await importOriginal<typeof import('fs')>();
-      return { ...actual, existsSync: vi.fn(() => false), writeFileSync: vi.fn(), mkdirSync: vi.fn() };
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+      };
     });
 
     const { SettingsManager } = await import('../src/utils/settingsManager.js');
@@ -188,7 +219,7 @@ describe('merge operations quote branch names', () => {
 
     expect(execSync).toHaveBeenCalledWith(
       'git merge "feat/fix-auth" --no-edit',
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -202,10 +233,7 @@ describe('merge operations quote branch names', () => {
 
     mergeMainIntoWorktree('/test/worktree', 'main');
 
-    expect(execSync).toHaveBeenCalledWith(
-      'git merge "main" --no-edit',
-      expect.any(Object)
-    );
+    expect(execSync).toHaveBeenCalledWith('git merge "main" --no-edit', expect.any(Object));
   });
 
   it('cleanupAfterMerge quotes branch name in git branch -d', async () => {
@@ -218,10 +246,7 @@ describe('merge operations quote branch names', () => {
 
     cleanupAfterMerge('/test/repo', '/test/worktree', 'feat/fix-auth');
 
-    expect(execSync).toHaveBeenCalledWith(
-      'git branch -d "feat/fix-auth"',
-      expect.any(Object)
-    );
+    expect(execSync).toHaveBeenCalledWith('git branch -d "feat/fix-auth"', expect.any(Object));
   });
 });
 
@@ -233,10 +258,10 @@ describe('orphaned worktree discovery with prefixed panes', () => {
       { slug: 'fix-auth', branchName: 'feat/fix-auth' },
       { slug: 'add-tests', branchName: 'chore/add-tests' },
     ];
-    const activeSlugs = activePanes.map(p => p.slug);
+    const activeSlugs = activePanes.map((p) => p.slug);
     const directoryEntries = ['fix-auth', 'add-tests', 'old-orphan'];
 
-    const orphaned = directoryEntries.filter(name => !activeSlugs.includes(name));
+    const orphaned = directoryEntries.filter((name) => !activeSlugs.includes(name));
 
     expect(orphaned).toEqual(['old-orphan']);
     expect(activeSlugs).toContain('fix-auth');
@@ -247,7 +272,7 @@ describe('orphaned worktree discovery with prefixed panes', () => {
     const activeBranchNames = ['feat/fix-auth', 'chore/add-tests'];
     const directoryEntries = ['fix-auth', 'add-tests'];
 
-    const matched = directoryEntries.filter(name => activeBranchNames.includes(name));
+    const matched = directoryEntries.filter((name) => activeBranchNames.includes(name));
     expect(matched).toHaveLength(0); // None match — everything wrongly "orphaned"
   });
 });
@@ -277,7 +302,9 @@ describe('baseBranch in worktree creation command', () => {
     const startPoint = baseBranch ? ` "${baseBranch}"` : '';
     const cmd = `git worktree add "${worktreePath}" -b "${branchName}"${startPoint}`;
 
-    expect(cmd).toBe('git worktree add "/project/.dmux/worktrees/fix-auth" -b "feat/fix-auth" "main"');
+    expect(cmd).toBe(
+      'git worktree add "/project/.dmux/worktrees/fix-auth" -b "feat/fix-auth" "main"',
+    );
   });
 
   it('produces correct command without baseBranch (uses HEAD)', () => {
@@ -320,7 +347,7 @@ describe('hooks environment uses branchName', () => {
 describe('setting definitions', () => {
   it('baseBranch is a text field for arbitrary branch names', async () => {
     const { SETTING_DEFINITIONS } = await import('../src/utils/settingsManager.js');
-    const def = SETTING_DEFINITIONS.find(d => d.key === 'baseBranch');
+    const def = SETTING_DEFINITIONS.find((d) => d.key === 'baseBranch');
 
     expect(def).toBeDefined();
     expect(def!.type).toBe('text');
@@ -328,12 +355,12 @@ describe('setting definitions', () => {
 
   it('branchPrefix has common prefix options', async () => {
     const { SETTING_DEFINITIONS } = await import('../src/utils/settingsManager.js');
-    const def = SETTING_DEFINITIONS.find(d => d.key === 'branchPrefix');
+    const def = SETTING_DEFINITIONS.find((d) => d.key === 'branchPrefix');
 
     expect(def).toBeDefined();
     expect(def!.type).toBe('select');
 
-    const values = def!.options!.map(o => o.value);
+    const values = def!.options!.map((o) => o.value);
     expect(values).toContain('');
     expect(values).toContain('feat/');
     expect(values).toContain('fix/');
@@ -342,7 +369,7 @@ describe('setting definitions', () => {
 
   it('maxPaneWidth is a bounded number setting', async () => {
     const { SETTING_DEFINITIONS } = await import('../src/utils/settingsManager.js');
-    const def = SETTING_DEFINITIONS.find(d => d.key === 'maxPaneWidth');
+    const def = SETTING_DEFINITIONS.find((d) => d.key === 'maxPaneWidth');
 
     expect(def).toBeDefined();
     expect(def!.type).toBe('number');
@@ -354,7 +381,7 @@ describe('setting definitions', () => {
 
   it('minPaneWidth is a bounded number setting', async () => {
     const { SETTING_DEFINITIONS } = await import('../src/utils/settingsManager.js');
-    const def = SETTING_DEFINITIONS.find(d => d.key === 'minPaneWidth');
+    const def = SETTING_DEFINITIONS.find((d) => d.key === 'minPaneWidth');
 
     expect(def).toBeDefined();
     expect(def!.type).toBe('number');
@@ -366,7 +393,7 @@ describe('setting definitions', () => {
 
   it('showFooterTips is a boolean setting', async () => {
     const { SETTING_DEFINITIONS } = await import('../src/utils/settingsManager.js');
-    const def = SETTING_DEFINITIONS.find(d => d.key === 'showFooterTips');
+    const def = SETTING_DEFINITIONS.find((d) => d.key === 'showFooterTips');
 
     expect(def).toBeDefined();
     expect(def!.type).toBe('boolean');

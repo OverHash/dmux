@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  getInstalledAgents,
-} from '../utils/agentDetection.js';
+import { getInstalledAgents } from '../utils/agentDetection.js';
 import type { AgentName } from '../utils/agentLaunch.js';
 
 export default function useAgentDetection() {

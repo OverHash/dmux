@@ -11,9 +11,7 @@ import { useCallback, useRef } from 'react';
  * showTemporary('File saved successfully');  // Clears after 3s
  * showTemporary('Processing...', 2000);      // Clears after 2s
  */
-export function useTemporaryStatus(
-  setStatusMessage: (msg: string) => void
-) {
+export function useTemporaryStatus(setStatusMessage: (msg: string) => void) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const showTemporary = useCallback(
@@ -32,7 +30,7 @@ export function useTemporaryStatus(
         timeoutRef.current = null;
       }, timeout);
     },
-    [setStatusMessage]
+    [setStatusMessage],
   );
 
   return showTemporary;

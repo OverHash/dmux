@@ -39,7 +39,7 @@ function trimTrailingBlanks(content: string): { trimmed: string; contentLineCoun
 export async function capturePaneContentAsync(
   paneId: string,
   lines: number = 50,
-  maxAttempts: number = 5
+  maxAttempts: number = 5,
 ): Promise<string> {
   try {
     let currentLines = lines;
@@ -48,7 +48,7 @@ export async function capturePaneContentAsync(
       const content = await execAsync(
         // Join wrapped lines so width-only pane resizes do not look like new content.
         `tmux capture-pane -t '${paneId}' -p -J -S -${currentLines}`,
-        { silent: true, timeout: 5000 }
+        { silent: true, timeout: 5000 },
       );
 
       if (!content) {
@@ -78,7 +78,7 @@ export async function capturePaneContentAsync(
     // After max attempts, return whatever we have
     const finalContent = await execAsync(
       `tmux capture-pane -t '${paneId}' -p -J -S -${currentLines}`,
-      { silent: true, timeout: 5000 }
+      { silent: true, timeout: 5000 },
     );
 
     const { trimmed } = trimTrailingBlanks(finalContent);
@@ -102,7 +102,7 @@ export async function capturePaneContentAsync(
 export function capturePaneContent(
   paneId: string,
   lines: number = 50,
-  maxAttempts: number = 5
+  maxAttempts: number = 5,
 ): string {
   try {
     let currentLines = lines;
@@ -115,10 +115,10 @@ export function capturePaneContent(
       // -p prints to stdout, -J joins wrapped lines, -S -<lines> starts from
       // <lines> lines back. Joining wraps keeps width-only pane resizes from
       // looking like real activity to the status detector.
-      const content = execSync(
-        `tmux capture-pane -t '${paneId}' -p -J -S -${currentLines}`,
-        { encoding: 'utf8', stdio: 'pipe' }
-      );
+      const content = execSync(`tmux capture-pane -t '${paneId}' -p -J -S -${currentLines}`, {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
 
       if (!content) {
         return '';
@@ -163,10 +163,10 @@ export function capturePaneContent(
     }
 
     // After max attempts, return whatever we have (trimmed)
-    const finalContent = execSync(
-      `tmux capture-pane -t '${paneId}' -p -J -S -${currentLines}`,
-      { encoding: 'utf8', stdio: 'pipe' }
-    );
+    const finalContent = execSync(`tmux capture-pane -t '${paneId}' -p -J -S -${currentLines}`, {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
 
     const finalLines = finalContent.split('\n');
     let finalTrailingBlankCount = 0;
@@ -195,10 +195,10 @@ export function capturePaneContent(
  */
 export function capturePaneContentRaw(paneId: string, lines: number = 50): string {
   try {
-    const content = execSync(
-      `tmux capture-pane -t '${paneId}' -p -S -${lines}`,
-      { encoding: 'utf8', stdio: 'pipe' }
-    );
+    const content = execSync(`tmux capture-pane -t '${paneId}' -p -S -${lines}`, {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
 
     return content;
   } catch (error) {

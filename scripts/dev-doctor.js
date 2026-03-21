@@ -159,7 +159,7 @@ const watchMarkers = [
 const controlStartCommand = controlPane?.paneStartCommand || '';
 const watchInControl = watchMarkers.some((marker) => controlStartCommand.includes(marker));
 const watchInAnyPane = panes.some((pane) =>
-  watchMarkers.some((marker) => (pane.paneStartCommand || '').includes(marker))
+  watchMarkers.some((marker) => (pane.paneStartCommand || '').includes(marker)),
 );
 
 if (watchInControl) {
@@ -183,10 +183,7 @@ if (generatedDocsPath) {
   hasCriticalIssue = true;
 }
 
-const hookDirCandidates = [
-  path.join(cwd, '.dmux-hooks'),
-  path.join(projectRoot, '.dmux-hooks'),
-];
+const hookDirCandidates = [path.join(cwd, '.dmux-hooks'), path.join(projectRoot, '.dmux-hooks')];
 const hookDir = hookDirCandidates.find((candidate) => fs.existsSync(candidate));
 if (!hookDir) {
   status('warn', 'Local hooks', '.dmux-hooks not found');

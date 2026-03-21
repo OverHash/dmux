@@ -66,7 +66,7 @@ function setupScrollSpy() {
         }
       }
     },
-    { rootMargin: '-10% 0px -80% 0px' }
+    { rootMargin: '-10% 0px -80% 0px' },
   );
 
   for (const el of sectionEls) {
@@ -125,11 +125,15 @@ function bindEarlyAccessForm() {
 
       // Success — slide form out, show success message
       formWrapper.classList.add('sa-slide-out');
-      formWrapper.addEventListener('animationend', () => {
-        formWrapper.style.display = 'none';
-        successMsg.style.display = '';
-        successMsg.classList.add('sa-slide-in');
-      }, { once: true });
+      formWrapper.addEventListener(
+        'animationend',
+        () => {
+          formWrapper.style.display = 'none';
+          successMsg.style.display = '';
+          successMsg.classList.add('sa-slide-in');
+        },
+        { once: true },
+      );
     } catch (err) {
       // Reset button
       btn.disabled = false;

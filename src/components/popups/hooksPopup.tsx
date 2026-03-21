@@ -57,16 +57,28 @@ const HooksPopupApp: React.FC<HooksPopupProps> = ({ resultFile, hooks }) => {
         </Box>
 
         {/* Actions */}
-        <Box marginTop={1} marginBottom={1} paddingY={1} borderStyle="bold" borderColor={POPUP_CONFIG.borderColor}>
+        <Box
+          marginTop={1}
+          marginBottom={1}
+          paddingY={1}
+          borderStyle="bold"
+          borderColor={POPUP_CONFIG.borderColor}
+        >
           <Box flexDirection="column" paddingX={1}>
             <Text color={POPUP_CONFIG.titleColor} bold>
               Actions:
             </Text>
             <Text>
-              <Text color="green" bold>e</Text> - Edit hooks with AI agent
+              <Text color="green" bold>
+                e
+              </Text>{' '}
+              - Edit hooks with AI agent
             </Text>
             <Text>
-              <Text color="green" bold>v</Text> - View hooks file in editor
+              <Text color="green" bold>
+                v
+              </Text>{' '}
+              - View hooks file in editor
             </Text>
           </Box>
         </Box>

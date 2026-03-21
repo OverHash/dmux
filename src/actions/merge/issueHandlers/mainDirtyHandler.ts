@@ -20,7 +20,7 @@ export async function handleMainDirty(
   mainRepoPath: string,
   pane: DmuxPane,
   context: ActionContext,
-  retryMerge: () => Promise<ActionResult>
+  retryMerge: () => Promise<ActionResult>,
 ): Promise<ActionResult> {
   const { stashChanges } = await import('../../../utils/mergeValidation.js');
 
@@ -90,7 +90,7 @@ export async function handleMainDirty(
         return handleCommitWithOptions(
           mainRepoPath,
           optionId as 'commit_automatic' | 'commit_ai_editable' | 'commit_manual',
-          retryMerge
+          retryMerge,
         );
       }
 

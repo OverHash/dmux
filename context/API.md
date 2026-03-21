@@ -13,6 +13,7 @@ http://127.0.0.1:{port}
 ```
 
 The port is auto-selected when dmux starts. You can find it by:
+
 1. Looking at the dmux TUI (shows server URL)
 2. Checking ports 3000-3010 for `/api/health` endpoint
 3. Reading from the dmux config files
@@ -30,6 +31,7 @@ Check if the server is running.
 **Endpoint:** `GET /api/health`
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -46,6 +48,7 @@ Get information about the current dmux session.
 **Endpoint:** `GET /api/session`
 
 **Response:**
+
 ```json
 {
   "projectName": "dmux",
@@ -70,6 +73,7 @@ Get a list of all panes in the current session.
 **Endpoint:** `GET /api/panes`
 
 **Response:**
+
 ```json
 {
   "panes": [
@@ -108,6 +112,7 @@ Get real-time updates for all panes via Server-Sent Events (SSE). This endpoint 
 3. **heartbeat** - Keep-alive message sent every 30 seconds
 
 **Event Format:**
+
 ```json
 {
   "type": "init" | "update" | "heartbeat",
@@ -122,6 +127,7 @@ Get real-time updates for all panes via Server-Sent Events (SSE). This endpoint 
 ```
 
 **Usage Example (JavaScript):**
+
 ```javascript
 const eventSource = new EventSource('/api/panes-stream');
 
@@ -144,6 +150,7 @@ eventSource.onerror = (error) => {
 ```
 
 **Features:**
+
 - Real-time updates without polling
 - Automatic reconnection on connection loss
 - Includes all pane state changes (status, new panes, deletions)
@@ -151,6 +158,7 @@ eventSource.onerror = (error) => {
 - Clean disconnection on client close
 
 **Notes:**
+
 - Connection stays open until client disconnects
 - Server automatically cleans up resources on disconnect
 - Reconnection recommended with exponential backoff on error
@@ -164,18 +172,21 @@ Create a new dmux pane with a worktree and optional agent.
 **Endpoint:** `POST /api/panes`
 
 **Request Body:**
+
 ```json
 {
   "prompt": "Your prompt for the AI agent",
-  "agent": "claude"  // Optional: "claude" or "opencode"
+  "agent": "claude" // Optional: "claude" or "opencode"
 }
 ```
 
 **Parameters:**
+
 - `prompt` (required, string): The initial prompt to send to the agent
 - `agent` (optional, string): Which agent to use. Must be "claude" or "opencode". If omitted and multiple agents are available, the response will indicate that agent choice is needed.
 
 **Success Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -193,6 +204,7 @@ Create a new dmux pane with a worktree and optional agent.
 ```
 
 **Agent Choice Needed Response (200 OK):**
+
 ```json
 {
   "needsAgentChoice": true,
@@ -204,6 +216,7 @@ Create a new dmux pane with a worktree and optional agent.
 **Error Responses:**
 
 - **400 Bad Request** - Missing or invalid prompt
+
   ```json
   {
     "error": "Missing or invalid prompt"
@@ -211,6 +224,7 @@ Create a new dmux pane with a worktree and optional agent.
   ```
 
 - **400 Bad Request** - Invalid agent
+
   ```json
   {
     "error": "Invalid agent. Must be \"claude\" or \"opencode\""
@@ -218,6 +232,7 @@ Create a new dmux pane with a worktree and optional agent.
   ```
 
 - **500 Internal Server Error** - No agents available
+
   ```json
   {
     "error": "No agents available. Install claude or opencode."
@@ -268,6 +283,7 @@ Get detailed information about a specific pane.
 **Endpoint:** `GET /api/panes/:id`
 
 **Response:**
+
 ```json
 {
   "id": "dmux-1234567890",
@@ -297,6 +313,7 @@ Capture the current terminal state of a pane.
 **Endpoint:** `GET /api/panes/:id/snapshot`
 
 **Response:**
+
 ```json
 {
   "width": 80,
@@ -316,6 +333,7 @@ The API server also hosts a web dashboard for monitoring panes.
 **Endpoint:** `GET /`
 
 Opens an HTML dashboard showing:
+
 - List of all panes with their status
 - Real-time updates of agent status
 - Links to view individual panes
@@ -368,8 +386,8 @@ async function createPane(prompt, agent = 'claude') {
 
 // Usage
 createPane('Fix bug in user authentication')
-  .then(pane => console.log('Created:', pane))
-  .catch(err => console.error('Error:', err));
+  .then((pane) => console.log('Created:', pane))
+  .catch((err) => console.error('Error:', err));
 ```
 
 ### Python
@@ -414,6 +432,7 @@ A test script is included to verify the API functionality:
 ```
 
 This script tests:
+
 - Health check
 - Creating panes with different configurations
 - Error handling
@@ -426,6 +445,7 @@ This script tests:
 ### Server Not Running
 
 If you get connection errors:
+
 1. Ensure dmux is running in a tmux session
 2. Check if the server started successfully (look for "Server running at..." message)
 3. Try different ports (3000-3010)
@@ -433,6 +453,7 @@ If you get connection errors:
 ### Agent Not Found
 
 If you get "No agents available" error:
+
 1. Install Claude Code: Follow instructions at https://claude.ai/code
 2. Install opencode: `npm install -g opencode` or similar
 3. Verify installation: `which claude` and `which opencode`
@@ -440,6 +461,7 @@ If you get "No agents available" error:
 ### Pane Creation Fails
 
 If pane creation fails:
+
 1. Check that you're in a git repository
 2. Verify you have write permissions
 3. Ensure tmux is running properly
@@ -450,6 +472,7 @@ If pane creation fails:
 ## Future Enhancements
 
 Planned API features:
+
 - WebSocket support for real-time updates
 - Pane actions endpoint (send keys, resize, etc.)
 - Bulk pane operations

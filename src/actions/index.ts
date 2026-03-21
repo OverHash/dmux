@@ -19,7 +19,7 @@ export async function executeAction(
   actionId: PaneAction,
   pane: DmuxPane,
   context: ActionContext,
-  params?: any
+  params?: any,
 ): Promise<ActionResult> {
   switch (actionId) {
     case 'view':

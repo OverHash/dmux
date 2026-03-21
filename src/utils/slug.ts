@@ -8,7 +8,7 @@ export const callClaudeCode = async (prompt: string): Promise<string | null> => 
         encoding: 'utf-8',
         stdio: 'pipe',
         timeout: 5000,
-      }
+      },
     );
     const lines = result.trim().split('\n');
     const response = lines.join(' ').trim();
@@ -32,24 +32,27 @@ export const generateSlug = async (prompt: string): Promise<string> => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model,
             messages: [
               {
                 role: 'user',
-                content: `Generate a 1-2 word kebab-case slug for this prompt. Only respond with the slug, nothing else: "${prompt}"`
-              }
+                content: `Generate a 1-2 word kebab-case slug for this prompt. Only respond with the slug, nothing else: "${prompt}"`,
+              },
             ],
             max_tokens: 10,
-            temperature: 0.3
-          })
+            temperature: 0.3,
+          }),
         });
 
         if (response.ok) {
-          const data = await response.json() as any;
-          const slug = data.choices[0].message.content.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+          const data = (await response.json()) as any;
+          const slug = data.choices[0].message.content
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, '');
           if (slug) return slug;
         }
       } catch {
@@ -60,10 +63,13 @@ export const generateSlug = async (prompt: string): Promise<string> => {
   }
 
   const claudeResponse = await callClaudeCode(
-    `Generate a 1-2 word kebab-case slug for this prompt. Only respond with the slug, nothing else: "${prompt}"`
+    `Generate a 1-2 word kebab-case slug for this prompt. Only respond with the slug, nothing else: "${prompt}"`,
   );
   if (claudeResponse) {
-    const slug = claudeResponse.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const slug = claudeResponse
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '');
     if (slug) return slug;
   }
 

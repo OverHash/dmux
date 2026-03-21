@@ -7,10 +7,7 @@ import {
   getPaneTmuxTitle,
   sanitizePaneDisplayName,
 } from '../../utils/paneTitle.js';
-import {
-  readWorktreeMetadata,
-  writeWorktreeMetadata,
-} from '../../utils/worktreeMetadata.js';
+import { readWorktreeMetadata, writeWorktreeMetadata } from '../../utils/worktreeMetadata.js';
 
 const MAX_PANE_DISPLAY_NAME_LENGTH = 80;
 
@@ -26,19 +23,15 @@ function persistWorktreeDisplayName(pane: DmuxPane, displayName?: string): void 
   });
 }
 
-export async function renamePane(
-  pane: DmuxPane,
-  context: ActionContext
-): Promise<ActionResult> {
+export async function renamePane(pane: DmuxPane, context: ActionContext): Promise<ActionResult> {
   const currentName = getPaneDisplayName(pane);
 
   return {
     type: 'input',
     title: 'Rename Pane',
-    message: [
-      `Rename "${currentName}".`,
-      'Leave blank to use the worktree name again.',
-    ].join('\n\n'),
+    message: [`Rename "${currentName}".`, 'Leave blank to use the worktree name again.'].join(
+      '\n\n',
+    ),
     placeholder: pane.slug,
     defaultValue: pane.displayName || currentName,
     onSubmit: async (value: string) => {
@@ -52,9 +45,8 @@ export async function renamePane(
         };
       }
 
-      const nextDisplayName = normalizedName && normalizedName !== pane.slug
-        ? normalizedName
-        : undefined;
+      const nextDisplayName =
+        normalizedName && normalizedName !== pane.slug ? normalizedName : undefined;
       const currentDisplayName = sanitizePaneDisplayName(pane.displayName || '') || undefined;
 
       if (currentDisplayName === nextDisplayName) {
@@ -71,7 +63,7 @@ export async function renamePane(
           displayName: nextDisplayName,
         };
         const updatedPanes = context.panes.map((candidate) =>
-          candidate.id === pane.id ? updatedPane : candidate
+          candidate.id === pane.id ? updatedPane : candidate,
         );
 
         await context.savePanes(updatedPanes);
@@ -80,7 +72,7 @@ export async function renamePane(
           const sessionProjectRoot = StateManager.getInstance().getState().projectRoot;
           await TmuxService.getInstance().setPaneTitle(
             pane.paneId,
-            getPaneTmuxTitle(updatedPane, sessionProjectRoot || undefined)
+            getPaneTmuxTitle(updatedPane, sessionProjectRoot || undefined),
           );
         } catch {
           // Periodic title enforcement will reconcile if tmux is transiently unavailable.

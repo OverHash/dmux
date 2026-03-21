@@ -1,12 +1,8 @@
 import { spawnSync } from 'child_process';
 
-export const REQUIRED_TMUX_UPDATE_ENV = [
-  'TERM_PROGRAM',
-] as const;
+export const REQUIRED_TMUX_UPDATE_ENV = ['TERM_PROGRAM'] as const;
 
-export const REQUIRED_TMUX_TERMINAL_OVERRIDES = [
-  'xterm-256color:Ms=\\E]52;c;%p2%s\\007',
-] as const;
+export const REQUIRED_TMUX_TERMINAL_OVERRIDES = ['xterm-256color:Ms=\\E]52;c;%p2%s\\007'] as const;
 
 interface TmuxRuntimeCompatibilitySnapshot {
   terminalOverrides: string[];
@@ -34,7 +30,7 @@ export function parseTmuxArrayOptionValues(output: string): string[] {
 
 export function buildTmuxRuntimeCompatibilityCommands(
   sessionName: string,
-  snapshot: TmuxRuntimeCompatibilitySnapshot
+  snapshot: TmuxRuntimeCompatibilitySnapshot,
 ): string[][] {
   const commands: string[][] = [
     ['set-option', '-q', '-t', sessionName, 'set-clipboard', 'on'],
@@ -58,14 +54,10 @@ export function buildTmuxRuntimeCompatibilityCommands(
 
 function readTmuxArrayOption(sessionName: string, optionName: string): string[] {
   try {
-    const result = spawnSync(
-      'tmux',
-      ['show-options', '-A', '-t', sessionName, optionName],
-      {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      }
-    );
+    const result = spawnSync('tmux', ['show-options', '-A', '-t', sessionName, optionName], {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    });
 
     if (result.status !== 0) {
       return [];

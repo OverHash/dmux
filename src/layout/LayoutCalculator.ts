@@ -45,19 +45,15 @@ export class LayoutCalculator {
   calculateOptimalLayout(
     numContentPanes: number,
     terminalWidth: number,
-    terminalHeight: number
+    terminalHeight: number,
   ): LayoutConfiguration {
-    const {
-      SIDEBAR_WIDTH,
-      MIN_COMFORTABLE_WIDTH,
-      MAX_COMFORTABLE_WIDTH,
-      MIN_COMFORTABLE_HEIGHT,
-    } = this.config;
+    const { SIDEBAR_WIDTH, MIN_COMFORTABLE_WIDTH, MAX_COMFORTABLE_WIDTH, MIN_COMFORTABLE_HEIGHT } =
+      this.config;
     // If users lower MAX below the default MIN (e.g. max=40), use the lower value
     // for feasibility checks so those narrower-but-intentional layouts are considered.
     const minFeasiblePaneWidth = Math.max(
       1,
-      Math.min(MIN_COMFORTABLE_WIDTH, MAX_COMFORTABLE_WIDTH)
+      Math.min(MIN_COMFORTABLE_WIDTH, MAX_COMFORTABLE_WIDTH),
     );
 
     // Special case: welcome pane or no panes
@@ -81,21 +77,16 @@ export class LayoutCalculator {
       const rowBorders = rows - 1; // Horizontal borders between rows
 
       // Calculate minimum required dimensions (can we fit at MIN width?)
-      const minRequiredWidth =
-        SIDEBAR_WIDTH + cols * minFeasiblePaneWidth + columnBorders;
+      const minRequiredWidth = SIDEBAR_WIDTH + cols * minFeasiblePaneWidth + columnBorders;
       const minRequiredHeight = rows * MIN_COMFORTABLE_HEIGHT + rowBorders;
 
       // Check if this layout fits in terminal at minimum comfortable size
-      if (
-        minRequiredWidth <= terminalWidth &&
-        minRequiredHeight <= terminalHeight
-      ) {
+      if (minRequiredWidth <= terminalWidth && minRequiredHeight <= terminalHeight) {
         // This layout fits! Now calculate actual pane dimensions
 
         // Calculate ideal window max-width (cap each pane at MAX_COMFORTABLE_WIDTH)
         // Window should be: sidebar + (columns * MAX width) + borders OR terminal width, whichever is smaller
-        const idealMaxWidth =
-          SIDEBAR_WIDTH + cols * MAX_COMFORTABLE_WIDTH + columnBorders;
+        const idealMaxWidth = SIDEBAR_WIDTH + cols * MAX_COMFORTABLE_WIDTH + columnBorders;
         const windowWidth = Math.min(idealMaxWidth, terminalWidth);
 
         // Calculate actual pane width using the constrained windowWidth (not terminalWidth)
@@ -117,11 +108,12 @@ export class LayoutCalculator {
           rows,
           actualPaneWidth,
           paneHeight,
-          terminalHeight
+          terminalHeight,
         );
 
         // Update best if this score is higher, OR if tied but with fewer columns (more width per pane)
-        const isBetter = score > bestScore || (score === bestScore && cols < (bestLayout?.cols || Infinity));
+        const isBetter =
+          score > bestScore || (score === bestScore && cols < (bestLayout?.cols || Infinity));
 
         if (isBetter) {
           bestScore = score;
@@ -186,7 +178,7 @@ export class LayoutCalculator {
     rows: number,
     actualPaneWidth: number,
     paneHeight: number,
-    terminalHeight: number
+    terminalHeight: number,
   ): number {
     const { MAX_COMFORTABLE_WIDTH } = this.config;
 
@@ -194,7 +186,7 @@ export class LayoutCalculator {
     // 1. Have more vertical space (bigger height)
     // 2. Are more balanced (fewer rows, but not too wide)
     // 3. Don't have a single pane in the last row
-    const panesInLastRow = (numContentPanes % cols) || cols;
+    const panesInLastRow = numContentPanes % cols || cols;
     const balanceScore = panesInLastRow === 1 ? 0.5 : 1.0; // Penalize single pane in last row
     const heightScore = paneHeight / terminalHeight; // More vertical space is better
     const widthScore = actualPaneWidth <= MAX_COMFORTABLE_WIDTH ? 1.0 : 0.8; // Prefer panes within comfortable width

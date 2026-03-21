@@ -31,11 +31,11 @@ describe('pane title helpers', () => {
     });
 
     expect(getPaneTmuxTitle(pane, '/tmp/project')).toBe(
-      `Auth Review${PANE_TITLE_DELIMITER}fix-auth`
+      `Auth Review${PANE_TITLE_DELIMITER}fix-auth`,
     );
     expect(getPaneTitleCandidates(pane, '/tmp/project')).toContain('fix-auth');
     expect(getPaneTitleCandidates(pane, '/tmp/project')).toContain(
-      `Auth Review${LEGACY_PANE_TITLE_DELIMITERS[0]}fix-auth`
+      `Auth Review${LEGACY_PANE_TITLE_DELIMITERS[0]}fix-auth`,
     );
   });
 
@@ -47,7 +47,7 @@ describe('pane title helpers', () => {
     });
 
     expect(getPaneTmuxTitle(pane, '/tmp/session-project', 'session-project')).toBe(
-      buildWorktreePaneTitle('fix-auth', '/tmp/other-project', 'other-project')
+      buildWorktreePaneTitle('fix-auth', '/tmp/other-project', 'other-project'),
     );
   });
 });

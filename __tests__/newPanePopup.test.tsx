@@ -35,9 +35,7 @@ describe('NewPanePopupApp', () => {
     tempDirs.push(tempDir);
     const resultFile = path.join(tempDir, 'result.json');
 
-    const { stdin, lastFrame, unmount } = render(
-      <NewPanePopupApp resultFile={resultFile} />
-    );
+    const { stdin, lastFrame, unmount } = render(<NewPanePopupApp resultFile={resultFile} />);
 
     await sleep(60);
     await type(stdin, 'ship it');

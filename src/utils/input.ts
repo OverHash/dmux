@@ -3,14 +3,16 @@ export const preprocessPastedContent = (input: string): string => {
   cleaned = cleaned.replace(/\x1b\[[\d;]*[A-Za-z]/g, '');
   cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  const looksLikeCode = cleaned.match(/[{}\[\]]/) || cleaned.split('\n').some(line => line.startsWith('  ') || line.startsWith('\t'));
+  const looksLikeCode =
+    cleaned.match(/[{}\[\]]/) ||
+    cleaned.split('\n').some((line) => line.startsWith('  ') || line.startsWith('\t'));
   if (looksLikeCode) return cleaned;
 
   const boxChars = /[╭╮╰╯│─┌┐└┘├┤┬┴┼━┃┏┓┗┛┣┫┳┻╋]/g;
   cleaned = cleaned.replace(boxChars, '');
 
   let lines = cleaned.split('\n');
-  lines = lines.map(line => {
+  lines = lines.map((line) => {
     line = line.replace(/^[>$#]\s+/, '');
     return line.trim();
   });
@@ -21,7 +23,13 @@ export const preprocessPastedContent = (input: string): string => {
   for (let i = 0; i < lines.length; i++) {
     const currentLine = lines[i];
     const nextLine = lines[i + 1];
-    if (nextLine && currentLine.length > 0 && !currentLine.match(/[.!?;:,]$/) && nextLine[0] && nextLine[0] === nextLine[0].toLowerCase()) {
+    if (
+      nextLine &&
+      currentLine.length > 0 &&
+      !currentLine.match(/[.!?;:,]$/) &&
+      nextLine[0] &&
+      nextLine[0] === nextLine[0].toLowerCase()
+    ) {
       unwrappedLines.push(currentLine + ' ' + nextLine);
       i++;
     } else {
@@ -68,7 +76,7 @@ export const wrapText = (text: string, width: number): { line: string; isHardBre
 
 export const findCursorInWrappedLines = (
   wrappedLines: { line: string; isHardBreak: boolean }[],
-  absoluteCursor: number
+  absoluteCursor: number,
 ) => {
   if (wrappedLines.length === 0) return { line: 0, col: 0 };
   let currentPos = 0;

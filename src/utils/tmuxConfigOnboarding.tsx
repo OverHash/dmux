@@ -26,10 +26,7 @@ const ONBOARDING_STATE_RELATIVE_PATH = path.join('.dmux', 'onboarding.json');
  * We only offer onboarding when none of these contain a meaningful config.
  */
 export function getTmuxConfigCandidatePaths(homeDir: string): string[] {
-  return [
-    path.join(homeDir, '.tmux.conf'),
-    path.join(homeDir, '.config', 'tmux', 'tmux.conf'),
-  ];
+  return [path.join(homeDir, '.tmux.conf'), path.join(homeDir, '.config', 'tmux', 'tmux.conf')];
 }
 
 /**
@@ -54,21 +51,22 @@ export async function hasMeaningfulTmuxConfig(homeDir: string): Promise<boolean>
 }
 
 export function buildRecommendedTmuxConfig(theme: TmuxPresetTheme): string {
-  const palette = theme === 'dark'
-    ? {
-      windowStyle: "set -g window-style 'fg=colour247,bg=colour236'",
-      activeWindowStyle: "set -g window-active-style 'fg=default,bg=colour234'",
-      paneBorderStyle: 'set -g pane-border-style "fg=colour238 bg=default"',
-      activePaneBorderStyle: 'set -g pane-active-border-style "fg=colour39 bg=default"',
-      statusStyle: "set -g status-style 'fg=colour252,bg=colour236'",
-    }
-    : {
-      windowStyle: "set -g window-style 'fg=colour238,bg=colour255'",
-      activeWindowStyle: "set -g window-active-style 'fg=colour232,bg=colour252'",
-      paneBorderStyle: 'set -g pane-border-style "fg=colour250 bg=default"',
-      activePaneBorderStyle: 'set -g pane-active-border-style "fg=colour27 bg=default"',
-      statusStyle: "set -g status-style 'fg=colour238,bg=colour254'",
-    };
+  const palette =
+    theme === 'dark'
+      ? {
+          windowStyle: "set -g window-style 'fg=colour247,bg=colour236'",
+          activeWindowStyle: "set -g window-active-style 'fg=default,bg=colour234'",
+          paneBorderStyle: 'set -g pane-border-style "fg=colour238 bg=default"',
+          activePaneBorderStyle: 'set -g pane-active-border-style "fg=colour39 bg=default"',
+          statusStyle: "set -g status-style 'fg=colour252,bg=colour236'",
+        }
+      : {
+          windowStyle: "set -g window-style 'fg=colour238,bg=colour255'",
+          activeWindowStyle: "set -g window-active-style 'fg=colour232,bg=colour252'",
+          paneBorderStyle: 'set -g pane-border-style "fg=colour250 bg=default"',
+          activePaneBorderStyle: 'set -g pane-active-border-style "fg=colour27 bg=default"',
+          statusStyle: "set -g status-style 'fg=colour238,bg=colour254'",
+        };
 
   return [
     '# =============================================',
@@ -141,7 +139,7 @@ async function readOnboardingState(statePath: string): Promise<OnboardingState> 
 async function writeOnboardingState(
   homeDir: string,
   outcome: OnboardingOutcome,
-  configPath?: string
+  configPath?: string,
 ): Promise<void> {
   const statePath = path.join(homeDir, ONBOARDING_STATE_RELATIVE_PATH);
   const currentState = await readOnboardingState(statePath);
@@ -161,7 +159,7 @@ async function writeOnboardingState(
 
 async function writeRecommendedTmuxConfig(
   homeDir: string,
-  theme: TmuxPresetTheme
+  theme: TmuxPresetTheme,
 ): Promise<string> {
   const configPath = path.join(homeDir, '.tmux.conf');
   const configContent = buildRecommendedTmuxConfig(theme);
@@ -190,12 +188,10 @@ function promptForTmuxConfigSetup(): Promise<OnboardingOutcome> {
       resolve(outcome);
     };
 
-    const app = render(
-      <TmuxConfigOnboardingPrompt onComplete={settle} />,
-      { exitOnCtrlC: false }
-    );
+    const app = render(<TmuxConfigOnboardingPrompt onComplete={settle} />, { exitOnCtrlC: false });
 
-    app.waitUntilExit()
+    app
+      .waitUntilExit()
       .then(() => settle('skip'))
       .catch(() => settle('skip'));
   });
@@ -234,12 +230,12 @@ const TmuxConfigOnboardingPrompt: React.FC<TmuxConfigOnboardingPromptProps> = ({
       }
 
       if (key.upArrow || key.leftArrow) {
-        setOfferIndex(prev => Math.max(0, prev - 1));
+        setOfferIndex((prev) => Math.max(0, prev - 1));
         return;
       }
 
       if (key.downArrow || key.rightArrow) {
-        setOfferIndex(prev => Math.min(1, prev + 1));
+        setOfferIndex((prev) => Math.min(1, prev + 1));
         return;
       }
 
@@ -265,12 +261,12 @@ const TmuxConfigOnboardingPrompt: React.FC<TmuxConfigOnboardingPromptProps> = ({
     }
 
     if (key.leftArrow || key.upArrow) {
-      setThemeIndex(prev => Math.max(0, prev - 1));
+      setThemeIndex((prev) => Math.max(0, prev - 1));
       return;
     }
 
     if (key.rightArrow || key.downArrow) {
-      setThemeIndex(prev => Math.min(1, prev + 1));
+      setThemeIndex((prev) => Math.min(1, prev + 1));
       return;
     }
 
@@ -286,13 +282,18 @@ const TmuxConfigOnboardingPrompt: React.FC<TmuxConfigOnboardingPromptProps> = ({
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} marginTop={1}>
-      <Text bold color="cyan">Welcome to dmux</Text>
+      <Text bold color="cyan">
+        Welcome to dmux
+      </Text>
       <Box marginTop={1} flexDirection="column">
         <Text>No tmux config was found in:</Text>
         <Text dimColor>~/.tmux.conf or ~/.config/tmux/tmux.conf</Text>
       </Box>
       <Box marginTop={1} flexDirection="column">
-        <Text>dmux works best with a few tmux settings for pane borders, navigation, and clipboard behavior.</Text>
+        <Text>
+          dmux works best with a few tmux settings for pane borders, navigation, and clipboard
+          behavior.
+        </Text>
       </Box>
 
       {step === 'offer' ? (
@@ -322,7 +323,9 @@ const TmuxConfigOnboardingPrompt: React.FC<TmuxConfigOnboardingPromptProps> = ({
             </Text>
           </Box>
           <Box marginTop={1}>
-            <Text dimColor>left/right or up/down to switch | Enter to install | Esc to go back</Text>
+            <Text dimColor>
+              left/right or up/down to switch | Enter to install | Esc to go back
+            </Text>
           </Box>
         </Box>
       )}
@@ -360,7 +363,7 @@ export async function runTmuxConfigOnboardingIfNeeded(): Promise<void> {
     if (!process.stdin.isTTY || !process.stdout.isTTY) {
       logger.debug(
         'Skipping tmux onboarding prompt because terminal is non-interactive',
-        'onboarding'
+        'onboarding',
       );
       return;
     }
@@ -379,7 +382,7 @@ export async function runTmuxConfigOnboardingIfNeeded(): Promise<void> {
   } catch (error) {
     logger.warn(
       `Tmux onboarding failed: ${error instanceof Error ? error.message : String(error)}`,
-      'onboarding'
+      'onboarding',
     );
   }
 }

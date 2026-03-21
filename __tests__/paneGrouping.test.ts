@@ -51,16 +51,11 @@ describe('groupPanesByProject', () => {
       pane('dmux-2', 'aux-pane', '/repo-aux'),
     ];
 
-    const groups = groupPanesByProject(
-      panes,
-      '/repo-main',
-      'repo-main',
-      [
-        { projectRoot: '/repo-main', projectName: 'repo-main' },
-        { projectRoot: '/repo-empty', projectName: 'repo-empty' },
-        { projectRoot: '/repo-aux', projectName: 'repo-aux' },
-      ]
-    );
+    const groups = groupPanesByProject(panes, '/repo-main', 'repo-main', [
+      { projectRoot: '/repo-main', projectName: 'repo-main' },
+      { projectRoot: '/repo-empty', projectName: 'repo-empty' },
+      { projectRoot: '/repo-aux', projectName: 'repo-aux' },
+    ]);
 
     expect(groups.map((group) => group.projectRoot)).toEqual([
       '/repo-main',

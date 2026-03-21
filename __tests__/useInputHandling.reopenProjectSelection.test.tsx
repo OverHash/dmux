@@ -12,7 +12,9 @@ import {
 } from '../src/utils/projectRoot.js';
 
 vi.mock('../src/utils/resumeBranches.js', async () => {
-  const actual = await vi.importActual<typeof import('../src/utils/resumeBranches.js')>('../src/utils/resumeBranches.js');
+  const actual = await vi.importActual<typeof import('../src/utils/resumeBranches.js')>(
+    '../src/utils/resumeBranches.js',
+  );
   return {
     ...actual,
     getResumableBranches: vi.fn(),
@@ -20,7 +22,9 @@ vi.mock('../src/utils/resumeBranches.js', async () => {
 });
 
 vi.mock('../src/utils/projectRoot.js', async () => {
-  const actual = await vi.importActual<typeof import('../src/utils/projectRoot.js')>('../src/utils/projectRoot.js');
+  const actual = await vi.importActual<typeof import('../src/utils/projectRoot.js')>(
+    '../src/utils/projectRoot.js',
+  );
   return {
     ...actual,
     createEmptyGitProject: vi.fn(actual.createEmptyGitProject),
@@ -157,7 +161,7 @@ describe('useInputHandling reopen project selection', () => {
         popupManager={popupManager}
         setStatusMessage={setStatusMessage}
         saveSidebarProjects={saveSidebarProjects}
-      />
+      />,
     );
 
     await sleep(20);
@@ -170,7 +174,7 @@ describe('useInputHandling reopen project selection', () => {
       'This project does not exist yet:\n/repo-root/new-project\n\nCreate a new empty git repository here?',
       'Create Project',
       'Cancel',
-      '/repo-root'
+      '/repo-root',
     );
     expect(createEmptyGitProject).toHaveBeenCalledWith('/repo-root/new-project', '/repo-root');
     expect(saveSidebarProjects).toHaveBeenCalledWith([
@@ -178,7 +182,9 @@ describe('useInputHandling reopen project selection', () => {
       { projectRoot: '/repo-selected', projectName: 'repo-selected' },
       { projectRoot: '/repo-root/new-project', projectName: 'new-project' },
     ]);
-    expect(setStatusMessage).toHaveBeenCalledWith('Created new-project and added it to the sidebar');
+    expect(setStatusMessage).toHaveBeenCalledWith(
+      'Created new-project and added it to the sidebar',
+    );
 
     unmount();
   });
@@ -220,7 +226,7 @@ describe('useInputHandling reopen project selection', () => {
         projectActionItems={projectActionItems}
         popupManager={popupManager}
         trackProjectActivity={trackProjectActivity}
-      />
+      />,
     );
 
     await sleep(20);
@@ -230,10 +236,7 @@ describe('useInputHandling reopen project selection', () => {
     expect(getResumableBranches).toHaveBeenCalledWith('/repo-selected', [], {
       includeRemoteBranches: false,
     });
-    expect(trackProjectActivity).toHaveBeenCalledWith(
-      expect.any(Function),
-      '/repo-selected'
-    );
+    expect(trackProjectActivity).toHaveBeenCalledWith(expect.any(Function), '/repo-selected');
     expect(popupManager.launchReopenWorktreePopup).toHaveBeenCalledWith(
       resumableBranches,
       '/repo-selected',
@@ -244,7 +247,7 @@ describe('useInputHandling reopen project selection', () => {
         remoteLoaded: false,
         filterQuery: '',
       },
-      []
+      [],
     );
 
     unmount();
@@ -297,7 +300,7 @@ describe('useInputHandling reopen project selection', () => {
         popupManager={popupManager}
         trackProjectActivity={trackProjectActivity}
         handleReopenWorktree={handleReopenWorktree}
-      />
+      />,
     );
 
     await sleep(20);
@@ -318,7 +321,7 @@ describe('useInputHandling reopen project selection', () => {
         remoteLoaded: false,
         filterQuery: '',
       },
-      []
+      [],
     );
     expect(trackProjectActivity).toHaveBeenCalledTimes(1);
     expect(handleReopenWorktree).toHaveBeenCalledWith(
@@ -326,7 +329,7 @@ describe('useInputHandling reopen project selection', () => {
         ...resumableBranches[0],
         lastModified: new Date('2026-03-12T12:00:00.000Z'),
       },
-      '/repo-selected'
+      '/repo-selected',
     );
 
     unmount();

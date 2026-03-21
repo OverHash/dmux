@@ -54,20 +54,26 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
   const [showCommitInput, setShowCommitInput] = useState(false);
 
   const addCommandOutput = (command: string, output: string, error?: string) => {
-    setCommandHistory(prev => [...prev, {
-      command,
-      output,
-      error,
-      timestamp: new Date()
-    }]);
+    setCommandHistory((prev) => [
+      ...prev,
+      {
+        command,
+        output,
+        error,
+        timestamp: new Date(),
+      },
+    ]);
   };
 
-  const runCommand = (command: string, cwd?: string): { success: boolean; output: string; error?: string } => {
+  const runCommand = (
+    command: string,
+    cwd?: string,
+  ): { success: boolean; output: string; error?: string } => {
     try {
       const output = execSync(command, {
         cwd: cwd || pane.worktreePath,
         encoding: 'utf8',
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
       addCommandOutput(command, output);
       return { success: true, output };
@@ -83,8 +89,8 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
     if (result.success) {
       const conflicts = result.output
         .split('\n')
-        .filter(line => line.startsWith('UU ') || line.startsWith('AA '))
-        .map(line => line.substring(3).trim());
+        .filter((line) => line.startsWith('UU ') || line.startsWith('AA '))
+        .map((line) => line.substring(3).trim());
 
       if (conflicts.length > 0) {
         setConflictFiles(conflicts);
@@ -109,22 +115,27 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: 'openai/gpt-4o-mini',
-          messages: [{
-            role: 'user',
-            content: `Generate a concise, semantic commit message for these changes. Follow conventional commits format (feat:, fix:, chore:, etc). Be specific about what changed:\n\n${diff.output.substring(0, 4000)}`
-          }],
+          messages: [
+            {
+              role: 'user',
+              content: `Generate a concise, semantic commit message for these changes. Follow conventional commits format (feat:, fix:, chore:, etc). Be specific about what changed:\n\n${diff.output.substring(0, 4000)}`,
+            },
+          ],
           max_tokens: 100,
           temperature: 0.3,
         }),
       });
 
-      const data = await response.json() as any;
-      return data.choices?.[0]?.message?.content?.trim() || `chore: merge ${pane.slug} into ${mainBranch}`;
+      const data = (await response.json()) as any;
+      return (
+        data.choices?.[0]?.message?.content?.trim() ||
+        `chore: merge ${pane.slug} into ${mainBranch}`
+      );
     } catch {
       return `chore: merge ${pane.slug} into ${mainBranch}`;
     }
@@ -181,7 +192,10 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
 
     if (!mergeResult.success) {
       // Check if it's a merge conflict
-      if (mergeResult.error?.includes('Automatic merge failed') || checkForConflicts(mainRepoPath)) {
+      if (
+        mergeResult.error?.includes('Automatic merge failed') ||
+        checkForConflicts(mainRepoPath)
+      ) {
         setStatus('merge-conflict');
         setShowResolutionPrompt(true);
         return;
@@ -209,7 +223,9 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
     const mainRepoPath = pane.worktreePath?.replace(/\/\.dmux\/worktrees\/[^/]+$/, '');
 
     // Exit the app and launch agent with conflict resolution prompt
-    const fullPrompt = agentPrompt || `Fix the merge conflicts in the following files: ${conflictFiles.join(', ')}. Resolve them appropriately based on the changes from branch ${pane.slug} (${pane.prompt}) and ensure the code remains functional.`;
+    const fullPrompt =
+      agentPrompt ||
+      `Fix the merge conflicts in the following files: ${conflictFiles.join(', ')}. Resolve them appropriately based on the changes from branch ${pane.slug} (${pane.prompt}) and ensure the code remains functional.`;
     const escapedPrompt = fullPrompt
       .replace(/\\/g, '\\\\')
       .replace(/"/g, '\\"')
@@ -227,14 +243,14 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
 
       execSync(`claude "${escapedPrompt}"${permissionSuffix}`, {
         stdio: 'inherit',
-        cwd: mainRepoPath || process.cwd()
+        cwd: mainRepoPath || process.cwd(),
       });
     } catch {
       // Try opencode as fallback
       try {
         execSync(`opencode --prompt "${escapedPrompt}"`, {
           stdio: 'inherit',
-          cwd: mainRepoPath || process.cwd()
+          cwd: mainRepoPath || process.cwd(),
         });
       } catch {}
     }
@@ -286,7 +302,7 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
   });
 
   const getStatusColor = (s: MergeStatus): string => {
-    switch(s) {
+    switch (s) {
       case 'error':
       case 'merge-conflict':
         return 'red';
@@ -304,20 +320,33 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
   };
 
   const getStatusText = (s: MergeStatus): string => {
-    switch(s) {
-      case 'checking': return 'Checking repository status...';
-      case 'uncommitted-changes': return 'Found uncommitted changes, committing...';
-      case 'committing': return `Committing changes: ${commitMessage}`;
-      case 'switching-branch': return `Switching to ${mainBranch} branch...`;
-      case 'merging': return `Merging ${pane.slug} into ${mainBranch}...`;
-      case 'merge-conflict': return 'Merge conflict detected!';
-      case 'conflict-resolution-prompt': return 'Choose conflict resolution method';
-      case 'resolving-with-agent': return 'Launching agent to resolve conflicts...';
-      case 'manual-resolution': return 'Manual resolution selected';
-      case 'completing': return 'Cleaning up worktree and branch...';
-      case 'success': return 'Merge completed successfully!';
-      case 'error': return `Error: ${error}`;
-      default: return '';
+    switch (s) {
+      case 'checking':
+        return 'Checking repository status...';
+      case 'uncommitted-changes':
+        return 'Found uncommitted changes, committing...';
+      case 'committing':
+        return `Committing changes: ${commitMessage}`;
+      case 'switching-branch':
+        return `Switching to ${mainBranch} branch...`;
+      case 'merging':
+        return `Merging ${pane.slug} into ${mainBranch}...`;
+      case 'merge-conflict':
+        return 'Merge conflict detected!';
+      case 'conflict-resolution-prompt':
+        return 'Choose conflict resolution method';
+      case 'resolving-with-agent':
+        return 'Launching agent to resolve conflicts...';
+      case 'manual-resolution':
+        return 'Manual resolution selected';
+      case 'completing':
+        return 'Cleaning up worktree and branch...';
+      case 'success':
+        return 'Merge completed successfully!';
+      case 'error':
+        return `Error: ${error}`;
+      default:
+        return '';
     }
   };
 
@@ -329,14 +358,27 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
         </Text>
       </Box>
 
-      <Box borderStyle="round" borderColor="gray" flexDirection="column" padding={1} marginBottom={1}>
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        flexDirection="column"
+        padding={1}
+        marginBottom={1}
+      >
         <Text color={getStatusColor(status)} bold>
           Status: {getStatusText(status)}
         </Text>
       </Box>
 
       {commandHistory.length > 0 && (
-        <Box borderStyle="single" borderColor="gray" flexDirection="column" padding={1} marginBottom={1} height={10}>
+        <Box
+          borderStyle="single"
+          borderColor="gray"
+          flexDirection="column"
+          padding={1}
+          marginBottom={1}
+          height={10}
+        >
           <Text dimColor>Command Output:</Text>
           {commandHistory.slice(-5).map((cmd, i) => (
             <Box key={i} flexDirection="column">
@@ -350,16 +392,21 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
 
       {showResolutionPrompt && !showAgentPromptInput && (
         <Box borderStyle="double" borderColor="yellow" flexDirection="column" padding={1}>
-          <Text color="yellow" bold>Merge Conflict Resolution Required</Text>
+          <Text color="yellow" bold>
+            Merge Conflict Resolution Required
+          </Text>
           <Text>Conflicted files:</Text>
-          {conflictFiles.map(file => (
-            <Text key={file} color="red">  • {file}</Text>
+          {conflictFiles.map((file) => (
+            <Text key={file} color="red">
+              {' '}
+              • {file}
+            </Text>
           ))}
           <Text> </Text>
           <Text>Choose resolution method:</Text>
-          <Text color="cyan">  (A) Resolve with AI agent</Text>
-          <Text color="green">  (M) Resolve manually</Text>
-          <Text color="gray">  (C) Cancel merge</Text>
+          <Text color="cyan"> (A) Resolve with AI agent</Text>
+          <Text color="green"> (M) Resolve manually</Text>
+          <Text color="gray"> (C) Cancel merge</Text>
         </Box>
       )}
 
@@ -377,8 +424,12 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
 
       {status === 'success' && (
         <Box borderStyle="double" borderColor="green" flexDirection="column" padding={1}>
-          <Text color="green" bold>✓ Merge completed successfully!</Text>
-          <Text>Branch {pane.slug} has been merged into {mainBranch}</Text>
+          <Text color="green" bold>
+            ✓ Merge completed successfully!
+          </Text>
+          <Text>
+            Branch {pane.slug} has been merged into {mainBranch}
+          </Text>
           <Text> </Text>
           <Text>Close the pane "{pane.slug}"? (Y/n)</Text>
         </Box>
@@ -386,7 +437,9 @@ export default function MergePane({ pane, onComplete, onCancel, mainBranch }: Me
 
       {status === 'error' && (
         <Box borderStyle="double" borderColor="red" flexDirection="column" padding={1}>
-          <Text color="red" bold>✗ Merge failed</Text>
+          <Text color="red" bold>
+            ✗ Merge failed
+          </Text>
           <Text>{error}</Text>
           <Text> </Text>
           <Text dimColor>Press Enter to return to main menu</Text>

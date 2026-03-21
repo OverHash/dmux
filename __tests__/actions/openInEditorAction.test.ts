@@ -35,10 +35,7 @@ describe('openInEditorAction', () => {
 
     const result = await openInEditor(mockPane, mockContext);
 
-    expect(execSync).toHaveBeenCalledWith(
-      'code "/test/worktree/path"',
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith('code "/test/worktree/path"', { stdio: 'pipe' });
     expectSuccess(result, 'code');
   });
 
@@ -53,10 +50,7 @@ describe('openInEditorAction', () => {
 
     const result = await openInEditor(mockPane, mockContext);
 
-    expect(execSync).toHaveBeenCalledWith(
-      'vim "/test/path"',
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith('vim "/test/path"', { stdio: 'pipe' });
     expectSuccess(result, 'vim');
   });
 
@@ -70,10 +64,7 @@ describe('openInEditorAction', () => {
 
     const result = await openInEditor(mockPane, mockContext, { editor: 'emacs' });
 
-    expect(execSync).toHaveBeenCalledWith(
-      'emacs "/test/path"',
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith('emacs "/test/path"', { stdio: 'pipe' });
     expectSuccess(result, 'emacs');
   });
 
@@ -88,10 +79,7 @@ describe('openInEditorAction', () => {
 
     await openInEditor(mockPane, mockContext, { editor: 'nano' });
 
-    expect(execSync).toHaveBeenCalledWith(
-      'nano "/test/path"',
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith('nano "/test/path"', { stdio: 'pipe' });
   });
 
   it('should return error for shell pane without worktree', async () => {
@@ -129,10 +117,9 @@ describe('openInEditorAction', () => {
     await openInEditor(mockPane, mockContext);
 
     // Verify path is properly quoted
-    expect(execSync).toHaveBeenCalledWith(
-      'code "/test/path with spaces/worktree"',
-      { stdio: 'pipe' }
-    );
+    expect(execSync).toHaveBeenCalledWith('code "/test/path with spaces/worktree"', {
+      stdio: 'pipe',
+    });
   });
 
   it('should support various editor commands', async () => {
@@ -146,10 +133,7 @@ describe('openInEditorAction', () => {
       vi.clearAllMocks();
       await openInEditor(mockPane, mockContext, { editor });
 
-      expect(execSync).toHaveBeenCalledWith(
-        `${editor} "/test"`,
-        { stdio: 'pipe' }
-      );
+      expect(execSync).toHaveBeenCalledWith(`${editor} "/test"`, { stdio: 'pipe' });
     }
   });
 });

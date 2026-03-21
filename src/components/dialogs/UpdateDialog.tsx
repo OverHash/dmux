@@ -10,7 +10,9 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ updateInfo }) => {
   return (
     <Box borderStyle="double" borderColor="green" paddingX={1} marginTop={1}>
       <Box flexDirection="column">
-        <Text color="green" bold>🎉 dmux Update Available!</Text>
+        <Text color="green" bold>
+          🎉 dmux Update Available!
+        </Text>
         <Text>
           Current version: <Text color="cyan">{updateInfo.currentVersion}</Text>
         </Text>
@@ -24,12 +26,11 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ updateInfo }) => {
         )}
         <Box marginTop={1}>
           {updateInfo.installMethod === 'global' && updateInfo.packageManager ? (
-            <Text>
-              [U]pdate now • [S]kip this version • [L]ater
-            </Text>
+            <Text>[U]pdate now • [S]kip this version • [L]ater</Text>
           ) : (
             <Text>
-              Manual update required: <Text color="cyan">{updateInfo.packageManager || 'npm'} update -g dmux</Text>
+              Manual update required:{' '}
+              <Text color="cyan">{updateInfo.packageManager || 'npm'} update -g dmux</Text>
               {'\n'}[S]kip this version • [L]ater
             </Text>
           )}

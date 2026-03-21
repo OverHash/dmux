@@ -15,7 +15,7 @@ vi.mock('../../../src/utils/aiMerge.js', () => ({
   generateCommitMessage: vi.fn(),
   getComprehensiveDiff: vi.fn(() => ({
     diff: 'mock diff',
-    summary: 'file1.ts\nfile2.ts'
+    summary: 'file1.ts\nfile2.ts',
   })),
 }));
 
@@ -62,7 +62,7 @@ describe('commitMessageHandler', () => {
       const { generateCommitMessage } = await import('../../../src/utils/aiMerge.js');
       // Simulate a slow response that exceeds timeout
       vi.mocked(generateCommitMessage).mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve('too late'), 20000))
+        () => new Promise((resolve) => setTimeout(() => resolve('too late'), 20000)),
       );
 
       const result = await generateCommitMessageSafe('/test/repo', 100); // 100ms timeout
@@ -91,7 +91,9 @@ describe('commitMessageHandler', () => {
 
   describe('promptForCommitMessage', () => {
     it('should return manual input prompt when mode is manual', async () => {
-      const mockCallback = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockCallback = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
       const result = await promptForCommitMessage('/test/repo', 'manual', mockCallback);
 
@@ -115,7 +117,9 @@ describe('commitMessageHandler', () => {
     });
 
     it('should call callback with trimmed message in manual mode', async () => {
-      const mockCallback = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockCallback = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
       const result = await promptForCommitMessage('/test/repo', 'manual', mockCallback);
 
@@ -129,7 +133,9 @@ describe('commitMessageHandler', () => {
       const { generateCommitMessage } = await import('../../../src/utils/aiMerge.js');
       vi.mocked(generateCommitMessage).mockResolvedValue('feat: auto commit');
 
-      const mockCallback = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockCallback = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
       const result = await promptForCommitMessage('/test/repo', 'ai_automatic', mockCallback);
 
@@ -141,7 +147,9 @@ describe('commitMessageHandler', () => {
       const { generateCommitMessage } = await import('../../../src/utils/aiMerge.js');
       vi.mocked(generateCommitMessage).mockResolvedValue('feat: generated message');
 
-      const mockCallback = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockCallback = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
       const result = await promptForCommitMessage('/test/repo', 'ai_editable', mockCallback);
 
@@ -156,7 +164,9 @@ describe('commitMessageHandler', () => {
       const { generateCommitMessage } = await import('../../../src/utils/aiMerge.js');
       vi.mocked(generateCommitMessage).mockResolvedValue(null);
 
-      const mockCallback = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockCallback = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
       const result = await promptForCommitMessage('/test/repo', 'ai_automatic', mockCallback);
 
@@ -182,13 +192,16 @@ describe('commitMessageHandler', () => {
   describe('handleCommitWithOptions', () => {
     it('should handle commit_automatic option', async () => {
       const { generateCommitMessage } = await import('../../../src/utils/aiMerge.js');
-      const { stageAllChanges, commitChanges } = await import('../../../src/utils/mergeValidation.js');
+      const { stageAllChanges, commitChanges } =
+        await import('../../../src/utils/mergeValidation.js');
 
       vi.mocked(stageAllChanges).mockReturnValue({ success: true });
       vi.mocked(commitChanges).mockReturnValue({ success: true });
       vi.mocked(generateCommitMessage).mockResolvedValue('feat: automatic');
 
-      const mockOnSuccess = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockOnSuccess = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
       await handleCommitWithOptions('/test/repo', 'commit_automatic', mockOnSuccess);
 
@@ -202,9 +215,15 @@ describe('commitMessageHandler', () => {
       vi.mocked(stageAllChanges).mockReturnValue({ success: true });
       vi.mocked(generateCommitMessage).mockResolvedValue('feat: editable');
 
-      const mockOnSuccess = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockOnSuccess = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
-      const result = await handleCommitWithOptions('/test/repo', 'commit_ai_editable', mockOnSuccess);
+      const result = await handleCommitWithOptions(
+        '/test/repo',
+        'commit_ai_editable',
+        mockOnSuccess,
+      );
 
       expect(result.type).toBe('input');
       expect(result.title).toBe('Review & Edit Commit Message');
@@ -215,7 +234,9 @@ describe('commitMessageHandler', () => {
 
       vi.mocked(stageAllChanges).mockReturnValue({ success: true });
 
-      const mockOnSuccess = vi.fn().mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
+      const mockOnSuccess = vi
+        .fn()
+        .mockResolvedValue({ type: 'success', message: 'Done', dismissable: true });
 
       const result = await handleCommitWithOptions('/test/repo', 'commit_manual', mockOnSuccess);
 
@@ -225,7 +246,8 @@ describe('commitMessageHandler', () => {
 
     it('should return error when commit fails', async () => {
       const { generateCommitMessage } = await import('../../../src/utils/aiMerge.js');
-      const { stageAllChanges, commitChanges } = await import('../../../src/utils/mergeValidation.js');
+      const { stageAllChanges, commitChanges } =
+        await import('../../../src/utils/mergeValidation.js');
 
       vi.mocked(stageAllChanges).mockReturnValue({ success: true });
       vi.mocked(generateCommitMessage).mockResolvedValue('feat: will fail');

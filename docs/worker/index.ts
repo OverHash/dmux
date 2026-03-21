@@ -53,7 +53,7 @@ async function handleStars(request: Request): Promise<Response> {
           'Cache-Control': `public, max-age=${CACHE_TTL}`,
           'Access-Control-Allow-Origin': '*',
         },
-      }
+      },
     );
 
     // Store in Cloudflare cache
