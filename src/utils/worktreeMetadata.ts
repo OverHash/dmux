@@ -156,3 +156,22 @@ export function writeWorktreeMetadata(
       : undefined,
   });
 }
+
+export function getWorkspaceVcsStateFromPane(
+  pane: WorkspaceVcsState
+): WorkspaceVcsState {
+  switch (pane.vcsBackend) {
+    case 'jj':
+      return {
+        vcsBackend: 'jj',
+        targetRef: pane.targetRef,
+        workspaceName: pane.workspaceName,
+      };
+    case 'git':
+      return {
+        vcsBackend: 'git',
+        targetRef: pane.targetRef,
+        branchName: pane.branchName,
+      };
+  }
+}

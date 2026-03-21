@@ -8,6 +8,7 @@ import {
   sanitizePaneDisplayName,
 } from '../../utils/paneTitle.js';
 import {
+  getWorkspaceVcsStateFromPane,
   readWorktreeMetadata,
   writeWorktreeMetadata,
 } from '../../utils/worktreeMetadata.js';
@@ -20,22 +21,7 @@ function persistWorktreeDisplayName(pane: DmuxPane, displayName?: string): void 
   }
 
   const existingMetadata = readWorktreeMetadata(pane.worktreePath);
-  const metadata = existingMetadata || (() => {
-    switch (pane.vcsBackend) {
-      case 'jj':
-        return {
-          vcsBackend: 'jj' as const,
-          targetRef: pane.targetRef,
-          workspaceName: pane.workspaceName,
-        };
-      case 'git':
-        return {
-          vcsBackend: 'git' as const,
-          targetRef: pane.targetRef,
-          branchName: pane.branchName,
-        };
-    }
-  })();
+  const metadata = existingMetadata || getWorkspaceVcsStateFromPane(pane);
 
   writeWorktreeMetadata(pane.worktreePath, {
     ...metadata,
