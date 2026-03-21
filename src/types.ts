@@ -17,6 +17,7 @@ export interface PotentialHarm {
 }
 
 export interface MergeTargetReference {
+  displayName?: string;
   slug?: string;
   branchName: string;
   worktreePath?: string;
@@ -44,6 +45,8 @@ export type WorkspaceVcsState = GitWorkspaceVcsState | JjWorkspaceVcsState;
 interface DmuxPaneBase {
   id: string;
   slug: string;
+  displayName?: string; // User-facing pane name (independent from worktree slug/branch)
+  branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
   prompt: string;
   paneId: string;
   hidden?: boolean; // Pane is detached from the active dmux window but still running

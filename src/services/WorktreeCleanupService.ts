@@ -3,6 +3,7 @@ import { rm } from 'fs/promises';
 import type { DmuxPane } from '../types.js';
 import { triggerHook } from '../utils/hooks.js';
 import { getPaneBranchName } from '../utils/git.js';
+import { detectAllWorktrees } from '../utils/worktreeDiscovery.js';
 import { getTargetRef } from '../vcs/references.js';
 import { LogService } from './LogService.js';
 
@@ -32,6 +33,17 @@ interface JjCleanupJob extends Omit<WorktreeCleanupJob, 'pane'> {
 interface CommandResult {
   success: boolean;
   error?: string;
+}
+
+interface BranchDeletionTarget {
+  repoPath: string;
+  branchName: string;
+}
+
+interface WorktreeRemovalTarget {
+  repoPath: string;
+  worktreePath: string;
+  depth: number;
 }
 
 /**
@@ -77,6 +89,11 @@ export class WorktreeCleanupService {
       return;
     }
 
+    const worktreeRemovalTargets = this.getWorktreeRemovalTargets(pane, mainRepoPath);
+    const branchDeletionTargets = deleteBranch
+      ? this.getBranchDeletionTargets(pane, mainRepoPath)
+      : [];
+
     this.logger.debug(
       `Starting background worktree cleanup for ${pane.slug}`,
       'paneActions',
@@ -89,7 +106,11 @@ export class WorktreeCleanupService {
         break;
       case 'git':
       case undefined:
-        await this.runGitCleanup(this.asGitCleanupJob(job));
+        await this.runGitCleanup(
+          this.asGitCleanupJob(job),
+          worktreeRemovalTargets,
+          branchDeletionTargets
+        );
         break;
     }
 
@@ -122,37 +143,53 @@ export class WorktreeCleanupService {
     };
   }
 
-  private async runGitCleanup(job: GitCleanupJob): Promise<void> {
-    const { pane, paneProjectRoot, mainRepoPath, deleteBranch } = job;
+  private async runGitCleanup(
+    job: GitCleanupJob,
+    worktreeRemovalTargets: WorktreeRemovalTarget[],
+    branchDeletionTargets: BranchDeletionTarget[]
+  ): Promise<void> {
+    const { pane, paneProjectRoot, deleteBranch } = job;
 
-    const removeResult = await this.runGitCommand(
-      ['worktree', 'remove', pane.worktreePath, '--force'],
-      mainRepoPath
-    );
-
-    if (!removeResult.success) {
-      this.logger.warn(
-        `Worktree removal reported an error for ${pane.slug}: ${removeResult.error}`,
-        'paneActions',
-        pane.id
+    for (const target of worktreeRemovalTargets) {
+      const removeResult = await this.runGitCommand(
+        ['worktree', 'remove', target.worktreePath, '--force'],
+        target.repoPath
       );
+
+      if (!removeResult.success) {
+        this.logger.warn(
+          `Worktree removal reported an error for ${pane.slug} in ${target.repoPath}: ${removeResult.error}`,
+          'paneActions',
+          pane.id
+        );
+      }
     }
 
     // The hook should run after deletion is attempted, regardless of outcome.
     await triggerHook('worktree_removed', paneProjectRoot, pane);
 
     if (deleteBranch) {
-      const deleteBranchResult = await this.runGitCommand(
-        ['branch', '-D', getPaneBranchName(pane)],
-        mainRepoPath
-      );
-
-      if (!deleteBranchResult.success) {
-        this.logger.warn(
-          `Branch deletion reported an error for ${pane.slug}: ${deleteBranchResult.error}`,
-          'paneActions',
-          pane.id
+      for (const target of branchDeletionTargets) {
+        const branchExists = await this.runGitCommand(
+          ['show-ref', '--verify', '--quiet', `refs/heads/${target.branchName}`],
+          target.repoPath
         );
+        if (!branchExists.success) {
+          continue;
+        }
+
+        const deleteBranchResult = await this.runGitCommand(
+          ['branch', '-D', target.branchName],
+          target.repoPath
+        );
+
+        if (!deleteBranchResult.success) {
+          this.logger.warn(
+            `Branch deletion reported an error for ${pane.slug} in ${target.repoPath}: ${deleteBranchResult.error}`,
+            'paneActions',
+            pane.id
+          );
+        }
       }
     }
   }
@@ -203,6 +240,76 @@ export class WorktreeCleanupService {
         );
       }
     }
+  }
+
+  private getBranchDeletionTargets(
+    pane: DmuxPane,
+    mainRepoPath: string
+  ): BranchDeletionTarget[] {
+    const branchName = getPaneBranchName(pane);
+    const repoPaths = new Set<string>([mainRepoPath]);
+
+    if (pane.worktreePath) {
+      try {
+        for (const worktree of detectAllWorktrees(pane.worktreePath)) {
+          repoPaths.add(worktree.parentRepoPath);
+        }
+      } catch (error) {
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        this.logger.debug(
+          `Failed to detect nested worktrees for ${pane.slug}: ${errorObj.message}`,
+          'paneActions',
+          pane.id
+        );
+      }
+    }
+
+    return Array.from(repoPaths).map((repoPath) => ({
+      repoPath,
+      branchName,
+    }));
+  }
+
+  private getWorktreeRemovalTargets(
+    pane: DmuxPane,
+    mainRepoPath: string
+  ): WorktreeRemovalTarget[] {
+    if (!pane.worktreePath) {
+      return [];
+    }
+
+    const targets = new Map<string, WorktreeRemovalTarget>();
+    const addTarget = (repoPath: string, worktreePath: string, depth: number) => {
+      targets.set(`${repoPath}::${worktreePath}`, {
+        repoPath,
+        worktreePath,
+        depth,
+      });
+    };
+
+    // Fall back to the pane root even if nested worktree detection fails.
+    addTarget(mainRepoPath, pane.worktreePath, 0);
+
+    try {
+      for (const worktree of detectAllWorktrees(pane.worktreePath)) {
+        addTarget(worktree.parentRepoPath, worktree.worktreePath, worktree.depth);
+      }
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.logger.debug(
+        `Failed to detect worktree removal targets for ${pane.slug}: ${errorObj.message}`,
+        'paneActions',
+        pane.id
+      );
+    }
+
+    return Array.from(targets.values()).sort((left, right) => {
+      if (left.depth !== right.depth) {
+        return right.depth - left.depth;
+      }
+
+      return right.worktreePath.length - left.worktreePath.length;
+    });
   }
 
   private runGitCommand(args: string[], cwd: string): Promise<CommandResult> {

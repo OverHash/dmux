@@ -9,6 +9,7 @@ import type {
 } from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
+  ensurePaneBorderStatusForCurrentSession,
   setupSidebarLayout,
   getTerminalDimensions,
   splitPane,
@@ -40,7 +41,7 @@ import {
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { isValidBranchName } from './git.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
-import { writeWorktreeMetadata } from './worktreeMetadata.js';
+import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
 import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
 import { detectVcsForPath } from '../vcs/detect.js';
 import { getVcsBackend } from '../vcs/registry.js';
@@ -145,6 +146,9 @@ export async function createPane(
 
   const settingsManager = new SettingsManager(projectRoot);
   const settings = settingsManager.getSettings();
+  const existingWorktreeMetadata = existingWorktree
+    ? readWorktreeMetadata(existingWorktree.worktreePath)
+    : null;
 
   const sessionProjectRoot = optionsSessionProjectRoot
     || (optionsSessionConfigPath ? path.dirname(path.dirname(optionsSessionConfigPath)) : projectRoot);
@@ -274,7 +278,7 @@ export async function createPane(
 
   // Enable pane borders to show titles
   try {
-    tmuxService.setGlobalOptionSync('pane-border-status', 'top');
+    ensurePaneBorderStatusForCurrentSession();
   } catch {
     // Ignore if already set or fails
   }
@@ -541,6 +545,7 @@ export async function createPane(
       writeWorktreeMetadata(worktreePath, {
         agent,
         permissionMode: settings.permissionMode,
+        displayName: existingWorktreeMetadata?.displayName,
         ...workspaceVcsState,
         mergeTargetChain,
       });
@@ -663,6 +668,7 @@ export async function createPane(
   const newPane: DmuxPane = {
     id: `dmux-${Date.now()}`,
     slug,
+    displayName: existingWorktreeMetadata?.displayName,
     ...workspaceVcsState,
     prompt: prompt || 'No initial prompt',
     paneId: paneInfo,
