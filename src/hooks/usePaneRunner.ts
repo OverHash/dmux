@@ -23,7 +23,7 @@ export default function usePaneRunner({
   const copyNonGitFiles = async (worktreePath: string, sourceProjectRoot?: string) => {
     try {
       setStatusMessage('Copying non-git files from main...');
-      const derivedRoot = worktreePath.replace(/[\\\/]\.dmux[\\\/]worktrees[\\\/][^\\\/]+$/, '');
+      const derivedRoot = worktreePath.replace(/[\\/]\.dmux[\\/]worktrees[\\/][^\\/]+$/, '');
       const projectRoot =
         sourceProjectRoot ||
         (derivedRoot !== worktreePath ? derivedRoot : undefined) ||

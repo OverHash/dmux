@@ -6,7 +6,7 @@ import { execAsync, execAsyncRace } from './execAsync.js';
 import type { DmuxPane } from '../types.js';
 
 /** Regex for characters allowed in git branch names and branch prefixes */
-export const SAFE_BRANCH_CHARS = /^[a-zA-Z0-9._\/-]*$/;
+export const SAFE_BRANCH_CHARS = /^[a-zA-Z0-9._/-]*$/;
 
 /** Reject path traversal sequences */
 const HAS_DOT_DOT = /\.\./;

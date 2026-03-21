@@ -4,7 +4,7 @@ export const preprocessPastedContent = (input: string): string => {
   cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   const looksLikeCode =
-    cleaned.match(/[{}\[\]]/) ||
+    cleaned.match(/[{}[\]]/) ||
     cleaned.split('\n').some((line) => line.startsWith('  ') || line.startsWith('\t'));
   if (looksLikeCode) return cleaned;
 

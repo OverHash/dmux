@@ -135,7 +135,7 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
 
     // Check if this looks like code/JSON (has braces, brackets, or consistent indentation)
     const looksLikeCode =
-      cleaned.match(/[{}\[\]]/) ||
+      cleaned.match(/[{}[\]]/) ||
       cleaned.split('\n').some((line) => line.startsWith('  ') || line.startsWith('\t'));
 
     if (looksLikeCode) {

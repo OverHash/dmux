@@ -58,8 +58,8 @@ This directory contains hooks that run automatically at key lifecycle events in 
 
 4. **Test it**:
    \`\`\`bash
-   export DMUX_ROOT="\$(pwd)"
-   export DMUX_WORKTREE_PATH="\$(pwd)"
+   export DMUX_ROOT="$(pwd)"
+   export DMUX_WORKTREE_PATH="$(pwd)"
    ./worktree_created
    \`\`\`
 
@@ -128,7 +128,7 @@ fi
 # Do not set git user.name/user.email in this hook.
 
 # Create a log entry
-echo "[\$(date)] Created worktree: $DMUX_SLUG | Agent: $DMUX_AGENT | Prompt: $DMUX_PROMPT" \\
+echo "[$(date)] Created worktree: $DMUX_SLUG | Agent: $DMUX_AGENT | Prompt: $DMUX_PROMPT" \\
   >> "$DMUX_ROOT/.dmux/worktree_history.log"
 
 echo "[Hook] Worktree setup complete!"
@@ -167,7 +167,7 @@ sleep 5
 
 # Detect port from log output
 # Adjust the grep pattern for your dev server's output format
-PORT=\$(grep -oP '(?<=localhost:)\\d+' "$LOG_FILE" | head -1)
+PORT=$(grep -oP '(?<=localhost:)\\d+' "$LOG_FILE" | head -1)
 
 if [ -z "$PORT" ]; then
   echo "[Hook] Warning: Could not detect port from logs, using default 3000"
@@ -181,11 +181,11 @@ echo "[Hook] Dev server running at $LOCAL_URL"
 # Requires ngrok, cloudflared, or another tunneling tool
 
 # Example with cloudflared:
-# TUNNEL_URL=\$(cloudflared tunnel --url "$LOCAL_URL" 2>&1 | \\
+# TUNNEL_URL=$(cloudflared tunnel --url "$LOCAL_URL" 2>&1 | \\
 #   grep -oP 'https://[a-z0-9-]+\\.trycloudflare\\.com' | head -1)
 
 # Example with ngrok:
-# TUNNEL_URL=\$(ngrok http $PORT --log=stdout 2>&1 | \\
+# TUNNEL_URL=$(ngrok http $PORT --log=stdout 2>&1 | \\
 #   grep -oP 'url=https://[^"]+' | head -1 | cut -d= -f2)
 
 # For now, just use local URL (uncomment tunnel code above to enable)
@@ -244,15 +244,15 @@ else
 fi
 
 # Get output (truncate if too long)
-OUTPUT=\$(head -c 5000 "$OUTPUT_FILE")
+OUTPUT=$(head -c 5000 "$OUTPUT_FILE")
 
 # Report results back to dmux
 curl -s -X PUT "$API_URL" \\
   -H "Content-Type: application/json" \\
-  -d "\$(jq -n \\
+  -d "$(jq -n \\
     --arg status "$STATUS" \\
     --arg output "$OUTPUT" \\
-    '{status: \$status, output: \$output}')" > /dev/null
+    '{status: $status, output: $output}')" > /dev/null
 
 # Cleanup
 rm -f "$OUTPUT_FILE"
@@ -304,7 +304,7 @@ if [ "$DMUX_TARGET_BRANCH" = "main" ] || [ "$DMUX_TARGET_BRANCH" = "master" ]; t
 fi
 
 # Close related GitHub issue (if prompt contains #123 format)
-ISSUE_NUM=\$(echo "$DMUX_PROMPT" | grep -oP '#\\K\\d+' | head -1)
+ISSUE_NUM=$(echo "$DMUX_PROMPT" | grep -oP '#\\K\\d+' | head -1)
 if [ -n "$ISSUE_NUM" ]; then
   echo "[Hook] Closing GitHub issue #$ISSUE_NUM"
   if command -v gh &> /dev/null; then

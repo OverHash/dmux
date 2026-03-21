@@ -1,7 +1,7 @@
 import path from 'path';
 import type { DmuxPane } from '../types.js';
 
-const WORKTREE_PATH_PATTERN = /[\\\/]\.dmux[\\\/]worktrees[\\\/][^\\\/]+$/;
+const WORKTREE_PATH_PATTERN = /[\\/]\.dmux[\\/]worktrees[\\/][^\\/]+$/;
 
 /**
  * Derive repository root from a dmux worktree path.
