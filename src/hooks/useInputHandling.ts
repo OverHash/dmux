@@ -1323,19 +1323,22 @@ export function useInputHandling(params: UseInputHandlingParams) {
       return
     } else if (input === "s") {
       // Open settings popup
+      const activeProjectRoot = getActiveProjectRoot()
       const result = await popupManager.launchSettingsPopup(async () => {
         // Launch hooks popup
         await popupManager.launchHooksPopup(async () => {
           await launchHooksAuthoringSession()
-        }, getActiveProjectRoot())
-      }, getActiveProjectRoot(), sidebarProjects)
+        }, activeProjectRoot)
+      }, activeProjectRoot, sidebarProjects)
       if (result) {
         try {
-          const activeProjectRoot = getActiveProjectRoot()
-          const projectSettingsManager = new SettingsManager(activeProjectRoot)
           const updates = Array.isArray((result as any).updates)
             ? (result as any).updates
             : [result]
+
+          const activeProjectSettingsManager = sameSidebarProjectRoot(activeProjectRoot, projectRoot)
+            ? settingsManager
+            : new SettingsManager(activeProjectRoot)
 
           let savedCount = 0
           let layoutBoundsUpdated = false
@@ -1380,7 +1383,11 @@ export function useInputHandling(params: UseInputHandlingParams) {
             const resolvedUpdateKey = update.key === DEFAULT_COLOR_THEME_SETTING_KEY
               ? "colorTheme"
               : update.key
-            projectSettingsManager.updateSetting(
+            const targetSettingsManager = update.scope === "project"
+              ? activeProjectSettingsManager
+              : settingsManager
+
+            targetSettingsManager.updateSetting(
               resolvedUpdateKey as keyof import("../types.js").DmuxSettings,
               update.value,
               update.scope
