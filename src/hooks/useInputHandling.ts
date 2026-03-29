@@ -45,6 +45,7 @@ import {
   removeSidebarProject,
   sameSidebarProjectRoot,
 } from "../utils/sidebarProjects.js"
+import { SettingsManager } from "../utils/settingsManager.js"
 import {
   drainRemotePaneActions,
   getCurrentTmuxSessionName,
@@ -1257,17 +1258,22 @@ export function useInputHandling(params: UseInputHandlingParams) {
       return
     } else if (input === "s") {
       // Open settings popup
+      const activeProjectRoot = getActiveProjectRoot()
       const result = await popupManager.launchSettingsPopup(async () => {
         // Launch hooks popup
         await popupManager.launchHooksPopup(async () => {
           await launchHooksAuthoringSession()
-        }, getActiveProjectRoot())
-      }, getActiveProjectRoot())
+        }, activeProjectRoot)
+      }, activeProjectRoot)
       if (result) {
         try {
           const updates = Array.isArray((result as any).updates)
             ? (result as any).updates
             : [result]
+
+          const activeProjectSettingsManager = sameSidebarProjectRoot(activeProjectRoot, projectRoot)
+            ? settingsManager
+            : new SettingsManager(activeProjectRoot)
 
           let savedCount = 0
           let layoutBoundsUpdated = false
@@ -1282,7 +1288,11 @@ export function useInputHandling(params: UseInputHandlingParams) {
               continue
             }
 
-            settingsManager.updateSetting(
+            const targetSettingsManager = update.scope === "project"
+              ? activeProjectSettingsManager
+              : settingsManager
+
+            targetSettingsManager.updateSetting(
               update.key as keyof import("../types.js").DmuxSettings,
               update.value,
               update.scope

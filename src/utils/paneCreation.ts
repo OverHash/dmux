@@ -41,11 +41,11 @@ import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { isValidBranchName } from './git.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
 import { resolvePaneNaming } from './paneNaming.js';
+import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
 import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
 import { detectVcsForPath } from '../vcs/detect.js';
 import { getVcsBackend } from '../vcs/registry.js';
 import { resolveProjectRootFromPath } from './projectRoot.js';
-import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
 
 export interface CreatePaneOptions {
   prompt: string;
@@ -574,8 +574,8 @@ export async function createPane(
       writeWorktreeMetadata(worktreePath, {
         agent,
         permissionMode: settings.permissionMode,
-        ...workspaceVcsState,
         displayName: existingWorktreeMetadata?.displayName,
+        ...workspaceVcsState,
         mergeTargetChain,
       });
     } catch (metadataError) {
