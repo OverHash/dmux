@@ -9,7 +9,7 @@ import {
 import { StateManager } from "../shared/StateManager.js"
 import { LogService } from "./LogService.js"
 import { TmuxService } from "./TmuxService.js"
-import { SETTING_DEFINITIONS } from "../utils/settingsManager.js"
+import { SETTING_DEFINITIONS, SettingsManager } from "../utils/settingsManager.js"
 import type { DmuxPane, ProjectSettings } from "../types.js"
 import { getPaneMenuActions, type PaneMenuActionId } from "../actions/index.js"
 import { INPUT_IGNORE_DELAY } from "../constants/timing.js"
@@ -146,6 +146,16 @@ export class PopupManager {
 
   private resolveActivityProjectRoot(projectRoot?: string): string {
     return projectRoot || this.config.projectRoot
+  }
+
+  private getSettingsManager(projectRoot?: string): SettingsManager {
+    const targetProjectRoot = this.resolveActivityProjectRoot(projectRoot)
+
+    if (path.resolve(targetProjectRoot) === path.resolve(this.config.projectRoot)) {
+      return this.config.settingsManager as SettingsManager
+    }
+
+    return new SettingsManager(targetProjectRoot)
   }
 
   /**
@@ -403,7 +413,7 @@ export class PopupManager {
 
     try {
       const agentsJson = JSON.stringify(this.config.availableAgents)
-      const settings = this.config.settingsManager.getSettings()
+      const settings = this.getSettingsManager(projectRoot).getSettings()
       const defaultAgent = settings.defaultAgent
       const initialSelectedAgents =
         defaultAgent &&
@@ -441,7 +451,7 @@ export class PopupManager {
     if (this.config.availableAgents.length === 0) return null
 
     try {
-      const settings = this.config.settingsManager.getSettings()
+      const settings = this.getSettingsManager(projectRoot).getSettings()
       const defaultAgent = settings.defaultAgent
       const popupHeight = Math.max(12, Math.min(20, this.config.availableAgents.length + 8))
 
@@ -604,6 +614,8 @@ export class PopupManager {
     if (!this.checkPopupSupport()) return null
 
     try {
+      const targetProjectRoot = this.resolveActivityProjectRoot(projectRoot)
+      const settingsManager = this.getSettingsManager(targetProjectRoot)
       let settingsPopupWidth = 84
       try {
         // Use tmux client dimensions, not the dmux pane's stdout width.
@@ -624,13 +636,13 @@ export class PopupManager {
         },
         {
           settingDefinitions: SETTING_DEFINITIONS,
-          settings: this.config.settingsManager.getSettings(),
-          globalSettings: this.config.settingsManager.getGlobalSettings(),
-          projectSettings: this.config.settingsManager.getProjectSettings(),
-          projectRoot: this.config.projectRoot,
+          settings: settingsManager.getSettings(),
+          globalSettings: settingsManager.getGlobalSettings(),
+          projectSettings: settingsManager.getProjectSettings(),
+          projectRoot: targetProjectRoot,
           controlPaneId: this.config.controlPaneId,
         },
-        projectRoot
+        targetProjectRoot
       )
 
       if (result.success) {
@@ -698,7 +710,7 @@ export class PopupManager {
     if (!this.checkPopupSupport()) return null
 
     try {
-      const settings = this.config.settingsManager.getSettings()
+      const settings = this.getSettingsManager(projectRoot).getSettings()
       const configuredEnabled = resolveEnabledAgentsSelection(settings.enabledAgents)
       const definitions = getAgentDefinitions().map((definition) => ({
         id: definition.id,
@@ -748,7 +760,7 @@ export class PopupManager {
     if (!this.checkPopupSupport()) return null
 
     try {
-      const settings = this.config.settingsManager.getSettings()
+      const settings = this.getSettingsManager(projectRoot).getSettings()
       const configuredEnabled = resolveNotificationSoundsSelection(settings.enabledNotificationSounds)
       const definitions = getNotificationSoundDefinitions().map((definition) => ({
         id: definition.id,
