@@ -9,6 +9,7 @@ import type {
 } from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
+  ensurePaneBorderStatusForCurrentSession,
   setupSidebarLayout,
   getTerminalDimensions,
   splitPane,
@@ -40,11 +41,11 @@ import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { isValidBranchName } from './git.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
 import { resolvePaneNaming } from './paneNaming.js';
-import { writeWorktreeMetadata } from './worktreeMetadata.js';
 import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
 import { detectVcsForPath } from '../vcs/detect.js';
 import { getVcsBackend } from '../vcs/registry.js';
 import { resolveProjectRootFromPath } from './projectRoot.js';
+import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
 
 export interface CreatePaneOptions {
   prompt: string;
@@ -149,6 +150,9 @@ export async function createPane(
 
   const settingsManager = new SettingsManager(projectRoot);
   const settings = settingsManager.getSettings();
+  const existingWorktreeMetadata = existingWorktree
+    ? readWorktreeMetadata(existingWorktree.worktreePath)
+    : null;
 
   const sessionProjectRoot = optionsSessionProjectRoot
     || (optionsSessionConfigPath ? path.dirname(path.dirname(optionsSessionConfigPath)) : projectRoot);
@@ -303,7 +307,7 @@ export async function createPane(
 
   // Enable pane borders to show titles
   try {
-    tmuxService.setGlobalOptionSync('pane-border-status', 'top');
+    ensurePaneBorderStatusForCurrentSession();
   } catch {
     // Ignore if already set or fails
   }
@@ -571,6 +575,7 @@ export async function createPane(
         agent,
         permissionMode: settings.permissionMode,
         ...workspaceVcsState,
+        displayName: existingWorktreeMetadata?.displayName,
         mergeTargetChain,
       });
     } catch (metadataError) {
@@ -693,6 +698,7 @@ export async function createPane(
     id: `dmux-${Date.now()}`,
     slug,
     ...workspaceVcsState,
+    displayName: existingWorktreeMetadata?.displayName,
     prompt: prompt || 'No initial prompt',
     paneId: paneInfo,
     projectRoot,

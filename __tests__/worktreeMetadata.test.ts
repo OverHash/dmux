@@ -26,9 +26,11 @@ describe('worktree metadata persistence', () => {
     writeWorktreeMetadata(tempDir, {
       agent: 'codex',
       permissionMode: 'bypassPermissions',
+      displayName: 'Review Queue',
       branchName: 'feat/child-worktree',
       mergeTargetChain: [
         {
+          displayName: 'Feature Parent',
           slug: 'feature-parent',
           branchName: 'feature-parent',
           worktreePath: '/repo/.dmux/worktrees/feature-parent',
@@ -44,11 +46,13 @@ describe('worktree metadata persistence', () => {
     expect(readWorktreeMetadata(tempDir)).toEqual({
       agent: 'codex',
       permissionMode: 'bypassPermissions',
+      displayName: 'Review Queue',
       vcsBackend: 'git',
       targetRef: 'feat/child-worktree',
       branchName: 'feat/child-worktree',
       mergeTargetChain: [
         {
+          displayName: 'Feature Parent',
           slug: 'feature-parent',
           branchName: 'feature-parent',
           worktreePath: '/repo/.dmux/worktrees/feature-parent',
