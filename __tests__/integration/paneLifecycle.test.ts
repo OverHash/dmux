@@ -260,6 +260,42 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
     });
 
+    it('should validate remote tracking baseBranch values without forcing refs/heads', async () => {
+      fsMock.readFileSync.mockImplementation((target) => {
+        const value = String(target);
+        if (value.endsWith('/.dmux/settings.json')) {
+          return JSON.stringify({ baseBranch: 'origin/main' });
+        }
+        if (value.endsWith('/.dmux/dmux.config.json')) {
+          return JSON.stringify({ controlPaneId: '%0' });
+        }
+        return JSON.stringify({});
+      });
+
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+
+      await createPane(
+        {
+          prompt: 'branch from remote main',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [],
+          slugBase: 'remote-base',
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync.mock.calls.some(([cmd]) =>
+        typeof cmd === 'string'
+        && cmd.includes('git rev-parse --verify --end-of-options "origin/main"')
+      )).toBe(true);
+
+      expect(mockExecSync.mock.calls.some(([cmd]) =>
+        typeof cmd === 'string'
+        && cmd.includes('refs/heads/origin/main')
+      )).toBe(false);
+    });
+
     it('should attach a fresh pane to an existing worktree without recreating it', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
       const existingWorktreePath = '/test/.dmux/worktrees/resume-me';
