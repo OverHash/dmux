@@ -17,8 +17,11 @@ import { AutoUpdater } from './services/AutoUpdater.js';
 import { StateManager } from './shared/StateManager.js';
 import { LogService } from './services/LogService.js';
 import { TmuxService } from './services/TmuxService.js';
-import { createWelcomePane, destroyWelcomePane } from './utils/welcomePane.js';
-import { TMUX_COLORS } from './theme/colors.js';
+import {
+  applyTmuxThemeToSession,
+  createWelcomePane,
+  destroyWelcomePane,
+} from './utils/welcomePane.js';
 import { SIDEBAR_WIDTH } from './utils/layoutManager.js';
 import { validateSystemRequirements, printValidationResults } from './utils/systemCheck.js';
 import { getUntrackedPanes } from './utils/shellPaneDetection.js';
@@ -1257,12 +1260,11 @@ class Dmux {
   private applySessionPaneBorderOptions(sessionName: string, stdio: 'pipe' | 'inherit' = 'pipe') {
     const sessionOptions = [
       `set-option -t ${sessionName} pane-border-status top`,
-      `set-option -t ${sessionName} pane-active-border-style "fg=colour${TMUX_COLORS.activeBorder}"`,
-      `set-option -t ${sessionName} pane-border-style "fg=colour${TMUX_COLORS.inactiveBorder}"`,
       `set-option -t ${sessionName} pane-border-format " #{?@dmux_attention,#[bold]![ready] #[default],}${TMUX_PANE_TITLE_DISPLAY_FORMAT} "`,
     ].join(' \\; ');
 
     execSync(`tmux ${sessionOptions}`, { stdio });
+    applyTmuxThemeToSession(sessionName, this.projectRoot);
   }
 
   private setupResizeHook(sessionName: string = this.sessionName) {

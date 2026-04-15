@@ -24,6 +24,11 @@ import {
   isNotificationSoundId,
   type NotificationSoundId,
 } from './notificationSounds.js';
+import {
+  DEFAULT_DMUX_THEME,
+  DMUX_THEME_NAMES,
+  isDmuxThemeName,
+} from '../theme/themePalette.js';
 
 const GLOBAL_SETTINGS_PATH = join(homedir(), '.dmux.global.json');
 const PERMISSION_MODES = ['', 'plan', 'acceptEdits', 'bypassPermissions'] as const;
@@ -72,6 +77,7 @@ const DEFAULT_SETTINGS: DmuxSettings = {
   enabledAgents: getDefaultEnabledAgents(),
   enabledNotificationSounds: getDefaultNotificationSoundSelection(),
   showFooterTips: true,
+  colorTheme: DEFAULT_DMUX_THEME,
 };
 
 const AGENT_OPTIONS = getAgentDefinitions().map((agent) => ({
@@ -125,6 +131,16 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
     label: 'Show Footer Tips',
     description: 'Rotate short dmux tips in the footer. Disable this if you prefer a quieter sidebar.',
     type: 'boolean',
+  },
+  {
+    key: 'colorTheme',
+    label: 'Colour Theme',
+    description: 'Choose the accent colour for the dmux UI and welcome pane',
+    type: 'select',
+    options: DMUX_THEME_NAMES.map((themeName) => ({
+      value: themeName,
+      label: themeName.charAt(0).toUpperCase() + themeName.slice(1),
+    })),
   },
   {
     key: 'useTmuxHooks',
@@ -305,6 +321,9 @@ export class SettingsManager {
     if (key === 'permissionMode' && typeof value === 'string' && !isPermissionMode(value)) {
       throw new Error(`Invalid permissionMode: "${value}"`);
     }
+    if (key === 'colorTheme' && !isDmuxThemeName(value)) {
+      throw new Error(`Invalid colorTheme: "${String(value)}"`);
+    }
     if (key === 'enabledAgents') {
       if (!Array.isArray(value)) {
         throw new Error('Invalid enabledAgents: expected an array of agent IDs');
@@ -377,6 +396,9 @@ export class SettingsManager {
   updateSettings(settings: Partial<DmuxSettings>, scope: SettingsScope): void {
     if (typeof settings.permissionMode === 'string' && !isPermissionMode(settings.permissionMode)) {
       throw new Error(`Invalid permissionMode: "${settings.permissionMode}"`);
+    }
+    if (settings.colorTheme !== undefined && !isDmuxThemeName(settings.colorTheme)) {
+      throw new Error(`Invalid colorTheme: "${String(settings.colorTheme)}"`);
     }
     if (settings.enabledAgents !== undefined) {
       if (!Array.isArray(settings.enabledAgents)) {

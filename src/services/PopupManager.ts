@@ -28,6 +28,7 @@ import { resolveDistPath } from "../utils/runtimePaths.js"
 import { getPaneProjectRoot } from "../utils/paneProject.js"
 import { getPaneDisplayName } from "../utils/paneTitle.js"
 import type { TrackProjectActivity } from "../types/activity.js"
+import { SettingsManager } from "../utils/settingsManager.js"
 import type {
   ReopenWorktreePopupResult,
   ReopenWorktreePopupState,
@@ -216,6 +217,7 @@ export class PopupManager {
         const popupOptions: TmuxPopupOptions = {
           ...positioning,
           title: options.title,
+          cwd: projectRoot || this.config.projectRoot,
         }
 
         if (positioning.width !== undefined || options.width !== undefined) {
@@ -604,6 +606,8 @@ export class PopupManager {
     if (!this.checkPopupSupport()) return null
 
     try {
+      const resolvedProjectRoot = projectRoot || this.config.projectRoot
+      const settingsManager = new SettingsManager(resolvedProjectRoot)
       let settingsPopupWidth = 84
       try {
         // Use tmux client dimensions, not the dmux pane's stdout width.
@@ -624,13 +628,13 @@ export class PopupManager {
         },
         {
           settingDefinitions: SETTING_DEFINITIONS,
-          settings: this.config.settingsManager.getSettings(),
-          globalSettings: this.config.settingsManager.getGlobalSettings(),
-          projectSettings: this.config.settingsManager.getProjectSettings(),
-          projectRoot: this.config.projectRoot,
+          settings: settingsManager.getSettings(),
+          globalSettings: settingsManager.getGlobalSettings(),
+          projectSettings: settingsManager.getProjectSettings(),
+          projectRoot: resolvedProjectRoot,
           controlPaneId: this.config.controlPaneId,
         },
-        projectRoot
+        resolvedProjectRoot
       )
 
       if (result.success) {

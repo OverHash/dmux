@@ -86,6 +86,12 @@ import {
   getProjectActionByIndex,
 } from "./utils/projectActions.js"
 import { getPaneProjectRoot } from "./utils/paneProject.js"
+import { normalizeDmuxTheme } from "./theme/themePalette.js"
+import { applyDmuxTheme } from "./theme/colors.js"
+import {
+  applyTmuxThemeToSession,
+  refreshWelcomePaneTheme,
+} from "./utils/welcomePane.js"
 
 const DmuxApp: React.FC<DmuxAppProps> = ({
   panesFile,
@@ -113,7 +119,11 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
   // Settings state
   const [settingsManager] = useState(() => new SettingsManager(projectRoot))
   const { projectSettings, saveSettings } = useProjectSettings(settingsFile)
-  const settings = settingsManager.getSettings()
+  const [themeRefreshNonce, setThemeRefreshNonce] = useState(0)
+  const [settings, setSettings] = useState(() => new SettingsManager(sessionProjectRoot).getSettings())
+  const [selectedThemeName, setSelectedThemeName] = useState(() =>
+    normalizeDmuxTheme(new SettingsManager(sessionProjectRoot).getSettings().colorTheme)
+  )
 
   // Dialog state management
   const dialogState = useDialogState()
@@ -241,7 +251,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
   useEffect(() => {
     const checkHooksPreference = async () => {
       // Check if user already has a preference
-      const settings = settingsManager.getSettings()
+      const settings = new SettingsManager(sessionProjectRoot).getSettings()
 
       if (settings.useTmuxHooks !== undefined) {
         // User has already decided
@@ -260,6 +270,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         setUseHooks(true)
         // Save the preference
         settingsManager.updateSetting('useTmuxHooks', true, 'global')
+        refreshDmuxSettings()
       } else {
         // Need to ask user - show prompt
         setShowHooksPrompt(true)
@@ -515,6 +526,17 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
       || sessionProjectRoot
     )
   }, [selectedIndex, panes, projectActionLayout.actionItems, sessionProjectRoot])
+  applyDmuxTheme(selectedThemeName)
+
+  const refreshDmuxSettings = (activeProjectRoot: string = selectedProjectRoot, nextTheme?: string) => {
+    setSettings(new SettingsManager(sessionProjectRoot).getSettings())
+    setSelectedThemeName(
+      nextTheme
+        ? normalizeDmuxTheme(nextTheme)
+        : normalizeDmuxTheme(new SettingsManager(activeProjectRoot).getSettings().colorTheme)
+    )
+    setThemeRefreshNonce((current) => current + 1)
+  }
   const navigationRows = useMemo(
     () => isLoading
       ? projectActionLayout.groups.flatMap((group) =>
@@ -527,6 +549,22 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     () => isLoading ? [] : buildGroupStartRows(projectActionLayout),
     [isLoading, projectActionLayout]
   )
+
+  useEffect(() => {
+    setSelectedThemeName(
+      normalizeDmuxTheme(new SettingsManager(selectedProjectRoot).getSettings().colorTheme)
+    )
+  }, [selectedProjectRoot])
+
+  useEffect(() => {
+    try {
+      applyTmuxThemeToSession(sessionName, selectedProjectRoot)
+    } catch {
+      // Theme updates are best-effort at runtime.
+    }
+
+    void refreshWelcomePaneTheme(panesFile, selectedProjectRoot)
+  }, [panesFile, selectedProjectRoot, selectedThemeName, sessionName])
 
   useEffect(() => {
     const maxIndex = Math.max(0, projectActionLayout.totalItems - 1)
@@ -1137,17 +1175,20 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         setShowHooksPrompt(false)
         setUseHooks(true)
         settingsManager.updateSetting('useTmuxHooks', true, 'global')
+        refreshDmuxSettings()
       } else if (input === 'n') {
         // No - use polling
         setShowHooksPrompt(false)
         setUseHooks(false)
         settingsManager.updateSetting('useTmuxHooks', false, 'global')
+        refreshDmuxSettings()
       } else if (key.return) {
         // Select current option
         setShowHooksPrompt(false)
         const selected = hooksPromptIndex === 0
         setUseHooks(selected)
         settingsManager.updateSetting('useTmuxHooks', selected, 'global')
+        refreshDmuxSettings()
       }
     },
     { isActive: showHooksPrompt }
@@ -1178,6 +1219,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     projectSettings,
     saveSettings,
     settingsManager,
+    refreshDmuxSettings,
     popupManager,
     actionSystem,
     controlPaneId,
@@ -1259,13 +1301,14 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
   const contentHeight = Math.max(terminalHeight - footerLines, 10)
 
   return (
-    <Box flexDirection="column" height={terminalHeight}>
+    <Box key={`theme-${selectedThemeName}-${themeRefreshNonce}`} flexDirection="column" height={terminalHeight}>
       {/* Main content area - height dynamically adjusts for status messages */}
       <Box flexDirection="column" height={contentHeight} overflow="hidden">
         <PanesGrid
           panes={panes}
           selectedIndex={selectedIndex}
           isLoading={isLoading}
+          themeName={selectedThemeName}
           agentStatuses={agentStatuses}
           activeDevSourcePath={activeDevSourcePath}
           sidebarProjects={sidebarProjects}
