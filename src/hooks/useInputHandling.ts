@@ -62,6 +62,7 @@ import {
   resolveProjectColorTheme,
   syncPaneColorThemes,
 } from "../utils/paneColors.js"
+import { syncWelcomePaneVisibility } from "../utils/welcomePaneManager.js"
 
 // Type for the action system returned by useActionSystem hook
 interface ActionSystem {
@@ -564,6 +565,25 @@ export function useInputHandling(params: UseInputHandlingParams) {
     })
   }
 
+  const syncWelcomePaneForPanes = async (
+    nextPanes: DmuxPane[],
+    targetProjectRoot: string = getActiveProjectRoot()
+  ) => {
+    if (!controlPaneId) {
+      return
+    }
+
+    const hasVisiblePanes = nextPanes.some((pane) => !pane.hidden)
+    const themeName = resolveProjectColorTheme(targetProjectRoot, sidebarProjects)
+
+    await syncWelcomePaneVisibility(
+      projectRoot,
+      controlPaneId,
+      !hasVisiblePanes,
+      themeName
+    )
+  }
+
   const getPaneShowTarget = async (excludedPaneId?: string): Promise<string | null> => {
     const visiblePaneId = panes.find(
       (pane) => !pane.hidden && pane.paneId !== excludedPaneId
@@ -607,12 +627,16 @@ export function useInputHandling(params: UseInputHandlingParams) {
         )
       }
 
-      await savePanes(
-        panes.map((pane) =>
-          pane.id === selectedPane.id
-            ? { ...pane, hidden: !selectedPane.hidden }
-            : pane
-        )
+      const updatedPanes = panes.map((pane) =>
+        pane.id === selectedPane.id
+          ? { ...pane, hidden: !selectedPane.hidden }
+          : pane
+      )
+
+      await savePanes(updatedPanes)
+      await syncWelcomePaneForPanes(
+        updatedPanes,
+        getPaneProjectRoot(selectedPane, projectRoot)
       )
       await refreshPaneLayout()
       await loadPanes()
@@ -674,10 +698,14 @@ export function useInputHandling(params: UseInputHandlingParams) {
       }
 
       const targetPaneIds = new Set(targetPanes.map((pane) => pane.id))
-      await savePanes(
-        panes.map((pane) =>
-          targetPaneIds.has(pane.id) ? { ...pane, hidden } : pane
-        )
+      const updatedPanes = panes.map((pane) =>
+        targetPaneIds.has(pane.id) ? { ...pane, hidden } : pane
+      )
+
+      await savePanes(updatedPanes)
+      await syncWelcomePaneForPanes(
+        updatedPanes,
+        getPaneProjectRoot(selectedPane, projectRoot)
       )
       await refreshPaneLayout()
       await loadPanes()
@@ -758,17 +786,18 @@ export function useInputHandling(params: UseInputHandlingParams) {
       const shownPaneIds = new Set(panesToShow.map((pane) => pane.id))
       const hiddenPaneIds = new Set(panesToHide.map((pane) => pane.id))
 
-      await savePanes(
-        panes.map((pane) => {
-          if (shownPaneIds.has(pane.id)) {
-            return { ...pane, hidden: false }
-          }
-          if (hiddenPaneIds.has(pane.id)) {
-            return { ...pane, hidden: true }
-          }
-          return pane
-        })
-      )
+      const updatedPanes = panes.map((pane) => {
+        if (shownPaneIds.has(pane.id)) {
+          return { ...pane, hidden: false }
+        }
+        if (hiddenPaneIds.has(pane.id)) {
+          return { ...pane, hidden: true }
+        }
+        return pane
+      })
+
+      await savePanes(updatedPanes)
+      await syncWelcomePaneForPanes(updatedPanes, targetProjectRoot)
       await refreshPaneLayout()
       await loadPanes()
 

@@ -98,6 +98,7 @@ import {
   applyTmuxThemeToSession,
   refreshWelcomePaneTheme,
 } from "./utils/welcomePane.js"
+import { syncWelcomePaneVisibility } from "./utils/welcomePaneManager.js"
 import {
   getPaneColorTheme,
   resolveProjectColorTheme,
@@ -536,10 +537,16 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     ),
     [panes, sidebarProjects, sessionProjectRoot, projectName]
   )
-  const selectedPane = useMemo(
-    () => selectedIndex < panes.length ? panes[selectedIndex] : undefined,
-    [selectedIndex, panes]
-  )
+  const selectedPane = useMemo(() => {
+    for (const group of projectActionLayout.groups) {
+      const entry = group.panes.find((candidate) => candidate.index === selectedIndex)
+      if (entry) {
+        return entry.pane
+      }
+    }
+
+    return undefined
+  }, [projectActionLayout.groups, selectedIndex])
   const selectedProjectRoot = useMemo(() => {
     if (selectedPane) {
       return getPaneProjectRoot(selectedPane, sessionProjectRoot)
@@ -569,6 +576,10 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
       activeProjectRoot,
       themeRefreshNonce,
     ]
+  )
+  const visiblePaneCount = useMemo(
+    () => panes.filter((pane) => !pane.hidden).length,
+    [panes]
   )
   const controlPaneActiveBorderStyle = useMemo(
     () => `fg=colour${getDmuxThemePalette(selectedThemeName).activeBorder}`,
@@ -615,6 +626,25 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
 
     void refreshWelcomePaneTheme(panesFile, activeProjectRoot, selectedThemeName)
   }, [panesFile, activeProjectRoot, selectedThemeName, sessionName])
+
+  useEffect(() => {
+    if (isLoading) {
+      return
+    }
+
+    void syncWelcomePaneVisibility(
+      sessionProjectRoot,
+      controlPaneId,
+      visiblePaneCount === 0,
+      selectedThemeName
+    )
+  }, [
+    controlPaneId,
+    isLoading,
+    selectedThemeName,
+    sessionProjectRoot,
+    visiblePaneCount,
+  ])
 
   useEffect(() => {
     if (!process.env.TMUX) {

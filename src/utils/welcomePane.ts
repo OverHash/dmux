@@ -11,6 +11,8 @@ import {
 } from '../theme/colors.js';
 import { execSync } from 'child_process';
 
+export const WELCOME_PANE_THEME_OPTION = '@dmux_welcome_theme';
+
 /**
  * Creates a welcome pane in the tmux session
  * This pane displays ASCII art and has no command prompt
@@ -21,7 +23,8 @@ import { execSync } from 'child_process';
  */
 export async function createWelcomePane(
   controlPaneId: string,
-  cwd?: string
+  cwd?: string,
+  themeName?: DmuxThemeName
 ): Promise<string | undefined> {
   const logService = LogService.getInstance();
   const tmuxService = TmuxService.getInstance();
@@ -47,7 +50,8 @@ export async function createWelcomePane(
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // Render the ASCII art in the pane
-    syncDmuxThemeFromSettings(cwd);
+    const resolvedThemeName = applyThemeForSession(cwd, themeName);
+    setWelcomePaneTheme(welcomePaneId, resolvedThemeName);
     await renderAsciiArt({
       paneId: welcomePaneId,
       art: [], // Uses default from decorative-pane.js
@@ -128,13 +132,20 @@ export async function welcomePaneExists(welcomePaneId: string | undefined): Prom
   return await tmuxService.paneExists(welcomePaneId);
 }
 
-function syncThemeForSession(projectRoot?: string, themeName?: DmuxThemeName): void {
+function applyThemeForSession(projectRoot?: string, themeName?: DmuxThemeName): DmuxThemeName {
   if (themeName) {
-    applyDmuxTheme(themeName);
-    return;
+    return applyDmuxTheme(themeName);
   }
 
-  syncDmuxThemeFromSettings(projectRoot);
+  return syncDmuxThemeFromSettings(projectRoot);
+}
+
+function setWelcomePaneTheme(paneId: string, themeName: DmuxThemeName): void {
+  TmuxService.getInstance().setPaneOptionSync(
+    paneId,
+    WELCOME_PANE_THEME_OPTION,
+    themeName
+  );
 }
 
 export function applyTmuxThemeToSession(
@@ -142,7 +153,7 @@ export function applyTmuxThemeToSession(
   projectRoot?: string,
   themeName?: DmuxThemeName
 ): void {
-  syncThemeForSession(projectRoot, themeName);
+  applyThemeForSession(projectRoot, themeName);
   execSync(
     `tmux set-option -t ${sessionName} pane-border-style "fg=colour${TMUX_COLORS.inactiveBorder}"`,
     { stdio: 'pipe' }
@@ -160,11 +171,8 @@ export async function refreshWelcomePaneTheme(
       return;
     }
 
-    syncThemeForSession(projectRoot, themeName);
-    await renderAsciiArt({
-      paneId: config.welcomePaneId,
-      art: [],
-    });
+    const resolvedThemeName = applyThemeForSession(projectRoot, themeName);
+    setWelcomePaneTheme(config.welcomePaneId, resolvedThemeName);
   } catch {
     // Best-effort refresh only.
   }

@@ -92,16 +92,16 @@ const PanesGrid: React.FC<PanesGridProps> = memo(({
       return activeProjectRootProp
     }
 
-    // Check if selection is a pane
-    const selectedPane = selectedIndex < panes.length ? panes[selectedIndex] : undefined
-    if (selectedPane) {
-      const group = paneGroups.find(g => g.panes.some(e => e.index === selectedIndex))
-      return group?.projectRoot
+    for (const group of paneGroups) {
+      if (group.panes.some((entry) => entry.index === selectedIndex)) {
+        return group.projectRoot
+      }
     }
+
     // Check if selection is an action item
     const selectedAction = actionLayout.actionItems.find(a => a.index === selectedIndex)
     return selectedAction?.projectRoot
-  }, [activeProjectRootProp, selectedIndex, panes, paneGroups, actionLayout.actionItems])
+  }, [activeProjectRootProp, selectedIndex, paneGroups, actionLayout.actionItems])
 
   const getProjectThemeName = (projectRoot: string): DmuxThemeName =>
     projectThemeByRoot.get(projectRoot)
