@@ -350,7 +350,7 @@ export class PopupManager {
         [getPaneDisplayName(pane), JSON.stringify(actions)],
         {
           width: 60,
-          height: Math.min(21, actions.length + 6),
+          height: Math.min(Math.max(16, this.config.terminalHeight - 4), actions.length + 6),
           title: `Menu: ${getPaneDisplayName(pane)}`,
           positioning: options.anchorToPane ? "pane" : "standard",
           targetPaneId: options.anchorToPane ? pane.paneId : undefined,
@@ -959,8 +959,8 @@ export class PopupManager {
 
     try {
       const sidebar = this.config.sidebarWidth
-      const width = Math.max(80, Math.min(130, this.config.terminalWidth - sidebar - 2))
-      const height = Math.max(24, Math.min(50, this.config.terminalHeight - 2))
+      const width = Math.max(80, this.config.terminalWidth - sidebar - 2)
+      const height = Math.max(24, this.config.terminalHeight - 2)
 
       const result = await this.launchPopup<string>(
         "prReviewPopup.js",
