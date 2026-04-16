@@ -936,7 +936,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
     const popupState = {
       includeWorktrees: true,
       includeLocalBranches: true,
-      includeRemoteBranches: false,
+      includeRemoteBranches: true,
       remoteLoaded: false,
       filterQuery: "",
     }

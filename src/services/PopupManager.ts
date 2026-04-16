@@ -1023,7 +1023,7 @@ export class PopupManager {
     initialState: ReopenWorktreePopupState = {
       includeWorktrees: true,
       includeLocalBranches: true,
-      includeRemoteBranches: false,
+      includeRemoteBranches: true,
       remoteLoaded: false,
       filterQuery: "",
     },

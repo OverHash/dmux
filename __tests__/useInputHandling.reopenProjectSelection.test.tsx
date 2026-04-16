@@ -240,7 +240,7 @@ describe('useInputHandling reopen project selection', () => {
       {
         includeWorktrees: true,
         includeLocalBranches: true,
-        includeRemoteBranches: false,
+        includeRemoteBranches: true,
         remoteLoaded: false,
         filterQuery: '',
       },
@@ -314,7 +314,7 @@ describe('useInputHandling reopen project selection', () => {
       {
         includeWorktrees: true,
         includeLocalBranches: true,
-        includeRemoteBranches: false,
+        includeRemoteBranches: true,
         remoteLoaded: false,
         filterQuery: '',
       },
