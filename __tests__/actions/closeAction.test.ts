@@ -338,6 +338,39 @@ describe('closeAction', () => {
       expect(triggerHookSync).toHaveBeenCalledWith('before_worktree_remove', expect.anything(), mockPane);
     });
 
+    // Regression test for https://github.com/standardagents/dmux/issues/63
+    // before_worktree_remove must block until the hook finishes, otherwise the
+    // worktree directory is deleted while the hook is still running.
+    it('should wait for before_worktree_remove hook to finish before enqueueing worktree cleanup', async () => {
+      const mockPane = createWorktreePane();
+      const mockContext = createMockContext([mockPane]);
+
+      vi.mocked(execSync).mockReturnValue(Buffer.from(''));
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
+        controlPaneId: '%0',
+      }));
+
+      // Record call ordering. Make the hook resolve on a later microtask so a
+      // fire-and-forget caller would observably enqueue cleanup before the
+      // hook finishes.
+      const order: string[] = [];
+      vi.mocked(triggerHookSync).mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        order.push('hook_done');
+        return { success: true };
+      });
+      mockEnqueueCleanup.mockImplementation(() => {
+        order.push('enqueue_cleanup');
+      });
+
+      const result = await closePane(mockPane, mockContext);
+      await result.onSelect!('kill_and_clean');
+
+      expect(triggerHookSync).toHaveBeenCalledWith('before_worktree_remove', expect.anything(), mockPane);
+      expect(mockEnqueueCleanup).toHaveBeenCalledTimes(1);
+      expect(order).toEqual(['hook_done', 'enqueue_cleanup']);
+    });
+
     it('should NOT delete branch when kill_and_clean selected', async () => {
       const mockPane = createWorktreePane({ slug: 'my-feature' });
       const mockContext = createMockContext([mockPane]);
