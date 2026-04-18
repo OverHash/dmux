@@ -23,6 +23,7 @@ describe('SettingsManager defaults', () => {
     expect(manager.getSettings()).toMatchObject({
       permissionMode: 'bypassPermissions',
       enableAutopilotByDefault: true,
+      promptForGitOptionsOnCreate: false,
       minPaneWidth: 50,
       maxPaneWidth: 80,
       enabledNotificationSounds: ['default-system-sound'],
@@ -319,6 +320,26 @@ describe('SettingsManager defaults', () => {
     expect(manager.getSettings().maxPaneWidth).toBe(70);
   });
 
+  it('allows overriding promptForGitOptionsOnCreate at project scope', async () => {
+    vi.mock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        readFileSync: vi.fn(),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+      };
+    });
+
+    const { SettingsManager } = await import('../src/utils/settingsManager.js');
+    const manager = new SettingsManager('/tmp/test-project');
+
+    manager.updateSetting('promptForGitOptionsOnCreate', true, 'project');
+    expect(manager.getSettings().promptForGitOptionsOnCreate).toBe(true);
+    expect(manager.getProjectSettings().promptForGitOptionsOnCreate).toBe(true);
+  });
+
   it('loads team defaults beneath global and project settings', async () => {
     vi.doMock('fs', async (importOriginal) => {
       const actual = await importOriginal<typeof import('fs')>();
@@ -335,6 +356,7 @@ describe('SettingsManager defaults', () => {
               defaultAgent: 'codex',
               branchPrefix: 'feat/',
               colorTheme: 'cyan',
+              promptForGitOptionsOnCreate: true,
             });
           }
 
@@ -364,15 +386,18 @@ describe('SettingsManager defaults', () => {
       defaultAgent: 'codex',
       branchPrefix: 'feat/',
       colorTheme: 'cyan',
+      promptForGitOptionsOnCreate: true,
     });
     expect(manager.getSettings()).toMatchObject({
       defaultAgent: 'codex',
       colorTheme: 'red',
       branchPrefix: 'fix/',
+      promptForGitOptionsOnCreate: true,
     });
     expect(manager.getEffectiveScope('defaultAgent')).toBe('team');
     expect(manager.getEffectiveScope('colorTheme')).toBe('global');
     expect(manager.getEffectiveScope('branchPrefix')).toBe('project');
+    expect(manager.getEffectiveScope('promptForGitOptionsOnCreate')).toBe('team');
   });
 
   it('filters invalid values from team defaults files', async () => {
@@ -392,6 +417,7 @@ describe('SettingsManager defaults', () => {
           useTmuxHooks: 'sometimes',
           baseBranch: 'main; rm -rf /',
           branchPrefix: 'fix/',
+          promptForGitOptionsOnCreate: true,
         })),
         writeFileSync: vi.fn(),
         mkdirSync: vi.fn(),
@@ -406,6 +432,7 @@ describe('SettingsManager defaults', () => {
       enabledAgents: ['codex'],
       enabledNotificationSounds: ['harp'],
       branchPrefix: 'fix/',
+      promptForGitOptionsOnCreate: true,
     });
     expect(manager.getSettings()).toMatchObject({
       permissionMode: 'bypassPermissions',
@@ -415,9 +442,11 @@ describe('SettingsManager defaults', () => {
       showFooterTips: true,
       colorTheme: 'orange',
       branchPrefix: 'fix/',
+      promptForGitOptionsOnCreate: true,
     });
     expect(manager.getEffectiveScope('permissionMode')).toBeNull();
     expect(manager.getEffectiveScope('branchPrefix')).toBe('team');
+    expect(manager.getEffectiveScope('promptForGitOptionsOnCreate')).toBe('team');
   });
 
   it('ignores malformed team defaults files', async () => {
