@@ -17,7 +17,6 @@ import { TMUX_LAYOUT_APPLY_DELAY, TMUX_SPLIT_DELAY } from '../constants/timing.j
 import { atomicWriteJsonSync } from './atomicWrite.js';
 import { LogService } from '../services/LogService.js';
 import {
-  appendSlugSuffix,
   buildAgentCommand,
   buildInitialPromptCommand,
   getAgentProcessName,
@@ -41,6 +40,7 @@ import {
   buildCodexHookedCommand,
   installCodexPaneHooks,
 } from './codexHooks.js';
+import { resolvePaneNaming } from './paneNaming.js';
 import { resolveProjectColorTheme } from './paneColors.js';
 import type { SidebarProject } from '../types.js';
 
@@ -55,6 +55,7 @@ export interface CreatePaneOptions {
     branchName: string;
   };
   startPointBranch?: string;
+  branchNameOverride?: string;
   mergeTargetChain?: MergeTargetReference[];
   projectName: string;
   existingPanes: DmuxPane[];
@@ -99,6 +100,7 @@ export async function createPane(
     slugBase,
     existingWorktree,
     startPointBranch,
+    branchNameOverride,
     mergeTargetChain,
     skipAgentSelection = false,
     sessionConfigPath: optionsSessionConfigPath,
@@ -183,20 +185,37 @@ export async function createPane(
     throw new Error(`Invalid branch prefix: ${branchPrefix}`);
   }
 
+  const overrideBranchName = (branchNameOverride || '').trim();
+  if (overrideBranchName && !isValidBranchName(overrideBranchName)) {
+    throw new Error(`Invalid branch name override: ${overrideBranchName}`);
+  }
+
   // Generate slug (filesystem-safe directory name) and branch name (may include prefix).
   const generatedSlug = existingWorktree
     ? existingWorktree.slug
     : (slugBase || await generateSlug(prompt));
-  const slug = existingWorktree
-    ? existingWorktree.slug
-    : appendSlugSuffix(generatedSlug, slugSuffix);
-  const branchName = existingWorktree
-    ? existingWorktree.branchName
-    : (branchPrefix ? `${branchPrefix}${slug}` : slug);
+  const resolvedNaming = existingWorktree
+    ? {
+        slug: existingWorktree.slug,
+        branchName: existingWorktree.branchName,
+      }
+    : resolvePaneNaming({
+        generatedSlug,
+        slugSuffix,
+        branchPrefix,
+        branchNameOverride: overrideBranchName,
+      });
+  const slug = resolvedNaming.slug;
+  const branchName = resolvedNaming.branchName;
   const tmuxService = TmuxService.getInstance();
 
   const worktreePath = existingWorktree?.worktreePath
     || path.join(projectRoot, '.dmux', 'worktrees', slug);
+  if (!existingWorktree && fs.existsSync(worktreePath)) {
+    throw new Error(
+      `Worktree path already exists: ${worktreePath}. Choose a different branch/worktree name.`
+    );
+  }
   const originalPaneId = tmuxService.getCurrentPaneIdSync();
 
   // Load config to get control pane info
