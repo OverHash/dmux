@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  START_POINT_ERROR_MESSAGE,
   clampSelectedIndex,
   filterGitRefCandidates,
   getVisibleGitRefWindow,
   isValidStartPointOverride,
   normalizeGitRefCandidates,
   parseGitRefList,
+  resolveStartPointEnter,
 } from '../src/components/popups/newPaneGitOptions.js';
 
 describe('new pane git options helpers', () => {
@@ -97,5 +99,63 @@ describe('new pane git options helpers', () => {
     expect(isValidStartPointOverride('origin/main', candidates)).toBe(false);
     expect(isValidStartPointOverride('origin/release/2026.04', candidates)).toBe(true);
     expect(isValidStartPointOverride('release/2026.04', candidates)).toBe(false);
+  });
+
+  it('accepts highlighted ref on Enter in start-point field', () => {
+    const candidates = normalizeGitRefCandidates(
+      ['main'],
+      ['origin/release/2026.04']
+    );
+
+    const resolution = resolveStartPointEnter({
+      currentValue: 'rel',
+      availableRefs: candidates,
+      filteredRefs: [candidates[1]],
+      selectedIndex: 0,
+    });
+
+    expect(resolution).toEqual({
+      accepted: true,
+      nextValue: 'origin/release/2026.04',
+    });
+  });
+
+  it('accepts exact typed ref when no filtered list is available', () => {
+    const candidates = normalizeGitRefCandidates(
+      ['main'],
+      ['origin/release/2026.04']
+    );
+
+    const resolution = resolveStartPointEnter({
+      currentValue: 'main',
+      availableRefs: candidates,
+      filteredRefs: [],
+      selectedIndex: 0,
+    });
+
+    expect(resolution).toEqual({
+      accepted: true,
+      nextValue: 'main',
+    });
+  });
+
+  it('rejects invalid start-point refs on Enter with strict message', () => {
+    const candidates = normalizeGitRefCandidates(
+      ['main'],
+      ['origin/release/2026.04']
+    );
+
+    const resolution = resolveStartPointEnter({
+      currentValue: 'missing-branch',
+      availableRefs: candidates,
+      filteredRefs: [],
+      selectedIndex: 0,
+    });
+
+    expect(resolution).toEqual({
+      accepted: false,
+      nextValue: 'missing-branch',
+      error: START_POINT_ERROR_MESSAGE,
+    });
   });
 });

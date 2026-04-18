@@ -29,8 +29,15 @@ import {
   getVisibleGitRefWindow,
   isValidStartPointOverride,
   loadGitRefCandidates,
+  resolveStartPointEnter,
+  START_POINT_ERROR_MESSAGE,
   type GitRefCandidate,
 } from "./newPaneGitOptions.js"
+import {
+  getNextNewPaneField,
+  getPreviousNewPaneField,
+  type NewPaneField,
+} from "./newPaneFieldNavigation.js"
 import fs from "fs"
 import path from "path"
 import { pathToFileURL } from "url"
@@ -102,10 +109,24 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
     setPrompt(nextPrompt)
   }
 
+  const getCurrentField = (): NewPaneField => (
+    mode === 'prompt' ? 'prompt' : activeGitField
+  )
+
+  const setCurrentField = (field: NewPaneField) => {
+    if (field === 'prompt') {
+      setMode('prompt')
+      return
+    }
+
+    setMode('gitOptions')
+    setActiveGitField(field)
+  }
+
   const writeSuccessResult = () => {
     const trimmedBaseBranch = baseBranch.trim()
     if (!isValidStartPointOverride(trimmedBaseBranch, availableGitRefs)) {
-      setGitOptionsError('Base branch must match an existing local or remote ref (choose from the list).')
+      setGitOptionsError(START_POINT_ERROR_MESSAGE)
       return
     }
 
@@ -260,8 +281,14 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
   // Handle keyboard navigation - runs BEFORE other handlers
   // This is critical: we need to intercept ESC for progressive behavior
   useInput((input, key) => {
+    // Some terminals send BackTab as the raw escape sequence "\u001b[Z"
+    // instead of setting key.shift+key.tab. Support both forms so
+    // Shift+Tab reliably cycles fields in tmux popups.
+    const isBackTab = input === '\u001b[Z' || (key.tab && key.shift)
+    const isForwardTab = key.tab && !key.shift
+
     // Git-options mode has a different interaction model from the prompt editor:
-    // - We only have two fields, so arrows/tab just switch active field
+    // - We cycle across prompt/base/branch with Tab and Shift+Tab
     // - Enter advances field -> submit (on second field)
     // - ESC backs out progressively (clear field -> switch field -> return to prompt)
     // This keeps behavior predictable and mirrors the "progressive ESC" style
@@ -316,20 +343,33 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
         return
       }
 
-      // Tab is the explicit "next field" shortcut.
-      if (key.tab) {
-        setActiveGitField('branchName')
+	  // Tab and Shift+Tab cycle across prompt/base/branch fields.
+      if (isForwardTab || isBackTab) {
+        const nextField = isForwardTab
+          ? getNextNewPaneField(getCurrentField())
+          : getPreviousNewPaneField(getCurrentField())
+        setCurrentField(nextField)
         return
       }
 
       // Enter is a two-step action:
-      // - on base field: accept highlighted branch (when present), then move to branch field
+      // - on base field: accept highlighted/exact ref, then move to branch field
       // - on branch field: submit both overrides + prompt payload
       if (key.return) {
         if (activeGitField === 'baseBranch') {
-          if (filteredGitRefs.length > 0 && selectedGitRefIndex < filteredGitRefs.length) {
-            setBaseBranch(filteredGitRefs[selectedGitRefIndex].value)
+          const resolution = resolveStartPointEnter({
+            currentValue: baseBranch,
+            availableRefs: availableGitRefs,
+            filteredRefs: filteredGitRefs,
+            selectedIndex: selectedGitRefIndex,
+          })
+
+          if (!resolution.accepted) {
+            setGitOptionsError(resolution.error || START_POINT_ERROR_MESSAGE)
+            return
           }
+
+          setBaseBranch(resolution.nextValue)
           setActiveGitField('branchName')
         } else {
           writeSuccessResult()
@@ -337,6 +377,14 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
         return
       }
 
+      return
+    }
+
+    if (ENABLE_GIT_OPTIONS_ARG && !isFileListActive && (isForwardTab || isBackTab)) {
+      const nextField = isForwardTab
+        ? getNextNewPaneField(getCurrentField())
+        : getPreviousNewPaneField(getCurrentField())
+      setCurrentField(nextField)
       return
     }
 
@@ -475,7 +523,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
       <PopupContainer
         footer={mode === 'prompt'
           ? PopupFooters.input()
-          : '↑↓/Tab navigate • Enter select/create • ESC progressive back'}
+          : '↑↓ branch list • Tab/Shift+Tab cycle fields • Enter select/create • ESC progressive back'}
       >
         {mode === 'prompt' && (
           <>
@@ -548,7 +596,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
               <Text>{prompt.trim() || '(empty prompt)'}</Text>
             </Box>
 
-            <Box marginBottom={1}>
+            <Box marginBottom={0}>
               <Text color={activeGitField === 'baseBranch' ? POPUP_CONFIG.titleColor : 'white'}>
                 {activeGitField === 'baseBranch' ? '▶ ' : '  '}Base branch override (optional)
               </Text>
@@ -559,7 +607,8 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
               borderColor={activeGitField === 'baseBranch' ? POPUP_CONFIG.inputBorderColor : 'gray'}
               paddingX={POPUP_CONFIG.inputPadding.x}
               paddingY={POPUP_CONFIG.inputPadding.y}
-              marginBottom={1}
+              marginBottom={0}
+              flexDirection="column"
             >
               <TextInput
                 value={baseBranch}
@@ -567,54 +616,47 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
                 focus={activeGitField === 'baseBranch'}
                 placeholder="e.g., develop"
               />
+
+              {activeGitField === 'baseBranch' && filteredGitRefs.length > 0 && (
+                <>
+                  <Box marginBottom={0}>
+                    <Text dimColor>
+                      Existing refs ({filteredGitRefs.length}) - use ↑↓ to navigate, Enter to pick
+                    </Text>
+                  </Box>
+
+                  {hiddenAboveCount > 0 && (
+                    <Box justifyContent="center">
+                      <Text dimColor>↑ {hiddenAboveCount} more above</Text>
+                    </Box>
+                  )}
+
+                  {gitRefWindow.visibleCandidates.map((candidate, index) => {
+                    const actualIndex = gitRefWindow.startIndex + index
+                    const isSelected = actualIndex === selectedGitRefIndex
+                    return (
+                      <Box key={`${candidate.value}:${actualIndex}`}>
+                        <Text
+                          color={isSelected ? 'black' : undefined}
+                          backgroundColor={isSelected ? 'cyan' : undefined}
+                          bold={isSelected}
+                        >
+                          {isSelected ? '▶ ' : '  '}{candidate.label}
+                        </Text>
+                      </Box>
+                    )
+                  })}
+
+                  {hiddenBelowCount > 0 && (
+                    <Box justifyContent="center">
+                      <Text dimColor>↓ {hiddenBelowCount} more below</Text>
+                    </Box>
+                  )}
+                </>
+              )}
             </Box>
 
-            {activeGitField === 'baseBranch' && filteredGitRefs.length > 0 && (
-              <Box
-                flexDirection="column"
-                marginBottom={1}
-                borderStyle={POPUP_CONFIG.inputBorderStyle}
-                borderColor="cyan"
-                paddingX={1}
-                width="100%"
-              >
-                <Box marginBottom={0}>
-                  <Text dimColor>
-                    Existing refs ({filteredGitRefs.length}) - use ↑↓ to navigate, enter to pick
-                  </Text>
-                </Box>
-
-                {hiddenAboveCount > 0 && (
-                  <Box justifyContent="center">
-                    <Text dimColor>↑ {hiddenAboveCount} more above</Text>
-                  </Box>
-                )}
-
-                {gitRefWindow.visibleCandidates.map((candidate, index) => {
-                  const actualIndex = gitRefWindow.startIndex + index
-                  const isSelected = actualIndex === selectedGitRefIndex
-                  return (
-                    <Box key={`${candidate.value}:${actualIndex}`}>
-                      <Text
-                        color={isSelected ? 'black' : undefined}
-                        backgroundColor={isSelected ? 'cyan' : undefined}
-                        bold={isSelected}
-                      >
-                        {isSelected ? '▶ ' : '  '}{candidate.label}
-                      </Text>
-                    </Box>
-                  )
-                })}
-
-                {hiddenBelowCount > 0 && (
-                  <Box justifyContent="center">
-                    <Text dimColor>↓ {hiddenBelowCount} more below</Text>
-                  </Box>
-                )}
-              </Box>
-            )}
-
-            <Box marginBottom={1}>
+            <Box marginBottom={0}>
               <Text color={activeGitField === 'branchName' ? POPUP_CONFIG.titleColor : 'white'}>
                 {activeGitField === 'branchName' ? '▶ ' : '  '}Branch/worktree name override (optional)
               </Text>

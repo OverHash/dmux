@@ -1,6 +1,13 @@
 import { execSync } from 'child_process';
 
 export const MAX_VISIBLE_GIT_REFS = 10;
+export const START_POINT_ERROR_MESSAGE = 'Base branch must match an existing local or remote ref (choose from the list).';
+
+export interface StartPointEnterResolution {
+  accepted: boolean;
+  nextValue: string;
+  error?: string;
+}
 
 export interface GitRefCandidate {
   label: string;
@@ -149,4 +156,39 @@ export function isValidStartPointOverride(
   const trimmed = value.trim();
   if (!trimmed) return true;
   return availableRefs.some((candidate) => candidate.value === trimmed);
+}
+
+export function resolveStartPointEnter(input: {
+  currentValue: string;
+  availableRefs: GitRefCandidate[];
+  filteredRefs: GitRefCandidate[];
+  selectedIndex: number;
+}): StartPointEnterResolution {
+  if (input.filteredRefs.length > 0 && input.selectedIndex < input.filteredRefs.length) {
+    return {
+      accepted: true,
+      nextValue: input.filteredRefs[input.selectedIndex].value,
+    };
+  }
+
+  const trimmed = input.currentValue.trim();
+  if (!trimmed) {
+    return {
+      accepted: true,
+      nextValue: '',
+    };
+  }
+
+  if (input.availableRefs.some((candidate) => candidate.value === trimmed)) {
+    return {
+      accepted: true,
+      nextValue: trimmed,
+    };
+  }
+
+  return {
+    accepted: false,
+    nextValue: trimmed,
+    error: START_POINT_ERROR_MESSAGE,
+  };
 }
