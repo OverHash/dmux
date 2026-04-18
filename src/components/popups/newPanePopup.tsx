@@ -513,6 +513,11 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
     0,
     filteredGitRefs.length - (gitRefWindow.startIndex + gitRefWindow.visibleCandidates.length)
   )
+  const isBaseBranchInvalidLive =
+    baseBranch.trim().length > 0 && !isValidStartPointOverride(baseBranch.trim(), availableGitRefs)
+  const baseBranchBorderColor = isBaseBranchInvalidLive
+    ? POPUP_CONFIG.errorColor
+    : (activeGitField === 'baseBranch' ? POPUP_CONFIG.inputBorderColor : 'gray')
 
   return (
     <PopupWrapper
@@ -604,7 +609,7 @@ export const NewPanePopupApp: React.FC<{ resultFile: string }> = ({ resultFile }
             <Box
               width="100%"
               borderStyle={POPUP_CONFIG.inputBorderStyle}
-              borderColor={activeGitField === 'baseBranch' ? POPUP_CONFIG.inputBorderColor : 'gray'}
+              borderColor={baseBranchBorderColor}
               paddingX={POPUP_CONFIG.inputPadding.x}
               paddingY={POPUP_CONFIG.inputPadding.y}
               marginBottom={0}
