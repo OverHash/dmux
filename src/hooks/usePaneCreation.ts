@@ -25,6 +25,7 @@ interface CreateNewPaneOptions {
   targetProjectRoot?: string;
   skipAgentSelection?: boolean;
   startPointBranch?: string;
+  branchNameOverride?: string;
   mergeTargetChain?: MergeTargetReference[];
 }
 
@@ -103,6 +104,7 @@ export default function usePaneCreation({
         projectRoot: options.targetProjectRoot,
         skipAgentSelection: options.skipAgentSelection,
         startPointBranch: options.startPointBranch,
+        branchNameOverride: options.branchNameOverride,
         mergeTargetChain: options.mergeTargetChain,
         sessionProjectRoot,
         sessionConfigPath: panesFile,
@@ -127,6 +129,7 @@ export default function usePaneCreation({
     const resolvedOptions: CreateNewPaneOptions = {
       ...options,
       startPointBranch: options.startPointBranch ?? paneInput.baseBranch,
+      branchNameOverride: options.branchNameOverride ?? paneInput.branchName,
     };
 
     try {
@@ -159,7 +162,7 @@ export default function usePaneCreation({
     selectedAgents: AgentName[],
     options: Pick<
       CreateNewPaneOptions,
-      'existingPanes' | 'targetProjectRoot' | 'startPointBranch' | 'mergeTargetChain'
+      'existingPanes' | 'targetProjectRoot' | 'startPointBranch' | 'branchNameOverride' | 'mergeTargetChain'
     > = {}
   ): Promise<DmuxPane[]> => {
     const prompt = paneInput.prompt;
@@ -195,6 +198,7 @@ export default function usePaneCreation({
         slugBase,
         targetProjectRoot: options.targetProjectRoot,
         startPointBranch: options.startPointBranch ?? paneInput.baseBranch,
+        branchNameOverride: options.branchNameOverride ?? paneInput.branchName,
         mergeTargetChain: options.mergeTargetChain,
       });
       createdByIndex[0] = firstPane;
@@ -221,6 +225,7 @@ export default function usePaneCreation({
               slugBase,
               targetProjectRoot: options.targetProjectRoot,
               startPointBranch: options.startPointBranch ?? paneInput.baseBranch,
+              branchNameOverride: options.branchNameOverride ?? paneInput.branchName,
               mergeTargetChain: options.mergeTargetChain,
             });
             createdByIndex[agentResultIndex] = pane;

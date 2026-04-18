@@ -283,6 +283,49 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
     });
 
+    it('should use a custom branch override with a filesystem-safe worktree slug', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+
+      const result = await createPane(
+        {
+          prompt: 'add user dashboard',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [],
+          branchNameOverride: 'feat/LIN-42-add-dashboard',
+        },
+        ['claude']
+      );
+
+      const worktreeCall = mockExecSync.mock.calls.find(([cmd]) =>
+        typeof cmd === 'string' && cmd.includes('git worktree add')
+      );
+      expect(worktreeCall?.[0]).toContain('/test/.dmux/worktrees/feat-lin-42-add-dashboard');
+      expect(worktreeCall?.[0]).toContain('"feat/LIN-42-add-dashboard"');
+
+      if ('pane' in result) {
+        expect(result.pane.slug).toBe('feat-lin-42-add-dashboard');
+        expect(result.pane.branchName).toBe('feat/LIN-42-add-dashboard');
+      }
+    });
+
+    it('should reject invalid branch-name overrides', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+
+      await expect(
+        createPane(
+          {
+            prompt: 'add user dashboard',
+            agent: 'claude',
+            projectName: 'test-project',
+            existingPanes: [],
+            branchNameOverride: 'feat && echo pwned',
+          },
+          ['claude']
+        )
+      ).rejects.toThrow('Invalid branch name override');
+    });
+
     it('should validate remote tracking baseBranch values without forcing refs/heads', async () => {
       fsMock.readFileSync.mockImplementation((target) => {
         const value = String(target);
@@ -410,6 +453,28 @@ describe('Pane Lifecycle Integration Tests', () => {
         typeof cmd === 'string' && cmd.includes('git worktree add')
       );
       expect(worktreeCall?.[0]).toContain('cd "/target/repo" && git worktree add "/target/repo/.dmux/worktrees/target-slug"');
+    });
+
+    it('should fail before pane creation when a custom branch override collides with an existing worktree path', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      createdWorktreePaths.add('/test/.dmux/worktrees/feat-lin-42');
+
+      await expect(
+        createPane(
+          {
+            prompt: 'add dashboard',
+            agent: 'claude',
+            projectName: 'test-project',
+            existingPanes: [],
+            branchNameOverride: 'feat/LIN-42',
+          },
+          ['claude']
+        )
+      ).rejects.toThrow(/Worktree path already exists/);
+
+      expect(mockExecSync.mock.calls.some(([cmd]) =>
+        typeof cmd === 'string' && cmd.includes('tmux split-window')
+      )).toBe(false);
     });
 
     it('should destroy the welcome pane when tracked shell panes make the pane list non-empty', async () => {
