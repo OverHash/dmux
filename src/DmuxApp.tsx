@@ -75,6 +75,7 @@ import type {
   DmuxAppProps,
   DmuxThemeName,
   MergeTargetReference,
+  NewPaneInput,
 } from "./types.js"
 import PanesGrid from "./components/panes/PanesGrid.js"
 import CommandPromptDialog from "./components/dialogs/CommandPromptDialog.js"
@@ -876,7 +877,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
   }
 
   const createPaneSelection = async (
-    prompt: string,
+    paneInput: NewPaneInput,
     selectedAgents: AgentName[],
     targetProjectRoot?: string,
     createOptions?: {
@@ -885,7 +886,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     }
   ): Promise<number> => {
     if (selectedAgents.length === 0) {
-      const pane = await createNewPaneHook(prompt, undefined, {
+      const pane = await createNewPaneHook(paneInput, undefined, {
         targetProjectRoot,
         skipAgentSelection: true,
         startPointBranch: createOptions?.startPointBranch,
@@ -894,7 +895,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
       return pane ? 1 : 0
     }
 
-    const createdPanes = await createPanesForAgentsHook(prompt, selectedAgents, {
+    const createdPanes = await createPanesForAgentsHook(paneInput, selectedAgents, {
       existingPanes: panes,
       targetProjectRoot,
       startPointBranch: createOptions?.startPointBranch,
@@ -904,7 +905,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
   }
 
   const handlePaneCreationWithAgent = async (
-    prompt: string,
+    paneInput: NewPaneInput,
     targetProjectRoot?: string,
     createOptions?: {
       startPointBranch?: string
@@ -917,7 +918,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     }
 
     await createPaneSelection(
-      prompt,
+      paneInput,
       selectedAgents,
       targetProjectRoot,
       createOptions
@@ -932,8 +933,8 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     }
 
     const targetProjectRoot = getPaneProjectRoot(parentPane, sessionProjectRoot)
-    const promptValue = await popupManager.launchNewPanePopup(targetProjectRoot)
-    if (!promptValue) {
+    const paneInput = await popupManager.launchNewPanePopup(targetProjectRoot)
+    if (!paneInput) {
       return
     }
 
@@ -944,7 +945,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
 
     const createSubWorktree = async (): Promise<ActionResult> => {
       const createdCount = await createPaneSelection(
-        promptValue,
+        paneInput,
         selectedAgents,
         targetProjectRoot,
         {
