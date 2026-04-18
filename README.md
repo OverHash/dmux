@@ -55,6 +55,17 @@ dmux creates a tmux pane for each task. Every pane gets its own git worktree and
 - **Multi-project** &mdash; add multiple repos to the same session
 - **Lifecycle hooks** &mdash; run scripts on worktree create, pre-merge, post-merge, and more
 
+## Git Branch Controls
+
+dmux can keep its default branch-generation flow, or you can enable an extra Git step during pane creation for per-pane overrides.
+
+- `promptForGitOptionsOnCreate` adds an optional second step to the new-pane popup.
+- Start-point overrides accept both local and remote refs such as `main` or `origin/main`.
+- Explicit branch/worktree names are supported when you want issue-tracker-friendly names like `feat/LIN-123-fix-auth`.
+- Multi-agent launches still share the same override inputs while adding agent-specific suffixes to sibling panes.
+
+This is an escape hatch, not a replacement for `baseBranch` or `branchPrefix`. If you leave the overrides blank, dmux uses the normal configured defaults.
+
 ## Keyboard Shortcuts
 
 | Key | Action |

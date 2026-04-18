@@ -78,6 +78,17 @@ pnpm run test
 
 4. Open PR from the feature branch created for that pane.
 
+## Focused Validation
+
+When working on the new-pane Git options flow, these focused checks are usually enough before running the full suite:
+
+```bash
+pnpm vitest run __tests__/popupManager.newPanePopup.test.ts __tests__/newPanePopup.test.tsx __tests__/newPaneGitOptions.test.ts __tests__/newPaneFieldNavigation.test.ts __tests__/inlineCursorInput.test.ts __tests__/paneNaming.test.ts __tests__/integration/paneLifecycle.test.ts
+pnpm run typecheck
+```
+
+This covers the structured popup contract, ref filtering, field navigation, inline branch editing, naming resolution, and pane-creation safety around invalid overrides.
+
 ## Maintainer Checklist (Before Release)
 
 ```bash
