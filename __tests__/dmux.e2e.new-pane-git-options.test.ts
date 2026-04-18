@@ -247,6 +247,140 @@ describe.sequential('dmux e2e: new pane git options popup', () => {
     }
   }, 120000);
 
+  it.runIf(canRun)('cycles prompt/base/branch with Tab and Shift+Tab', async () => {
+    const server = `dmux-e2e-gitopt-${Date.now()}`;
+    const session = 'dmux-e2e-gitopt-cycle';
+    const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dmux-e2e-gitopt-'));
+    const resultFile = path.join(tempDir, 'result.json');
+    const existingStartPoint = startPointRefs[0];
+
+    try {
+      try { execSync(`tmux -L ${server} kill-session -t ${session}`, { stdio: 'pipe' }); } catch {}
+      try { execSync(`tmux -L ${server} kill-server`, { stdio: 'pipe' }); } catch {}
+
+      execSync(`tmux -L ${server} -f /dev/null new-session -d -s ${session} -n main bash`, { stdio: 'pipe' });
+
+      const popupCommand = `${popupRunner} "${resultFile}" "${process.cwd()}" 1`;
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 '${popupCommand}' Enter`, { stdio: 'pipe' });
+
+      await waitForPaneText(server, session, 'Enter a prompt for your AI agent.');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'cycle prompt'`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, 'cycle prompt');
+
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Enter`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, '▶ Base branch override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 '${existingStartPoint.value}'`, { stdio: 'pipe' });
+
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Tab`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, '▶ Branch/worktree name override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'feat/e2e-cycle'`, { stdio: 'pipe' });
+
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Tab`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, 'Enter a prompt for your AI agent.');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 ' updated'`, { stdio: 'pipe' });
+
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Tab`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, '▶ Base branch override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 BTab`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, 'Enter a prompt for your AI agent.');
+
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Tab`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, '▶ Base branch override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Tab`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, '▶ Branch/worktree name override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Enter`, { stdio: 'pipe' });
+
+      const payload = await poll(
+        () => readPopupResult(resultFile),
+        (value) => !!value
+      );
+
+      expect(payload.success).toBe(true);
+      expect(payload.data.prompt).toContain('updated');
+      expect(payload.data.baseBranch).toBe(existingStartPoint.value);
+      expect(payload.data.branchName).toBe('feat/e2e-cycle');
+    } finally {
+      try { execSync(`tmux -L ${server} kill-session -t ${session}`, { stdio: 'pipe' }); } catch {}
+      try { execSync(`tmux -L ${server} kill-server`, { stdio: 'pipe' }); } catch {}
+      try { await fsp.rm(tempDir, { recursive: true, force: true }); } catch {}
+    }
+  }, 120000);
+
+  it.runIf(canRun)('does not auto-accept highlighted start-point ref when tabbing fields', async () => {
+    const server = `dmux-e2e-gitopt-${Date.now()}`;
+    const session = 'dmux-e2e-gitopt-tab-noaccept';
+    const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dmux-e2e-gitopt-'));
+    const resultFile = path.join(tempDir, 'result.json');
+    const existingStartPoint = startPointRefs[0];
+    const partialStartPoint = existingStartPoint.label.slice(0, Math.min(3, existingStartPoint.label.length));
+
+    try {
+      try { execSync(`tmux -L ${server} kill-session -t ${session}`, { stdio: 'pipe' }); } catch {}
+      try { execSync(`tmux -L ${server} kill-server`, { stdio: 'pipe' }); } catch {}
+
+      execSync(`tmux -L ${server} -f /dev/null new-session -d -s ${session} -n main bash`, { stdio: 'pipe' });
+
+      const popupCommand = `${popupRunner} "${resultFile}" "${process.cwd()}" 1`;
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 '${popupCommand}' Enter`, { stdio: 'pipe' });
+
+      await waitForPaneText(server, session, 'Enter a prompt for your AI agent.');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'tab no accept prompt'`, { stdio: 'pipe' });
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Enter`, { stdio: 'pipe' });
+
+      await waitForPaneText(server, session, '▶ Base branch override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 '${partialStartPoint}'`, { stdio: 'pipe' });
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Tab`, { stdio: 'pipe' });
+
+      await waitForPaneText(server, session, '▶ Branch/worktree name override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'feat/e2e-tab-noaccept'`, { stdio: 'pipe' });
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Enter`, { stdio: 'pipe' });
+
+      await sleep(700);
+      expect(fs.existsSync(resultFile)).toBe(false);
+      await waitForPaneText(server, session, 'Base branch must match an existing local or remote ref');
+    } finally {
+      try { execSync(`tmux -L ${server} kill-session -t ${session}`, { stdio: 'pipe' }); } catch {}
+      try { execSync(`tmux -L ${server} kill-server`, { stdio: 'pipe' }); } catch {}
+      try { await fsp.rm(tempDir, { recursive: true, force: true }); } catch {}
+    }
+  }, 120000);
+
+  it.runIf(canRun)('blocks submission for invalid start-point overrides', async () => {
+    const server = `dmux-e2e-gitopt-${Date.now()}`;
+    const session = 'dmux-e2e-gitopt-invalid';
+    const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dmux-e2e-gitopt-'));
+    const resultFile = path.join(tempDir, 'result.json');
+
+    try {
+      try { execSync(`tmux -L ${server} kill-session -t ${session}`, { stdio: 'pipe' }); } catch {}
+      try { execSync(`tmux -L ${server} kill-server`, { stdio: 'pipe' }); } catch {}
+
+      execSync(`tmux -L ${server} -f /dev/null new-session -d -s ${session} -n main bash`, { stdio: 'pipe' });
+
+      const popupCommand = `${popupRunner} "${resultFile}" "${process.cwd()}" 1`;
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 '${popupCommand}' Enter`, { stdio: 'pipe' });
+
+      await waitForPaneText(server, session, 'Enter a prompt for your AI agent.');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'invalid prompt'`, { stdio: 'pipe' });
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Enter`, { stdio: 'pipe' });
+
+      await waitForPaneText(server, session, '▶ Base branch override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'branch-that-should-not-exist-12345'`, { stdio: 'pipe' });
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Tab`, { stdio: 'pipe' });
+      await waitForPaneText(server, session, '▶ Branch/worktree name override (optional)');
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'feat/e2e-invalid-base'`, { stdio: 'pipe' });
+      execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Enter`, { stdio: 'pipe' });
+
+      await sleep(700);
+      expect(fs.existsSync(resultFile)).toBe(false);
+      await waitForPaneText(server, session, 'Base branch must match an existing local or remote ref');
+    } finally {
+      try { execSync(`tmux -L ${server} kill-session -t ${session}`, { stdio: 'pipe' }); } catch {}
+      try { execSync(`tmux -L ${server} kill-server`, { stdio: 'pipe' }); } catch {}
+      try { await fsp.rm(tempDir, { recursive: true, force: true }); } catch {}
+    }
+  }, 120000);
+
   it.runIf(canRun)('treats Delete key as forward-delete in base branch input', async () => {
     const server = `dmux-e2e-gitopt-${Date.now()}`;
     const session = 'dmux-e2e-gitopt-delete-forward';

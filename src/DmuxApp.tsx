@@ -933,7 +933,9 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     }
 
     const targetProjectRoot = getPaneProjectRoot(parentPane, sessionProjectRoot)
-    const paneInput = await popupManager.launchNewPanePopup(targetProjectRoot)
+    const paneInput = await popupManager.launchNewPanePopup(targetProjectRoot, {
+      allowGitOptions: false,
+    })
     if (!paneInput) {
       return
     }

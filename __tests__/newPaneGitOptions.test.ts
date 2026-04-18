@@ -29,6 +29,7 @@ describe('new pane git options helpers', () => {
         shortName: 'main',
         hasLocalBranch: true,
         hasRemoteBranch: true,
+        acceptedValues: ['main', 'origin/main'],
       },
       {
         label: 'feature/local-only',
@@ -36,6 +37,7 @@ describe('new pane git options helpers', () => {
         shortName: 'feature/local-only',
         hasLocalBranch: true,
         hasRemoteBranch: false,
+        acceptedValues: ['feature/local-only'],
       },
       {
         label: 'origin/release/2026.04',
@@ -43,6 +45,7 @@ describe('new pane git options helpers', () => {
         shortName: 'release/2026.04',
         hasLocalBranch: false,
         hasRemoteBranch: true,
+        acceptedValues: ['origin/release/2026.04'],
       },
       {
         label: 'upstream/release/2026.04',
@@ -50,6 +53,7 @@ describe('new pane git options helpers', () => {
         shortName: 'release/2026.04',
         hasLocalBranch: false,
         hasRemoteBranch: true,
+        acceptedValues: ['upstream/release/2026.04'],
       },
     ]);
   });
@@ -63,6 +67,15 @@ describe('new pane git options helpers', () => {
     expect(filterGitRefCandidates(candidates, 'release')).toEqual([candidates[1]]);
     expect(filterGitRefCandidates(candidates, 'HOTFIX')).toEqual([candidates[2]]);
     expect(filterGitRefCandidates(candidates, 'main')).toEqual([candidates[0]]);
+  });
+
+  it('matches accepted remote aliases when local-backed short names are displayed', () => {
+    const candidates = normalizeGitRefCandidates(
+      ['main'],
+      ['origin/main']
+    );
+
+    expect(filterGitRefCandidates(candidates, 'origin/main')).toEqual([candidates[0]]);
   });
 
   it('clamps selection index to valid bounds', () => {
@@ -88,7 +101,7 @@ describe('new pane git options helpers', () => {
     expect(window.visibleCandidates[9].label).toBe('origin/branch-16');
   });
 
-  it('requires overrides to exactly match submitted ref values', () => {
+  it('accepts exact local and qualified remote refs', () => {
     const candidates = normalizeGitRefCandidates(
       ['main'],
       ['origin/main', 'origin/release/2026.04']
@@ -96,7 +109,7 @@ describe('new pane git options helpers', () => {
 
     expect(isValidStartPointOverride('', candidates)).toBe(true);
     expect(isValidStartPointOverride('main', candidates)).toBe(true);
-    expect(isValidStartPointOverride('origin/main', candidates)).toBe(false);
+    expect(isValidStartPointOverride('origin/main', candidates)).toBe(true);
     expect(isValidStartPointOverride('origin/release/2026.04', candidates)).toBe(true);
     expect(isValidStartPointOverride('release/2026.04', candidates)).toBe(false);
   });
@@ -136,6 +149,25 @@ describe('new pane git options helpers', () => {
     expect(resolution).toEqual({
       accepted: true,
       nextValue: 'main',
+    });
+  });
+
+  it('preserves an exact typed qualified remote ref when local short name also exists', () => {
+    const candidates = normalizeGitRefCandidates(
+      ['main'],
+      ['origin/main']
+    );
+
+    const resolution = resolveStartPointEnter({
+      currentValue: 'origin/main',
+      availableRefs: candidates,
+      filteredRefs: [candidates[0]],
+      selectedIndex: 0,
+    });
+
+    expect(resolution).toEqual({
+      accepted: true,
+      nextValue: 'origin/main',
     });
   });
 

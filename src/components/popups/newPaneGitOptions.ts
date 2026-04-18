@@ -15,6 +15,33 @@ export interface GitRefCandidate {
   shortName: string;
   hasLocalBranch: boolean;
   hasRemoteBranch: boolean;
+  acceptedValues: string[];
+}
+
+function normalizeAcceptedValues(values: string[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) {
+      continue;
+    }
+
+    seen.add(trimmed);
+    ordered.push(trimmed);
+  }
+
+  return ordered;
+}
+
+function candidateAcceptsValue(candidate: GitRefCandidate, value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  return candidate.acceptedValues.some((acceptedValue) => acceptedValue === trimmed);
 }
 
 function getRemoteShortName(remoteRef: string): string {
@@ -52,6 +79,7 @@ export function normalizeGitRefCandidates(
       shortName: localRef,
       hasLocalBranch: true,
       hasRemoteBranch: false,
+      acceptedValues: [localRef],
     };
     candidates.push(candidate);
     localCandidatesByShortName.set(localRef, candidate);
@@ -66,6 +94,10 @@ export function normalizeGitRefCandidates(
     const localCandidate = localCandidatesByShortName.get(shortName);
     if (localCandidate) {
       localCandidate.hasRemoteBranch = true;
+      localCandidate.acceptedValues = normalizeAcceptedValues([
+        ...localCandidate.acceptedValues,
+        remoteRef,
+      ]);
       continue;
     }
 
@@ -75,6 +107,7 @@ export function normalizeGitRefCandidates(
       shortName,
       hasLocalBranch: false,
       hasRemoteBranch: true,
+      acceptedValues: [remoteRef],
     });
   }
 
@@ -119,6 +152,7 @@ export function filterGitRefCandidates(
     candidate.label.toLowerCase().includes(normalizedQuery)
     || candidate.shortName.toLowerCase().includes(normalizedQuery)
     || candidate.value.toLowerCase().includes(normalizedQuery)
+    || candidate.acceptedValues.some((acceptedValue) => acceptedValue.toLowerCase().includes(normalizedQuery))
   ));
 }
 
@@ -155,7 +189,7 @@ export function isValidStartPointOverride(
 ): boolean {
   const trimmed = value.trim();
   if (!trimmed) return true;
-  return availableRefs.some((candidate) => candidate.value === trimmed);
+  return availableRefs.some((candidate) => candidateAcceptsValue(candidate, trimmed));
 }
 
 export function resolveStartPointEnter(input: {
@@ -164,6 +198,14 @@ export function resolveStartPointEnter(input: {
   filteredRefs: GitRefCandidate[];
   selectedIndex: number;
 }): StartPointEnterResolution {
+  const trimmed = input.currentValue.trim();
+  if (trimmed && input.availableRefs.some((candidate) => candidateAcceptsValue(candidate, trimmed))) {
+    return {
+      accepted: true,
+      nextValue: trimmed,
+    };
+  }
+
   if (input.filteredRefs.length > 0 && input.selectedIndex < input.filteredRefs.length) {
     return {
       accepted: true,
@@ -171,18 +213,10 @@ export function resolveStartPointEnter(input: {
     };
   }
 
-  const trimmed = input.currentValue.trim();
   if (!trimmed) {
     return {
       accepted: true,
       nextValue: '',
-    };
-  }
-
-  if (input.availableRefs.some((candidate) => candidate.value === trimmed)) {
-    return {
-      accepted: true,
-      nextValue: trimmed,
     };
   }
 
