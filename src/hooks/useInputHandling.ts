@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import path from "path"
 import { useInput } from "ink"
-import type { DmuxPane, SidebarProject } from "../types.js"
+import type { DmuxPane, NewPaneInput, SidebarProject } from "../types.js"
 import type { TrackProjectActivity } from "../types/activity.js"
 import { StateManager } from "../shared/StateManager.js"
 import { TmuxService } from "../services/TmuxService.js"
@@ -115,7 +115,7 @@ interface UseInputHandlingParams {
   setStatusMessage: (message: string) => void
   copyNonGitFiles: (worktreePath: string, sourceProjectRoot?: string) => Promise<void>
   runCommandInternal: (type: "test" | "dev", pane: DmuxPane) => Promise<void>
-  handlePaneCreationWithAgent: (prompt: string, targetProjectRoot?: string) => Promise<void>
+  handlePaneCreationWithAgent: (paneInput: NewPaneInput, targetProjectRoot?: string) => Promise<void>
   handleCreateChildWorktree: (pane: DmuxPane) => Promise<void>
   handleReopenWorktree: (
     candidate: ResumableBranchCandidate,
@@ -225,9 +225,9 @@ export function useInputHandling(params: UseInputHandlingParams) {
   }
 
   const handleCreateAgentPane = async (targetProjectRoot: string) => {
-    const promptValue = await popupManager.launchNewPanePopup(targetProjectRoot)
-    if (promptValue) {
-      await handlePaneCreationWithAgent(promptValue, targetProjectRoot)
+    const paneInput = await popupManager.launchNewPanePopup(targetProjectRoot)
+    if (paneInput) {
+      await handlePaneCreationWithAgent(paneInput, targetProjectRoot)
     }
   }
 
@@ -551,7 +551,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
 
     const prompt =
       "I would like to create or edit my dmux hooks in .dmux-hooks. Please read AGENTS.md or CLAUDE.md first, then ask me what I want to create or modify."
-    await handlePaneCreationWithAgent(prompt, hooksProjectRoot)
+    await handlePaneCreationWithAgent({ prompt }, hooksProjectRoot)
   }
 
   const refreshPaneLayout = async () => {
@@ -924,8 +924,11 @@ export function useInputHandling(params: UseInputHandlingParams) {
     }
 
     // Prompt input
-    const promptValue = await popupManager.launchNewPanePopup(targetProjectRoot)
-    if (!promptValue) return
+    const promptInput = await popupManager.launchNewPanePopup(
+      targetProjectRoot,
+      { allowGitOptions: false }
+    )
+    if (!promptInput) return
 
     try {
       setIsCreatingPane(true)
@@ -943,7 +946,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
         try {
           const result = await attachAgentToWorktree({
             targetPane: selectedPane,
-            prompt: promptValue,
+            prompt: promptInput.prompt,
             agent,
             existingPanes: [...panes, ...createdPanes],
             sessionProjectRoot: projectRoot,
