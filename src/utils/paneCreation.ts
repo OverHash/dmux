@@ -1,7 +1,11 @@
 import path from 'path';
 import * as fs from 'fs';
-import { execSync } from 'child_process';
-import type { DmuxPane, DmuxConfig, MergeTargetReference } from '../types.js';
+import type {
+  DmuxPane,
+  DmuxConfig,
+  MergeTargetReference,
+  WorkspaceVcsState,
+} from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
   ensurePaneBorderStatusForCurrentSession,
@@ -43,17 +47,20 @@ import {
 import { resolvePaneNaming } from './paneNaming.js';
 import { resolveProjectColorTheme } from './paneColors.js';
 import type { SidebarProject } from '../types.js';
+import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
+import { detectVcsForPath } from '../vcs/detect.js';
+import { getVcsBackend } from '../vcs/registry.js';
+import { resolveProjectRootFromPath } from './projectRoot.js';
 
 export interface CreatePaneOptions {
   prompt: string;
   agent?: AgentName;
   slugSuffix?: string;
   slugBase?: string;
-  existingWorktree?: {
+  existingWorktree?: ({
     slug: string;
     worktreePath: string;
-    branchName: string;
-  };
+  } & WorkspaceVcsState);
   startPointBranch?: string;
   branchNameOverride?: string;
   mergeTargetChain?: MergeTargetReference[];
@@ -111,33 +118,20 @@ export async function createPane(
   // Load settings to check for default agent and autopilot
   const { SettingsManager } = await import('./settingsManager.js');
 
-  // Get project root (handle git worktrees correctly)
+  // Get project root (handle vcs worktrees correctly)
   let projectRoot: string;
+  let detectedProjectBackend: WorkspaceVcsState['vcsBackend'];
   if (optionsProjectRoot) {
     projectRoot = optionsProjectRoot;
+    detectedProjectBackend = 'git';
   } else {
     try {
-      // For git worktrees, we need to get the main repository root, not the worktree root
-      // git rev-parse --git-common-dir gives us the main .git directory
-      const gitCommonDir = execSync('git rev-parse --git-common-dir', {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      }).trim();
-
-      // If it's a worktree, gitCommonDir will be an absolute path to main .git
-      // If it's the main repo, it will be just '.git'
-      if (gitCommonDir === '.git') {
-        // We're in the main repo
-        projectRoot = execSync('git rev-parse --show-toplevel', {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-        }).trim();
-      } else {
-        // We're in a worktree, get the parent directory of the .git directory
-        projectRoot = path.dirname(gitCommonDir);
-      }
+      const resolved = resolveProjectRootFromPath(process.cwd(), process.cwd());
+      projectRoot = resolved.projectRoot;
+      detectedProjectBackend = resolved.vcsBackend;
     } catch {
       projectRoot = process.cwd();
+      detectedProjectBackend = 'git';
     }
   }
 
@@ -179,34 +173,57 @@ export async function createPane(
     DMUX_AGENT: agent || 'unknown',
   });
 
-  // Validate branchPrefix before use
+  const vcsBackend = (() => {
+    if (existingWorktree?.vcsBackend) {
+      return existingWorktree.vcsBackend;
+    }
+
+    const configuredBackend = settings.vcsBackend ?? 'auto';
+    const detectedBackend = detectVcsForPath(projectRoot, configuredBackend)?.backend;
+
+    if (configuredBackend !== 'auto' && !detectedBackend) {
+      throw new Error(`Configured vcsBackend "${configuredBackend}" is not available for ${projectRoot}`);
+    }
+
+    return detectedBackend || detectedProjectBackend || 'git';
+  })();
+  const backend = getVcsBackend(vcsBackend);
+
+  // Validate git-specific naming settings before use.
   const branchPrefix = settings.branchPrefix || '';
-  if (branchPrefix && !isValidBranchName(branchPrefix)) {
+  if (vcsBackend === 'git' && branchPrefix && !isValidBranchName(branchPrefix)) {
     throw new Error(`Invalid branch prefix: ${branchPrefix}`);
   }
 
   const overrideBranchName = (branchNameOverride || '').trim();
-  if (overrideBranchName && !isValidBranchName(overrideBranchName)) {
+  if (vcsBackend === 'git' && overrideBranchName && !isValidBranchName(overrideBranchName)) {
     throw new Error(`Invalid branch name override: ${overrideBranchName}`);
   }
 
-  // Generate slug (filesystem-safe directory name) and branch name (may include prefix).
+  // Generate the filesystem slug plus the backend-managed target ref.
   const generatedSlug = existingWorktree
     ? existingWorktree.slug
     : (slugBase || await generateSlug(prompt));
   const resolvedNaming = existingWorktree
     ? {
         slug: existingWorktree.slug,
-        branchName: existingWorktree.branchName,
+        branchName: getTargetRef(existingWorktree),
       }
     : resolvePaneNaming({
         generatedSlug,
         slugSuffix,
-        branchPrefix,
-        branchNameOverride: overrideBranchName,
+        branchPrefix: vcsBackend === 'git' ? branchPrefix : undefined,
+        branchNameOverride: vcsBackend === 'git' ? overrideBranchName : undefined,
       });
   const slug = resolvedNaming.slug;
-  const branchName = resolvedNaming.branchName;
+  const targetRef = existingWorktree
+    ? getTargetRef(existingWorktree)
+    : resolvedNaming.branchName;
+  const workspaceName = vcsBackend === 'jj'
+    ? ((existingWorktree?.vcsBackend === 'jj' ? getWorkspaceName(existingWorktree) : undefined)
+      || slug)
+    : undefined;
+  let workspaceVcsState: WorkspaceVcsState;
   const tmuxService = TmuxService.getInstance();
 
   const worktreePath = existingWorktree?.worktreePath
@@ -375,114 +392,52 @@ export async function createPane(
     || /\.dmux-hooks/i.test(prompt)
   );
 
-  // Create git worktree and cd into it
+  // Attach to an existing workspace or create a brand-new one.
+  //
+  // Existing-workspace path:
+  // - validate the expected workspace still exists for the selected backend
+  // - resolve the backend-specific pane state dmux should persist for it
+  //
+  // New-workspace path:
+  // - create the workspace via the backend implementation
+  // - then persist dmux metadata for reopen/close flows
   try {
+    let workspaceCwd = worktreePath;
+
     if (existingWorktree) {
-      if (!fs.existsSync(path.join(worktreePath, '.git'))) {
-        throw new Error(`Existing worktree not found at ${worktreePath}`);
+      if (!backend.isRepository(worktreePath)) {
+        throw new Error(`Existing ${vcsBackend} workspace not found at ${worktreePath}`);
       }
 
-      await tmuxService.sendShellCommand(paneInfo, `cd "${worktreePath}"`);
-      await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      workspaceVcsState = backend.resolveWorkspaceState({
+        worktreePath,
+        slug,
+        storedState: existingWorktree,
+      });
     } else {
-      // IMPORTANT: Prune stale worktrees first to avoid conflicts
-      // This must run synchronously from dmux, not in the pane
-      try {
-        execSync('git worktree prune', {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          cwd: projectRoot,
-        });
-      } catch {
-        // Ignore prune errors, proceed anyway
-      }
-
-      // Validate and resolve base branch for new worktrees
-      const baseBranch = settings.baseBranch || '';
-      if (baseBranch && !isValidBranchName(baseBranch)) {
-        throw new Error(`Invalid base branch name: ${baseBranch}`);
-      }
-      const resolvedStartPoint = startPointBranch || baseBranch;
-      if (resolvedStartPoint && !isValidBranchName(resolvedStartPoint)) {
-        throw new Error(`Invalid worktree start-point branch name: ${resolvedStartPoint}`);
-      }
-      if (resolvedStartPoint) {
-        try {
-          execSync(`git rev-parse --verify --end-of-options "${resolvedStartPoint}"`, {
-            stdio: 'pipe',
-            cwd: projectRoot,
-          });
-        } catch {
-          if (startPointBranch) {
-            throw new Error(
-              `Worktree start-point branch "${resolvedStartPoint}" does not exist anymore. Reopen the parent worktree or recreate it before branching again.`
-            );
-          }
-
-          throw new Error(
-            `Base branch "${resolvedStartPoint}" does not exist. Update the baseBranch setting to a valid branch name.`
-          );
-        }
-      }
-
-      const maxWorktreeAttempts = 3;
-      const maxWaitTime = 5000; // 5 seconds max
-      const checkInterval = 100; // Check every 100ms
-      let worktreeCreated = fs.existsSync(worktreePath);
-
-      for (let attempt = 1; attempt <= maxWorktreeAttempts && !worktreeCreated; attempt++) {
-        // Check if branch already exists (from a deleted worktree or a previous attempt)
-        let branchExists = false;
-        try {
-          execSync(`git show-ref --verify --quiet "refs/heads/${branchName}"`, {
-            stdio: 'pipe',
-            cwd: projectRoot,
-          });
-          branchExists = true;
-        } catch {
-          // Branch doesn't exist yet
-        }
-
-        // Build worktree command:
-        // - If branch exists, use it (don't create with -b)
-        // - If branch doesn't exist, create it with -b, optionally from a configured base branch
-        const startPoint = resolvedStartPoint ? ` "${resolvedStartPoint}"` : '';
-        const worktreeAddCmd = branchExists
-          ? `git worktree add "${worktreePath}" "${branchName}"`
-          : `git worktree add "${worktreePath}" -b "${branchName}"${startPoint}`;
-        const worktreeCmd = `cd "${projectRoot}" && ${worktreeAddCmd} && cd "${worktreePath}"`;
-
-        // Send the git worktree command (auto-quoted by sendShellCommand)
-        await tmuxService.sendShellCommand(paneInfo, worktreeCmd);
-        await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
-
-        const startTime = Date.now();
-        while (!fs.existsSync(worktreePath) && (Date.now() - startTime) < maxWaitTime) {
-          await new Promise((resolve) => setTimeout(resolve, checkInterval));
-        }
-
-        worktreeCreated = fs.existsSync(worktreePath);
-        if (!worktreeCreated && attempt < maxWorktreeAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
-        }
-      }
-
-      // Verify worktree was created successfully
-      if (!worktreeCreated) {
-        throw new Error(`Worktree directory not created at ${worktreePath} after ${maxWorktreeAttempts} attempts`);
-      }
-
-      // Give a bit more time for git to finish setting up the worktree
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const creationResult = backend.createWorkspace({
+        projectRoot,
+        worktreePath,
+        slug,
+        targetRef,
+        workspaceName,
+        startPointRef: startPointBranch,
+        settings,
+      });
+      workspaceVcsState = creationResult.vcsState;
+      workspaceCwd = creationResult.cwd;
     }
+
+    await tmuxService.sendShellCommand(paneInfo, `cd "${workspaceCwd}"`);
+    await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     try {
       writeWorktreeMetadata(worktreePath, {
         agent,
         permissionMode: settings.permissionMode,
         displayName: existingWorktreeMetadata?.displayName,
-        branchName: branchName !== slug ? branchName : undefined,
+        ...workspaceVcsState,
         mergeTargetChain,
       });
     } catch (metadataError) {
@@ -533,7 +488,7 @@ export async function createPane(
     id: `dmux-${Date.now()}`,
     slug,
     displayName: existingWorktreeMetadata?.displayName,
-    branchName: branchName !== slug ? branchName : undefined,
+    ...workspaceVcsState,
     prompt: prompt || 'No initial prompt',
     paneId: paneInfo,
     projectRoot,
