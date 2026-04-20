@@ -19,7 +19,6 @@ import {
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { SettingsManager } from './settingsManager.js';
 import { filterEnabledAgents, getInstalledAgents } from './agentDetection.js';
-import { getCurrentBranch } from './git.js';
 import { readWorktreeMetadata } from './worktreeMetadata.js';
 import {
   buildCodexHookedCommand,
@@ -27,8 +26,7 @@ import {
 } from './codexHooks.js';
 import { resolveProjectColorTheme } from './paneColors.js';
 import type { SidebarProject } from '../types.js';
-import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
-import type { WorkspaceVcsState } from '../types.js';
+import { getVcsBackend } from '../vcs/registry.js';
 
 export interface ReopenWorktreeOptions {
   agent?: AgentName;
@@ -214,22 +212,11 @@ export async function reopenWorktree(
   await tmuxService.selectPane(paneInfo);
 
   // Create the pane object
-  const currentBranch = metadata?.vcsBackend === 'jj'
-    ? undefined
-    : getCurrentBranch(worktreePath);
-  const targetRef = metadata ? getTargetRef(metadata) : (currentBranch || slug);
-  const workspaceName = metadata?.vcsBackend === 'jj' ? getWorkspaceName(metadata) : slug;
-  const workspaceVcsState: WorkspaceVcsState = metadata?.vcsBackend === 'jj'
-    ? {
-        vcsBackend: 'jj',
-        targetRef,
-        workspaceName: workspaceName || slug,
-      }
-    : {
-        vcsBackend: 'git',
-        targetRef,
-        branchName: targetRef !== slug ? targetRef : undefined,
-      };
+  const workspaceVcsState = getVcsBackend(metadata?.vcsBackend || 'git').resolveWorkspaceState({
+    worktreePath,
+    slug,
+    storedState: metadata || undefined,
+  });
 
   const newPane: DmuxPane = {
     id: dmuxPaneId,
