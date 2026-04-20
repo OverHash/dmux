@@ -12,9 +12,10 @@ function createPopupManager(): PopupManager {
     terminalHeight: 40,
     availableAgents: ['claude', 'codex'] as AgentName[],
     settingsManager: {
-      getSettings: () => ({ vcsBackend: 'jj' }),
-      getGlobalSettings: () => ({ showFooterTips: true }),
-      getProjectSettings: () => ({ vcsBackend: 'jj' }),
+      getSettings: () => ({ vcsBackend: 'jj', colorTheme: 'blue' }),
+      getGlobalSettings: () => ({ showFooterTips: true, colorTheme: 'red' }),
+      getProjectSettings: () => ({ vcsBackend: 'jj', colorTheme: 'blue' }),
+      getTeamDefaults: () => ({ colorTheme: 'green' }),
     },
     projectSettings: {},
     trackProjectActivity: async (work) => await work(),
@@ -28,9 +29,10 @@ describe('PopupManager launchSettingsPopup', () => {
     const manager = createPopupManager() as any;
     const targetProjectRoot = '/tmp/other-project';
     const targetSettingsManager = {
-      getSettings: () => ({ vcsBackend: 'auto' }),
-      getGlobalSettings: () => ({ showFooterTips: false }),
-      getProjectSettings: () => ({ vcsBackend: 'auto' }),
+      getSettings: () => ({ vcsBackend: 'auto', colorTheme: 'purple' }),
+      getGlobalSettings: () => ({ showFooterTips: false, colorTheme: 'red' }),
+      getProjectSettings: () => ({ vcsBackend: 'auto', colorTheme: 'purple' }),
+      getTeamDefaults: () => ({ colorTheme: 'green' }),
     };
 
     manager.checkPopupSupport = vi.fn(() => true);
@@ -49,9 +51,12 @@ describe('PopupManager launchSettingsPopup', () => {
       expect.any(Object),
       expect.objectContaining({
         projectRoot: targetProjectRoot,
-        settings: { vcsBackend: 'auto' },
-        globalSettings: { showFooterTips: false },
-        projectSettings: { vcsBackend: 'auto' },
+        settings: expect.objectContaining({
+          vcsBackend: 'auto',
+          defaultColorTheme: 'red',
+        }),
+        globalSettings: { showFooterTips: false, colorTheme: 'red' },
+        projectSettings: { vcsBackend: 'auto', colorTheme: 'purple' },
       }),
       targetProjectRoot
     );

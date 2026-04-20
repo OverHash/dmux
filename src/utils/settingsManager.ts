@@ -104,6 +104,10 @@ function sanitizeLoadedSettings(value: unknown): DmuxSettings {
     sanitized.colorTheme = parsed.colorTheme;
   }
 
+  if (typeof parsed.vcsBackend === 'string' && isVcsBackendSetting(parsed.vcsBackend)) {
+    sanitized.vcsBackend = parsed.vcsBackend;
+  }
+
   if (typeof parsed.useTmuxHooks === 'boolean') {
     sanitized.useTmuxHooks = parsed.useTmuxHooks;
   }

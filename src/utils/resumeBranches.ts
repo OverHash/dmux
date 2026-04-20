@@ -367,7 +367,8 @@ export function getResumableBranches(
   activePaneSlugs: string[],
   options: ResumableBranchScanOptions = {}
 ): ResumableBranchCandidate[] {
-  const detectedBackend = detectVcsForPath(projectRoot, 'auto')?.backend;
+  const configuredBackend = new SettingsManager(projectRoot).getSettings().vcsBackend ?? 'auto';
+  const detectedBackend = detectVcsForPath(projectRoot, configuredBackend)?.backend;
   if (detectedBackend === 'jj') {
     return getResumableJjWorkspaces(projectRoot, activePaneSlugs);
   }
@@ -1050,7 +1051,8 @@ export async function resumeBranchWorkspace(
     sessionProjectRoot,
   } = options;
 
-  if (detectVcsForPath(projectRoot, 'auto')?.backend === 'jj') {
+  const configuredBackend = new SettingsManager(projectRoot).getSettings().vcsBackend ?? 'auto';
+  if (detectVcsForPath(projectRoot, configuredBackend)?.backend === 'jj') {
     throw new Error(
       `Opening a new jj workspace from ${branchName} is not supported yet. Reopen an existing dmux workspace instead.`
     );

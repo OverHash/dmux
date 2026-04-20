@@ -801,7 +801,7 @@ export class PopupManager {
         }
 
         if (data.action === "enabledAgents") {
-          const enabledAgentsUpdate = await this.launchEnabledAgentsPopup(resolvedProjectRoot)
+          const enabledAgentsUpdate = await this.launchEnabledAgentsPopup(targetProjectRoot)
           if (enabledAgentsUpdate) {
             pendingUpdates.push(enabledAgentsUpdate)
           }
@@ -809,7 +809,7 @@ export class PopupManager {
         }
 
         if (data.action === "enabledNotificationSounds") {
-          const notificationSoundsUpdate = await this.launchNotificationSoundsPopup(resolvedProjectRoot)
+          const notificationSoundsUpdate = await this.launchNotificationSoundsPopup(targetProjectRoot)
           if (notificationSoundsUpdate) {
             pendingUpdates.push(notificationSoundsUpdate)
           }

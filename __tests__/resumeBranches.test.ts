@@ -10,6 +10,11 @@ const triggerHookMock = vi.hoisted(() => vi.fn(async () => {}));
 const writeWorktreeMetadataMock = vi.hoisted(() => vi.fn());
 const readWorktreeMetadataMock = vi.hoisted(() => vi.fn(() => null));
 const detectedVcsBackend = vi.hoisted(() => ({ current: 'git' as 'git' | 'jj' }));
+const settingsMock = vi.hoisted(() => ({
+  current: {
+    permissionMode: 'plan',
+  } as { permissionMode: string; vcsBackend?: 'auto' | 'git' | 'jj' },
+}));
 
 vi.mock('child_process', () => ({
   exec: execMock,
@@ -31,9 +36,7 @@ vi.mock('../src/utils/worktreeMetadata.js', () => ({
 
 vi.mock('../src/utils/settingsManager.js', () => ({
   SettingsManager: vi.fn(() => ({
-    getSettings: vi.fn(() => ({
-      permissionMode: 'plan',
-    })),
+    getSettings: vi.fn(() => settingsMock.current),
   })),
 }));
 
@@ -117,6 +120,9 @@ describe('resumeBranches', () => {
     vi.clearAllMocks();
     readWorktreeMetadataMock.mockReturnValue(null);
     detectedVcsBackend.current = 'git';
+    settingsMock.current = {
+      permissionMode: 'plan',
+    };
 
     rootRepo = createTempRepoDir('dmux-resume-root-');
     childRepo = path.join(rootRepo, 'child-repo');
@@ -366,9 +372,68 @@ describe('resumeBranches', () => {
     ]);
   });
 
+  it('honors project jj setting when listing resumable workspaces', async () => {
+    fs.writeFileSync(path.join(rootRepo, '.jj'), 'jj-root', 'utf-8');
+    detectedVcsBackend.current = 'jj';
+    settingsMock.current = {
+      permissionMode: 'plan',
+      vcsBackend: 'jj',
+    };
+    const jjWorkspacePath = path.join(rootRepo, '.dmux', 'worktrees', 'jj-configured');
+    fs.mkdirSync(jjWorkspacePath, { recursive: true });
+    fs.writeFileSync(path.join(jjWorkspacePath, '.jj'), 'jj-workspace', 'utf-8');
+
+    readWorktreeMetadataMock.mockImplementation(((worktreePath: string) => {
+      if (worktreePath === jjWorkspacePath) {
+        return {
+          vcsBackend: 'jj',
+          targetRef: 'feature/jj-configured',
+          workspaceName: 'jj-configured',
+        };
+      }
+
+      return null;
+    }) as any);
+
+    execSyncMock.mockImplementation(withBackendDetection((command: string, options?: { cwd?: string; encoding?: string }) => {
+      const cwd = options?.cwd;
+      const encoding = options?.encoding;
+      const output = (value: string) => encoding ? value : Buffer.from(value);
+
+      if (cwd === jjWorkspacePath && command === 'jj diff --summary -r @') {
+        return output('');
+      }
+
+      if (command.includes('for-each-ref') || command.includes('worktree')) {
+        throw new Error(`Git branch scanner should not run in jj mode: ${command}`);
+      }
+
+      throw new Error(`Unexpected command: ${command}`);
+    }));
+
+    const { getResumableBranches } = await import('../src/utils/resumeBranches.js');
+
+    const candidates = getResumableBranches(rootRepo, [], {
+      includeRemoteBranches: true,
+    });
+
+    expect(candidates).toEqual([
+      expect.objectContaining({
+        branchName: 'feature/jj-configured',
+        slug: 'jj-configured',
+        hasWorktree: true,
+        isRemote: false,
+      }),
+    ]);
+  });
+
   it('rejects git-style branch resume in jj projects', async () => {
     fs.writeFileSync(path.join(rootRepo, '.jj'), 'jj-root', 'utf-8');
     detectedVcsBackend.current = 'jj';
+    settingsMock.current = {
+      permissionMode: 'plan',
+      vcsBackend: 'jj',
+    };
 
     execSyncMock.mockImplementation(withBackendDetection((command: string) => {
       throw new Error(`Unexpected command: ${command}`);
