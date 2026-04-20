@@ -1,4 +1,4 @@
 ## from origin
 
-- feat/git-branch-selector-v2
-- jj-support-v2
+- git-branch-selector-v2
+- feat/jj-support
