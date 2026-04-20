@@ -88,6 +88,24 @@ vi.mock('fs', () => ({
   ...fsMock,
 }));
 
+const getBootstrapWrites = () =>
+  fsMock.writeFileSync.mock.calls.filter(([target]) =>
+    String(target).includes('/.dmux/bootstrap/')
+  );
+
+const getLatestBootstrapConfig = () => {
+  const write = getBootstrapWrites().at(-1);
+  if (!write) {
+    throw new Error('No bootstrap config was written');
+  }
+  return JSON.parse(String(write[1]));
+};
+
+const getSendKeysCommands = () =>
+  mockExecSync.mock.calls
+    .map(([cmd]) => (typeof cmd === 'string' ? cmd : ''))
+    .filter((cmd) => cmd.includes('send-keys'));
+
 describe('Pane Lifecycle Integration Tests', () => {
   let tmuxSession: MockTmuxSession;
   let gitRepo: MockGitRepo;
@@ -263,7 +281,7 @@ describe('Pane Lifecycle Integration Tests', () => {
       )).toBe(false);
     });
 
-    it('should create git worktree with branch', async () => {
+    it('should delegate git worktree creation to the pane bootstrap runner', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
 
       await createPane(
@@ -276,14 +294,21 @@ describe('Pane Lifecycle Integration Tests', () => {
         ['claude']
       );
 
-      // Verify git worktree add was called
-      expect(mockExecSync).toHaveBeenCalledWith(
-        expect.stringContaining('git worktree add'),
-        expect.any(Object)
-      );
+      const bootstrapConfig = getLatestBootstrapConfig();
+      expect(bootstrapConfig.worktreePath).toMatch(/^\/test\/\.dmux\/worktrees\/add-user/);
+      expect(bootstrapConfig.branchName).toMatch(/^add-user/);
+      expect(bootstrapConfig.existingWorktree).toBe(false);
+
+      expect(getSendKeysCommands().some((cmd) =>
+        cmd.includes('paneBootstrapRunner')
+      )).toBe(true);
+
+      expect(mockExecSync.mock.calls.some(([cmd]) =>
+        typeof cmd === 'string' && cmd.includes('git worktree add')
+      )).toBe(false);
     });
 
-    it('should validate remote tracking baseBranch values without forcing refs/heads', async () => {
+    it('passes remote tracking baseBranch values to bootstrap without forcing refs/heads', async () => {
       fsMock.readFileSync.mockImplementation((target) => {
         const value = String(target);
         if (value.endsWith('/.dmux/settings.json')) {
@@ -308,10 +333,8 @@ describe('Pane Lifecycle Integration Tests', () => {
         ['claude']
       );
 
-      expect(mockExecSync.mock.calls.some(([cmd]) =>
-        typeof cmd === 'string'
-        && cmd.includes('git rev-parse --verify --end-of-options "origin/main"')
-      )).toBe(true);
+      const bootstrapConfig = getLatestBootstrapConfig();
+      expect(bootstrapConfig.resolvedStartPoint).toBe('origin/main');
 
       expect(mockExecSync.mock.calls.some(([cmd]) =>
         typeof cmd === 'string'
@@ -406,10 +429,13 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
       expect(splitCall?.[0]).toContain('-c "/target/repo"');
 
-      const worktreeCall = mockExecSync.mock.calls.find(([cmd]) =>
-        typeof cmd === 'string' && cmd.includes('git worktree add')
-      );
-      expect(worktreeCall?.[0]).toContain('cd "/target/repo" && git worktree add "/target/repo/.dmux/worktrees/target-slug"');
+      const bootstrapConfig = getLatestBootstrapConfig();
+      expect(bootstrapConfig.projectRoot).toBe('/target/repo');
+      expect(bootstrapConfig.worktreePath).toBe('/target/repo/.dmux/worktrees/target-slug');
+
+      expect(getSendKeysCommands().some((cmd) =>
+        cmd.includes('/target/repo/.dmux/bootstrap/')
+      )).toBe(true);
     });
 
     it('should destroy the welcome pane when tracked shell panes make the pane list non-empty', async () => {
@@ -499,57 +525,53 @@ describe('Pane Lifecycle Integration Tests', () => {
   });
 
   describe('Worktree Setup Failure Handling', () => {
-    // Regression tests for: when worktree preparation fails, the pane must
-    // be torn down and the agent must NOT be launched. Leaving the pane open
-    // at projectRoot would let the agent run against main, which is dangerous.
-
-    const getSendKeysCommands = () =>
-      mockExecSync.mock.calls
-        .map(([cmd]) => (typeof cmd === 'string' ? cmd : ''))
-        .filter((cmd) => cmd.includes('send-keys'));
+    // Slow or failing setup is now handled by the pane-local bootstrap runner.
+    // createPane should return after showing that runner, while the runner
+    // gates the actual agent launch behind worktree setup and hooks.
 
     const getKillPaneCommands = () =>
       mockExecSync.mock.calls
         .map(([cmd]) => (typeof cmd === 'string' ? cmd : ''))
         .filter((cmd) => cmd.includes('kill-pane'));
 
-    it('kills the pane and throws when the worktree is missing', async () => {
+    it('keeps the pane visible and delegates a missing worktree failure to bootstrap', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
 
-      // Point at an "existing" worktree path that isn't tracked as created
-      // → fs.existsSync(worktreePath + '/.git') returns false → throws inside
-      // the worktree-creation try/catch before any agent command is sent.
       const missingWorktreePath = '/test/.dmux/worktrees/does-not-exist';
 
-      await expect(
-        createPane(
-          {
-            prompt: 'fix auth bug',
-            agent: 'claude',
-            projectName: 'test-project',
-            existingPanes: [],
-            existingWorktree: {
-              slug: 'does-not-exist',
-              worktreePath: missingWorktreePath,
-              branchName: 'does-not-exist',
-            },
+      const result = await createPane(
+        {
+          prompt: 'fix auth bug',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [],
+          existingWorktree: {
+            slug: 'does-not-exist',
+            worktreePath: missingWorktreePath,
+            branchName: 'does-not-exist',
           },
-          ['claude']
-        )
-      ).rejects.toThrow(/Failed to create worktree/);
+        },
+        ['claude']
+      );
 
-      // Pane must be killed so the user is never dropped at projectRoot
-      // with a live shell.
+      expect(result.needsAgentChoice).toBe(false);
+
       expect(
         getKillPaneCommands().some((cmd) => cmd.includes('%1'))
-      ).toBe(true);
+      ).toBe(false);
 
-      // Agent launch command must never reach the pane.
+      const bootstrapConfig = getLatestBootstrapConfig();
+      expect(bootstrapConfig.existingWorktree).toBe(true);
+      expect(bootstrapConfig.worktreePath).toBe(missingWorktreePath);
+
       const sendKeys = getSendKeysCommands();
-      expect(sendKeys.some((cmd) => cmd.includes('claude'))).toBe(false);
+      expect(sendKeys.some((cmd) => cmd.includes('paneBootstrapRunner'))).toBe(true);
+      expect(sendKeys.some((cmd) =>
+        cmd.includes('claude') && !cmd.includes('paneBootstrapRunner')
+      )).toBe(false);
     });
 
-    it('kills the pane and throws when the worktree_created hook fails', async () => {
+    it('does not block createPane on worktree_created hook execution', async () => {
       const { triggerHookSync } = await import('../../src/utils/hooks.js');
       vi.mocked(triggerHookSync).mockResolvedValueOnce({
         success: false,
@@ -558,52 +580,31 @@ describe('Pane Lifecycle Integration Tests', () => {
 
       const { createPane } = await import('../../src/utils/paneCreation.js');
 
-      await expect(
-        createPane(
-          {
-            prompt: 'add dashboard',
-            agent: 'claude',
-            projectName: 'test-project',
-            existingPanes: [],
-          },
-          ['claude']
-        )
-      ).rejects.toThrow(/worktree_created hook failed/);
+      const result = await createPane(
+        {
+          prompt: 'add dashboard',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [],
+        },
+        ['claude']
+      );
 
-      // Pane must be killed so the agent cannot run inside a
-      // half-configured worktree.
+      expect(result.needsAgentChoice).toBe(false);
+      expect(triggerHookSync).not.toHaveBeenCalled();
       expect(
         getKillPaneCommands().some((cmd) => cmd.includes('%1'))
-      ).toBe(true);
+      ).toBe(false);
 
-      // Agent launch command must never reach the pane.
       const sendKeys = getSendKeysCommands();
-      expect(sendKeys.some((cmd) => cmd.includes('claude'))).toBe(false);
+      expect(sendKeys.some((cmd) => cmd.includes('paneBootstrapRunner'))).toBe(true);
+      expect(sendKeys.some((cmd) =>
+        cmd.includes('claude') && !cmd.includes('paneBootstrapRunner')
+      )).toBe(false);
     });
 
-    it('runs worktree_created hook before launching the agent', async () => {
+    it('hands hook-gated agent launch to the bootstrap runner', async () => {
       const { triggerHookSync } = await import('../../src/utils/hooks.js');
-      const callOrder: string[] = [];
-
-      vi.mocked(triggerHookSync).mockImplementationOnce(async (hookName) => {
-        callOrder.push(`hook:${hookName}`);
-        return { success: true };
-      });
-
-      // Record when the agent launch command is sent to the pane.
-      const originalImpl = mockExecSync.getMockImplementation();
-      mockExecSync.mockImplementation((command: string, options?: any) => {
-        const cmd = command.toString();
-        if (
-          cmd.includes('send-keys')
-          && cmd.includes('claude')
-          && !cmd.includes('worktree add')
-        ) {
-          callOrder.push('agent-launch');
-        }
-        return originalImpl ? originalImpl(command, options) : '';
-      });
-
       const { createPane } = await import('../../src/utils/paneCreation.js');
 
       await createPane(
@@ -616,12 +617,17 @@ describe('Pane Lifecycle Integration Tests', () => {
         ['claude']
       );
 
-      const hookIdx = callOrder.indexOf('hook:worktree_created');
-      const agentIdx = callOrder.indexOf('agent-launch');
+      expect(triggerHookSync).not.toHaveBeenCalled();
 
-      expect(hookIdx).toBeGreaterThanOrEqual(0);
-      expect(agentIdx).toBeGreaterThanOrEqual(0);
-      expect(hookIdx).toBeLessThan(agentIdx);
+      const bootstrapConfig = getLatestBootstrapConfig();
+      expect(bootstrapConfig.agent).toBe('claude');
+      expect(bootstrapConfig.pane.agent).toBe('claude');
+      expect(bootstrapConfig.pane.worktreePath).toBe(bootstrapConfig.worktreePath);
+
+      const directAgentLaunch = getSendKeysCommands().some((cmd) =>
+        cmd.includes('claude') && !cmd.includes('paneBootstrapRunner')
+      );
+      expect(directAgentLaunch).toBe(false);
     });
   });
 

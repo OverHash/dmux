@@ -1,0 +1,13 @@
+{
+  "source": "codex-stop-hook",
+  "dmuxPaneId": "dmux-1776708264504",
+  "tmuxPaneId": "%109",
+  "expectedDmuxPaneId": "dmux-1776708264504",
+  "expectedTmuxPaneId": "%109",
+  "hookEventName": "Stop",
+  "turnId": "019dac1d-cf1c-7f23-8983-e10407bc3451",
+  "lastAssistantMessage": "Implemented the follow-up fixes.\n\nThe bootstrap pane now uses an Ink-based setup UI in [paneBootstrapRunner.ts](/Users/justinschroeder/Projects/dmux/.dmux/worktrees/dmux-slowness-codex/src/utils/paneBootstrapRunner.ts:80), with a bordered progress panel, step states, active command/status text, and clearer failure output.\n\nI also fixed the “treated like a shell” race:\n\n- New panes are immediately titled with an internal `dmux-bootstrap:<slug>` marker in [paneCreation.ts](/Users/justinschroeder/Projects/dmux/.dmux/worktrees/dmux-slowness-codex/src/utils/paneCreation.ts:344).\n- Shell detection now ignores those bootstrap-marked panes in [shellPaneDetection.ts](/Users/justinschroeder/Projects/dmux/.dmux/worktrees/dmux-slowness-codex/src/utils/shellPaneDetection.ts:126).\n- The bootstrap runner explicitly restores the final tmux pane title before setup and again before launching the agent, using the saved worktree pane title from the bootstrap config.\n- Added [shellPaneDetection.test.ts](/Users/justinschroeder/Projects/dmux/.dmux/worktrees/dmux-slowness-codex/__tests__/shellPaneDetection.test.ts:1) to cover the race where a bootstrap pane could otherwise be misclassified as a shell.\n\nVerification passed:\n\n```bash\npnpm run typecheck\npnpm run test\n```\n\nFull suite: `92 passed | 1 skipped`, `533 passed | 11 skipped`.\n\n`.codex/` is still untracked and untouched.",
+  "transcriptPath": "/Users/justinschroeder/.codex/sessions/2026/04/20/rollout-2026-04-20T14-04-28-019dac10-b057-7691-b6ee-10046bdb1054.jsonl",
+  "cwd": "/Users/justinschroeder/Projects/dmux/.dmux/worktrees/dmux-slowness-codex",
+  "timestamp": 1776709345246
+}
