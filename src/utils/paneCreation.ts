@@ -430,6 +430,8 @@ export async function createPane(
           // 1. prune stale worktree records
           // 2. validate the configured start point
           // 3. create or reuse the branch-backed worktree
+          // IMPORTANT: Prune stale worktree records here, synchronously from dmux.
+          // Doing this inside the pane can race with later setup and reintroduce conflicts.
           try {
             execSync('git worktree prune', {
               encoding: 'utf-8',

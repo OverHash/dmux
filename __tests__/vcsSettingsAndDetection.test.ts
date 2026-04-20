@@ -42,6 +42,37 @@ describe('vcsBackend settings validation', () => {
 
     expect(() => manager.updateSetting('vcsBackend', 'svn' as any, 'global')).toThrow('Invalid vcsBackend');
   });
+
+  it('loads persisted vcsBackend values from settings files', async () => {
+    vi.doMock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => (
+          target === '/tmp/test-project/.dmux/settings.json'
+          || target === '/tmp/test-project/.dmux.defaults.json'
+        )),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+        readFileSync: vi.fn((target: string) => {
+          if (target === '/tmp/test-project/.dmux/settings.json') {
+            return JSON.stringify({ vcsBackend: 'jj' });
+          }
+          if (target === '/tmp/test-project/.dmux.defaults.json') {
+            return JSON.stringify({ vcsBackend: 'git' });
+          }
+          return '{}';
+        }),
+      };
+    });
+
+    const { SettingsManager } = await import('../src/utils/settingsManager.js');
+    const manager = new SettingsManager('/tmp/test-project');
+
+    expect(manager.getProjectSettings().vcsBackend).toBe('jj');
+    expect(manager.getTeamDefaults().vcsBackend).toBe('git');
+    expect(manager.getSettings().vcsBackend).toBe('jj');
+  });
 });
 
 describe('project root VCS detection', () => {
