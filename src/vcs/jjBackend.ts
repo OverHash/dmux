@@ -15,6 +15,7 @@ export const jjVcsBackend: VcsBackend = {
   capabilities: {
     supportsMerge: false,
   },
+
   isRepository(workingDir: string): boolean {
     try {
       runJjCommand('jj workspace root', workingDir);
@@ -32,5 +33,40 @@ export const jjVcsBackend: VcsBackend = {
   },
   getCurrentWorkspaceRoot(workingDir: string): string {
     return runJjCommand('jj workspace root', workingDir);
+  },
+
+  createWorkspace(input) {
+    const workspaceName = input.workspaceName || input.slug;
+    const revisionArg = input.startPointRef ? ` --revision "${input.startPointRef}"` : '';
+
+    runJjCommand(
+      `jj workspace add --name "${workspaceName}"${revisionArg} "${input.worktreePath}"`,
+      input.projectRoot
+    );
+    runJjCommand(`jj bookmark set "${input.targetRef}" -r @`, input.worktreePath);
+
+    if (!this.isRepository(input.worktreePath)) {
+      throw new Error(`Workspace directory not created at ${input.worktreePath}`);
+    }
+
+    return {
+      cwd: input.worktreePath,
+      vcsState: {
+        vcsBackend: 'jj',
+        targetRef: input.targetRef,
+        workspaceName,
+      },
+    };
+  },
+  resolveWorkspaceState(input) {
+    const storedState = input.storedState?.vcsBackend === 'jj'
+      ? input.storedState
+      : undefined;
+
+    return {
+      vcsBackend: 'jj',
+      targetRef: storedState?.targetRef || input.slug,
+      workspaceName: storedState?.workspaceName || input.slug,
+    };
   },
 };
