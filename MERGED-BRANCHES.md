@@ -4,7 +4,7 @@
 
 | Status | #   | Branch Name                  | Remote | Commit Hash | Description |
 | ------ | --- | ---------------------------- | ------ | ----------- | ----------- |
-| ☑      | 1   | git-branch-selector-v2      | origin | 2a16157     | Tracks `origin/git-branch-selector-v2`; merged cleanly |
+| ☑      | 1   | git-branch-selector-v2      | origin | a37849d     | Tracks `origin/git-branch-selector-v2`; merged cleanly, then updated with symbolic remote ref filtering |
 | ☑      | 2   | feat/jj-support             | origin | d5c1396     | Tracks `origin/jj-support-v2`; conflicts resolved in docs and pane creation |
 
 ## Merge Log
@@ -13,3 +13,4 @@
 - Merged `git-branch-selector-v2` at `2a16157` via merge commit `f3afe6f`. No conflicts; `pnpm run typecheck` passed.
 - Merged `feat/jj-support` at `d5c1396` via merge commit `02eff1b`. Resolved conflicts in `docs/src/content/configuration.js` and `src/utils/paneCreation.ts` by keeping the new git override flow and the VCS-backend abstraction; `pnpm run typecheck` passed.
 - Follow-up integration fix: hardened `src/vcs/gitBackend.ts` to ignore non-absolute `git-common-dir` output before deriving the project root, which restored pane-creation integration tests after the merge conflict resolution.
+- Merged `git-branch-selector-v2` again at `a37849d` via merge commit `426d230` to bring in the git ref picker fix that ignores symbolic remote pointers like `origin` and `origin/HEAD`; `pnpm run typecheck`, `pnpm vitest --run __tests__/newPaneGitOptions.test.ts`, and `pnpm run build` passed.
