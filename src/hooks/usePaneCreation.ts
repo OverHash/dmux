@@ -1,6 +1,6 @@
 import path from 'path';
 import * as os from 'os';
-import type { DmuxPane, MergeTargetReference } from '../types.js';
+import type { DmuxPane, MergeTargetReference, NewPaneInput } from '../types.js';
 import { createPane } from '../utils/paneCreation.js';
 import { LogService } from '../services/LogService.js';
 import { getAgentSlugSuffix, type AgentName } from '../utils/agentLaunch.js';
@@ -25,6 +25,7 @@ interface CreateNewPaneOptions {
   targetProjectRoot?: string;
   skipAgentSelection?: boolean;
   startPointBranch?: string;
+  branchNameOverride?: string;
   mergeTargetChain?: MergeTargetReference[];
 }
 
@@ -103,6 +104,7 @@ export default function usePaneCreation({
         projectRoot: options.targetProjectRoot,
         skipAgentSelection: options.skipAgentSelection,
         startPointBranch: options.startPointBranch,
+        branchNameOverride: options.branchNameOverride,
         mergeTargetChain: options.mergeTargetChain,
         sessionProjectRoot,
         sessionConfigPath: panesFile,
@@ -118,17 +120,23 @@ export default function usePaneCreation({
   };
 
   const createNewPane = async (
-    prompt: string,
+    paneInput: NewPaneInput,
     agent?: AgentName,
     options: CreateNewPaneOptions = {}
   ): Promise<DmuxPane | null> => {
+    const prompt = paneInput.prompt;
     const panesForCreation = options.existingPanes ?? panes;
+    const resolvedOptions: CreateNewPaneOptions = {
+      ...options,
+      startPointBranch: options.startPointBranch ?? paneInput.baseBranch,
+      branchNameOverride: options.branchNameOverride ?? paneInput.branchName,
+    };
 
     try {
       setIsCreatingPane(true)
       setStatusMessage("Creating pane...")
 
-      const pane = await createPaneInternal(prompt, agent, options);
+      const pane = await createPaneInternal(prompt, agent, resolvedOptions);
 
       // Save the pane
       const updatedPanes = [...panesForCreation, pane];
@@ -150,13 +158,14 @@ export default function usePaneCreation({
   };
 
   const createPanesForAgents = async (
-    prompt: string,
+    paneInput: NewPaneInput,
     selectedAgents: AgentName[],
     options: Pick<
       CreateNewPaneOptions,
-      'existingPanes' | 'targetProjectRoot' | 'startPointBranch' | 'mergeTargetChain'
+      'existingPanes' | 'targetProjectRoot' | 'startPointBranch' | 'branchNameOverride' | 'mergeTargetChain'
     > = {}
   ): Promise<DmuxPane[]> => {
+    const prompt = paneInput.prompt;
     const panesForCreation = options.existingPanes ?? panes;
     const dedupedAgents = selectedAgents.filter(
       (agent, index) => selectedAgents.indexOf(agent) === index
@@ -188,7 +197,8 @@ export default function usePaneCreation({
         slugSuffix: isMultiLaunch ? getAgentSlugSuffix(firstAgent) : undefined,
         slugBase,
         targetProjectRoot: options.targetProjectRoot,
-        startPointBranch: options.startPointBranch,
+        startPointBranch: options.startPointBranch ?? paneInput.baseBranch,
+        branchNameOverride: options.branchNameOverride ?? paneInput.branchName,
         mergeTargetChain: options.mergeTargetChain,
       });
       createdByIndex[0] = firstPane;
@@ -214,7 +224,8 @@ export default function usePaneCreation({
               slugSuffix: getAgentSlugSuffix(selectedAgent),
               slugBase,
               targetProjectRoot: options.targetProjectRoot,
-              startPointBranch: options.startPointBranch,
+              startPointBranch: options.startPointBranch ?? paneInput.baseBranch,
+              branchNameOverride: options.branchNameOverride ?? paneInput.branchName,
               mergeTargetChain: options.mergeTargetChain,
             });
             createdByIndex[agentResultIndex] = pane;

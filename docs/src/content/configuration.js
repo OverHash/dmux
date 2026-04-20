@@ -79,7 +79,7 @@ export function render() {
       <tbody>
         <tr><td><strong>Type</strong></td><td><code>string</code></td></tr>
         <tr><td><strong>Default</strong></td><td><code>''</code> (current HEAD)</td></tr>
-        <tr><td><strong>Description</strong></td><td>Branch to create new worktrees from. Leave empty to use the current HEAD. The branch must exist in the repository.</td></tr>
+        <tr><td><strong>Description</strong></td><td>Branch or ref to create new worktrees from. Leave empty to use the current HEAD. This can be a local branch like <code>main</code> or a remote-tracking ref like <code>origin/main</code>.</td></tr>
       </tbody>
     </table>
 
@@ -89,6 +89,15 @@ export function render() {
         <tr><td><strong>Type</strong></td><td><code>string</code></td></tr>
         <tr><td><strong>Default</strong></td><td><code>''</code> (no prefix)</td></tr>
         <tr><td><strong>Description</strong></td><td>Prefix for new branch names. For example, setting this to <code>feat/</code> will create branches like <code>feat/fix-auth</code>. The worktree directory name stays flat (just the slug).</td></tr>
+      </tbody>
+    </table>
+
+    <h3><code>promptForGitOptionsOnCreate</code></h3>
+    <table>
+      <tbody>
+        <tr><td><strong>Type</strong></td><td><code>boolean</code></td></tr>
+        <tr><td><strong>Default</strong></td><td><code>false</code></td></tr>
+        <tr><td><strong>Description</strong></td><td>When enabled, the new-pane popup adds a second step for optional per-pane Git overrides. You can choose a different start-point ref for that pane and optionally provide an explicit branch/worktree name. Blank override fields fall back to the normal <code>baseBranch</code> and <code>branchPrefix</code> behavior.</td></tr>
       </tbody>
     </table>
 
@@ -126,10 +135,19 @@ export function render() {
   "useTmuxHooks": false,
   "baseBranch": "develop",
   "branchPrefix": "feat/",
+  "promptForGitOptionsOnCreate": true,
   "minPaneWidth": 50,
   "maxPaneWidth": 80
 }</code></pre>
     <p><code>.dmux.defaults.json</code> lives at the repo root and is intended for safe, team-wide defaults that you want in version control. Personal overrides still belong in <code>.dmux/settings.json</code> or <code>~/.dmux.global.json</code>.</p>
+
+    <h2>Create-Time Git Overrides</h2>
+    <p>With <code>promptForGitOptionsOnCreate</code> enabled, the popup can collect two optional per-pane overrides after you enter the prompt:</p>
+    <ul>
+      <li><strong>Base branch override</strong> — accepts local and remote refs. dmux prefers short local names like <code>main</code> when a local branch exists, and keeps qualified remote-only refs like <code>origin/release/2026.04</code> when they do not.</li>
+      <li><strong>Branch/worktree name override</strong> — lets you supply an explicit branch name such as <code>feat/LIN-123-fix-auth</code>. dmux derives a filesystem-safe worktree slug from that branch name automatically.</li>
+    </ul>
+    <p>These overrides apply only to the pane you are creating. They do not rewrite your saved settings.</p>
 
     <h2>macOS Attention Notifications</h2>
     <p>On macOS, dmux ships with a native helper that can send attention notifications for background panes. This is progressive enhancement only: dmux continues working on Linux and Windows without it.</p>
