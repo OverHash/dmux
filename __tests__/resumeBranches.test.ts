@@ -754,7 +754,7 @@ describe('resumeBranches', () => {
       }
 
       return output('');
-    }));
+    });
 
     const { resumeBranchWorkspace } = await import('../src/utils/resumeBranches.js');
 
