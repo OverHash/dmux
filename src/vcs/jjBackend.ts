@@ -39,10 +39,22 @@ export const jjVcsBackend: VcsBackend = {
     const workspaceName = input.workspaceName || input.slug;
     const revisionArg = input.startPointRef ? ` --revision "${input.startPointRef}"` : '';
 
-    runJjCommand(
-      `jj workspace add --name "${workspaceName}"${revisionArg} "${input.worktreePath}"`,
-      input.projectRoot
-    );
+    const workspaceAddCmd = `jj workspace add --name "${workspaceName}"${revisionArg} "${input.worktreePath}"`;
+
+    try {
+      runJjCommand(workspaceAddCmd, input.projectRoot);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      // jj can reject workspace operations when the default workspace has a stale
+      // working copy (e.g. after an operation was abandoned). Auto-recover and
+      // retry so dmux doesn't fail mid-pane-creation.
+      if (errorMsg.includes('stale')) {
+        runJjCommand('jj workspace update-stale', input.projectRoot);
+        runJjCommand(workspaceAddCmd, input.projectRoot);
+      } else {
+        throw error;
+      }
+    }
     runJjCommand(`jj bookmark set "${input.targetRef}" -r @`, input.worktreePath);
 
     if (!this.isRepository(input.worktreePath)) {
