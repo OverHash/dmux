@@ -371,6 +371,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           agent: 'claude',
           projectName: 'test-project',
           existingPanes: [],
+          projectRoot: '/test',
           slugBase: 'remote-base',
         },
         ['claude']
@@ -496,6 +497,7 @@ describe('Pane Lifecycle Integration Tests', () => {
     it('should attach to an existing jj workspace without recreating it', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
       const existingWorkspacePath = '/test/.dmux/worktrees/jj-reopen-me';
+      detectedVcsBackend.current = 'jj';
       createdWorktreePaths.add(existingWorkspacePath);
       createdWorktreePaths.add(`${existingWorkspacePath}/.jj`);
 
@@ -505,6 +507,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           agent: 'claude',
           projectName: 'test-project',
           existingPanes: [],
+          projectRoot: '/test',
           existingWorktree: {
             slug: 'jj-reopen-me',
             worktreePath: existingWorkspacePath,
@@ -753,6 +756,7 @@ describe('Pane Lifecycle Integration Tests', () => {
           prompt: 'investigate issue',
           agent: 'claude',
           projectName: 'test-project',
+          projectRoot: '/test',
           existingPanes: [
             {
               id: 'dmux-1',
@@ -843,6 +847,17 @@ describe('Pane Lifecycle Integration Tests', () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
 
       const missingWorktreePath = '/test/.dmux/worktrees/does-not-exist';
+      const baseImplementation = mockExecSync.getMockImplementation();
+      mockExecSync.mockImplementation(((command: string, options?: any) => {
+        if (
+          options?.cwd === missingWorktreePath
+          && command.includes('rev-parse --show-toplevel')
+        ) {
+          throw new Error('Not a git repository');
+        }
+
+        return baseImplementation?.(command, options);
+      }) as any);
 
       const result = await createPane(
         {
@@ -853,6 +868,8 @@ describe('Pane Lifecycle Integration Tests', () => {
           existingWorktree: {
             slug: 'does-not-exist',
             worktreePath: missingWorktreePath,
+            vcsBackend: 'git',
+            targetRef: 'does-not-exist',
             branchName: 'does-not-exist',
           },
         },

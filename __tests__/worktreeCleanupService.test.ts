@@ -92,6 +92,8 @@ describe('WorktreeCleanupService', () => {
     const pane: DmuxPane = {
       id: 'dmux-1',
       slug: 'react',
+      vcsBackend: 'git',
+      targetRef: 'react',
       branchName: 'react',
       prompt: '',
       paneId: '%1',
