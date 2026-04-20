@@ -86,7 +86,9 @@ export function normalizeGitRefCandidates(
   }
 
   for (const remoteRef of remoteRefs) {
-    if (remoteRef.endsWith('/HEAD')) {
+    // Ignore symbolic/default remote pointers (e.g. "origin" or "origin/HEAD").
+    // We only want concrete remote branch refs here.
+    if (!remoteRef.includes('/') || remoteRef.endsWith('/HEAD')) {
       continue;
     }
 

@@ -58,6 +58,24 @@ describe('new pane git options helpers', () => {
     ]);
   });
 
+  it('ignores symbolic remote pointers like bare origin and origin/HEAD', () => {
+    const candidates = normalizeGitRefCandidates(
+      ['master'],
+      ['origin', 'origin/HEAD', 'origin/master']
+    );
+
+    expect(candidates).toEqual([
+      {
+        label: 'master',
+        value: 'master',
+        shortName: 'master',
+        hasLocalBranch: true,
+        hasRemoteBranch: true,
+        acceptedValues: ['master', 'origin/master'],
+      },
+    ]);
+  });
+
   it('filters refs case-insensitively across labels and short names', () => {
     const candidates = normalizeGitRefCandidates(
       ['main'],
