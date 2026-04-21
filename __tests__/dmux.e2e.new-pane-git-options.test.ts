@@ -6,11 +6,11 @@ import os from 'os';
 import path from 'path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  filterGitRefCandidates,
+  filterStartPointRefCandidates,
   normalizeGitRefCandidates,
-  parseGitRefList,
+  parseStartPointRefList,
   START_POINT_ERROR_MESSAGE,
-  type GitRefCandidate,
+  type StartPointRefCandidate,
 } from '../src/components/popups/newPaneGitOptions.js';
 
 function hasCmd(cmd: string): boolean {
@@ -39,7 +39,7 @@ function detectPopupRunner(): string | null {
   return null;
 }
 
-function getGitRefCandidatesByRecentCommit(): GitRefCandidate[] {
+function getGitRefCandidatesByRecentCommit(): StartPointRefCandidate[] {
   const localRaw = execSync(
     "git for-each-ref --sort=-committerdate --format='%(refname:short)' refs/heads",
     { encoding: 'utf-8', stdio: 'pipe' }
@@ -49,7 +49,7 @@ function getGitRefCandidatesByRecentCommit(): GitRefCandidate[] {
     { encoding: 'utf-8', stdio: 'pipe' }
   );
 
-  return normalizeGitRefCandidates(parseGitRefList(localRaw), parseGitRefList(remoteRaw));
+  return normalizeGitRefCandidates(parseStartPointRefList(localRaw), parseStartPointRefList(remoteRaw));
 }
 
 async function poll<T>(
@@ -164,7 +164,7 @@ describe.sequential('dmux e2e: new pane git options popup', () => {
     const resultFile = path.join(tempDir, 'result.json');
     const topRef = startPointRefs[0];
     const partial = topRef.label.slice(0, Math.min(3, topRef.label.length));
-    const expectedRef = filterGitRefCandidates(startPointRefs, partial)[0] || topRef;
+    const expectedRef = filterStartPointRefCandidates(startPointRefs, partial)[0] || topRef;
 
     try {
       try { execSync(`tmux -L ${server} kill-session -t ${session}`, { stdio: 'pipe' }); } catch {}

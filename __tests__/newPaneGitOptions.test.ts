@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   START_POINT_ERROR_MESSAGE,
+  START_POINT_BOOKMARK_ERROR_MESSAGE,
   clampSelectedIndex,
-  filterGitRefCandidates,
-  getVisibleGitRefWindow,
+  filterStartPointRefCandidates,
+  getStartPointErrorMessage,
+  getVisibleStartPointRefWindow,
   isValidStartPointOverride,
   normalizeGitRefCandidates,
-  parseGitRefList,
+  parseStartPointRefList,
   resolveStartPointEnter,
 } from '../src/components/popups/newPaneGitOptions.js';
 
 describe('new pane git options helpers', () => {
   it('parses ref output preserving order and removing duplicates', () => {
-    const parsed = parseGitRefList('main\norigin/main\norigin/main\n\nfeature/a\n');
+    const parsed = parseStartPointRefList('main\norigin/main\norigin/main\n\nfeature/a\n');
     expect(parsed).toEqual(['main', 'origin/main', 'feature/a']);
   });
 
@@ -82,9 +84,9 @@ describe('new pane git options helpers', () => {
       ['origin/release/2026.04', 'upstream/hotfix/auth']
     );
 
-    expect(filterGitRefCandidates(candidates, 'release')).toEqual([candidates[1]]);
-    expect(filterGitRefCandidates(candidates, 'HOTFIX')).toEqual([candidates[2]]);
-    expect(filterGitRefCandidates(candidates, 'main')).toEqual([candidates[0]]);
+    expect(filterStartPointRefCandidates(candidates, 'release')).toEqual([candidates[1]]);
+    expect(filterStartPointRefCandidates(candidates, 'HOTFIX')).toEqual([candidates[2]]);
+    expect(filterStartPointRefCandidates(candidates, 'main')).toEqual([candidates[0]]);
   });
 
   it('matches accepted remote aliases when local-backed short names are displayed', () => {
@@ -93,7 +95,7 @@ describe('new pane git options helpers', () => {
       ['origin/main']
     );
 
-    expect(filterGitRefCandidates(candidates, 'origin/main')).toEqual([candidates[0]]);
+    expect(filterStartPointRefCandidates(candidates, 'origin/main')).toEqual([candidates[0]]);
   });
 
   it('clamps selection index to valid bounds', () => {
@@ -111,7 +113,7 @@ describe('new pane git options helpers', () => {
       hasLocalBranch: false,
       hasRemoteBranch: true,
     }));
-    const window = getVisibleGitRefWindow(candidates, 12, 10);
+    const window = getVisibleStartPointRefWindow(candidates, 12, 10);
 
     expect(window.startIndex).toBe(7);
     expect(window.visibleCandidates).toHaveLength(10);
@@ -143,6 +145,7 @@ describe('new pane git options helpers', () => {
       availableRefs: candidates,
       filteredRefs: [candidates[1]],
       selectedIndex: 0,
+      backend: 'git',
     });
 
     expect(resolution).toEqual({
@@ -162,6 +165,7 @@ describe('new pane git options helpers', () => {
       availableRefs: candidates,
       filteredRefs: [],
       selectedIndex: 0,
+      backend: 'git',
     });
 
     expect(resolution).toEqual({
@@ -181,6 +185,7 @@ describe('new pane git options helpers', () => {
       availableRefs: candidates,
       filteredRefs: [candidates[0]],
       selectedIndex: 0,
+      backend: 'git',
     });
 
     expect(resolution).toEqual({
@@ -200,12 +205,32 @@ describe('new pane git options helpers', () => {
       availableRefs: candidates,
       filteredRefs: [],
       selectedIndex: 0,
+      backend: 'git',
     });
 
     expect(resolution).toEqual({
       accepted: false,
       nextValue: 'missing-branch',
       error: START_POINT_ERROR_MESSAGE,
+    });
+  });
+
+  it('uses bookmark-specific validation copy for jj', () => {
+    expect(getStartPointErrorMessage('git')).toBe(START_POINT_ERROR_MESSAGE);
+    expect(getStartPointErrorMessage('jj')).toBe(START_POINT_BOOKMARK_ERROR_MESSAGE);
+
+    const resolution = resolveStartPointEnter({
+      currentValue: 'missing-bookmark',
+      availableRefs: normalizeGitRefCandidates(['main'], []),
+      filteredRefs: [],
+      selectedIndex: 0,
+      backend: 'jj',
+    });
+
+    expect(resolution).toEqual({
+      accepted: false,
+      nextValue: 'missing-bookmark',
+      error: START_POINT_BOOKMARK_ERROR_MESSAGE,
     });
   });
 });

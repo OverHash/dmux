@@ -196,7 +196,7 @@ export async function createPane(
   }
 
   const overrideBranchName = (branchNameOverride || '').trim();
-  if (vcsBackend === 'git' && overrideBranchName && !isValidBranchName(overrideBranchName)) {
+  if (overrideBranchName && !isValidBranchName(overrideBranchName)) {
     throw new Error(`Invalid branch name override: ${overrideBranchName}`);
   }
 
@@ -213,7 +213,7 @@ export async function createPane(
         generatedSlug,
         slugSuffix,
         branchPrefix: vcsBackend === 'git' ? branchPrefix : undefined,
-        branchNameOverride: vcsBackend === 'git' ? overrideBranchName : undefined,
+        branchNameOverride: overrideBranchName,
       });
   const slug = resolvedNaming.slug;
   const targetRef = existingWorktree

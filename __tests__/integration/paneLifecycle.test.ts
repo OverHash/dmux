@@ -437,6 +437,44 @@ describe('Pane Lifecycle Integration Tests', () => {
       }
     });
 
+    it('should use a jj target bookmark override for pane naming and bookmark creation', async () => {
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+      detectedVcsBackend.current = 'jj';
+      fsMock.readFileSync.mockImplementation(((target: string) => {
+        if (String(target).endsWith('.dmux.global.json')) {
+          return JSON.stringify({ vcsBackend: 'jj' });
+        }
+
+        return JSON.stringify({ controlPaneId: '%0' });
+      }) as any);
+
+      const result = await createPane(
+        {
+          prompt: 'override jj target bookmark',
+          agent: 'claude',
+          projectName: 'test-project',
+          projectRoot: '/test',
+          existingPanes: [],
+          branchNameOverride: 'feat/jj-target-bookmark',
+        },
+        ['claude']
+      );
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('jj bookmark set "feat/jj-target-bookmark" -r @'),
+        expect.any(Object)
+      );
+
+      if ('pane' in result) {
+        expect(result.pane.slug).toBe('feat-jj-target-bookmark');
+        expect(result.pane.vcsBackend).toBe('jj');
+        expect(result.pane.targetRef).toBe('feat/jj-target-bookmark');
+        if (result.pane.vcsBackend === 'jj') {
+          expect(result.pane.workspaceName).toBe('feat-jj-target-bookmark');
+        }
+      }
+    });
+
     it('should pass jj start points through --revision', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
       detectedVcsBackend.current = 'jj';

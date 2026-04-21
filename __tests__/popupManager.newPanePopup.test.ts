@@ -47,7 +47,7 @@ describe('PopupManager launchNewPanePopup', () => {
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
       'newPanePopup.js',
-      ['/tmp/other-project', '1'],
+      ['/tmp/other-project', '1', 'git'],
       expect.objectContaining({
         title: '  ✨ New Pane — other-project  ',
       }),
@@ -73,7 +73,29 @@ describe('PopupManager launchNewPanePopup', () => {
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
       'newPanePopup.js',
-      ['/tmp/project', '0'],
+      ['/tmp/project', '0', 'git'],
+      expect.any(Object),
+      undefined,
+      '/tmp/project'
+    );
+  });
+
+  it('passes jj backend mode when project is configured for jj', async () => {
+    const manager = createPopupManager({
+      promptForGitOptionsOnCreate: true,
+      vcsBackend: 'jj',
+    }) as any;
+    manager.checkPopupSupport = vi.fn(() => true);
+    manager.launchPopup = vi.fn().mockResolvedValue({
+      success: true,
+      data: { prompt: 'jj prompt', baseBranch: 'main', branchName: 'feat/jj-target' },
+    });
+
+    await manager.launchNewPanePopup('/tmp/project');
+
+    expect(manager.launchPopup).toHaveBeenCalledWith(
+      'newPanePopup.js',
+      ['/tmp/project', '1', 'jj'],
       expect.any(Object),
       undefined,
       '/tmp/project'
