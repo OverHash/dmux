@@ -1,6 +1,7 @@
 import path from 'path';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import type { DmuxPane, DmuxConfig, MergeTargetReference } from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
@@ -12,37 +13,25 @@ import {
 import { SIDEBAR_WIDTH, recalculateAndApplyLayout } from './layoutManager.js';
 import { generateSlug } from './slug.js';
 import { capturePaneContent } from './paneCapture.js';
-import { triggerHook, triggerHookSync, initializeHooksDirectory } from './hooks.js';
-import { TMUX_LAYOUT_APPLY_DELAY, TMUX_SPLIT_DELAY } from '../constants/timing.js';
+import { triggerHook } from './hooks.js';
+import { TMUX_SPLIT_DELAY } from '../constants/timing.js';
 import { atomicWriteJsonSync } from './atomicWrite.js';
 import { LogService } from '../services/LogService.js';
 import {
   appendSlugSuffix,
-  buildAgentCommand,
-  buildInitialPromptCommand,
-  getAgentProcessName,
-  getPromptTransport,
-  getSendKeysPostPasteDelayMs,
-  getSendKeysPrePrompt,
-  getSendKeysReadyDelayMs,
-  getSendKeysSubmit,
   type AgentName,
 } from './agentLaunch.js';
-import { buildWorktreePaneTitle } from './paneTitle.js';
-import {
-  buildPromptReadAndDeleteSnippet,
-  writePromptFile,
-} from './promptStore.js';
-import { ensureGeminiFolderTrusted } from './geminiTrust.js';
+import { getPaneTmuxTitle } from './paneTitle.js';
+import { shellQuote } from './promptStore.js';
 import { isValidBranchName } from './git.js';
-import { sendPromptViaTmux } from './agentPromptDispatch.js';
-import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
-import {
-  buildCodexHookedCommand,
-  installCodexPaneHooks,
-} from './codexHooks.js';
+import { readWorktreeMetadata } from './worktreeMetadata.js';
 import { resolveProjectColorTheme } from './paneColors.js';
 import type { SidebarProject } from '../types.js';
+import { StateManager } from '../shared/StateManager.js';
+import {
+  DMUX_BOOTSTRAP_PANE_TITLE_PREFIX,
+  type PaneBootstrapConfig,
+} from './paneBootstrapConfig.js';
 
 export interface CreatePaneOptions {
   prompt: string;
@@ -116,6 +105,46 @@ function getPaneSplitTarget(
     currentWindowPaneIds
   );
   return visibleExistingPaneIds[visibleExistingPaneIds.length - 1] || controlPaneId;
+}
+
+function resolvePaneBootstrapRunnerPath(): string {
+  const currentFile = fileURLToPath(import.meta.url);
+  const utilsDir = path.dirname(currentFile);
+  const compiledRunner = path.join(utilsDir, 'paneBootstrapRunner.js');
+  if (fs.existsSync(compiledRunner)) {
+    return compiledRunner;
+  }
+
+  return path.join(utilsDir, 'paneBootstrapRunner.ts');
+}
+
+function writePaneBootstrapConfig(
+  projectRoot: string,
+  slug: string,
+  config: PaneBootstrapConfig
+): string {
+  const bootstrapDir = path.join(projectRoot, '.dmux', 'bootstrap');
+  fs.mkdirSync(bootstrapDir, { recursive: true });
+  const configPath = path.join(
+    bootstrapDir,
+    `${slug}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`
+  );
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+  return configPath;
+}
+
+function buildPaneBootstrapCommand(
+  runnerPath: string,
+  configPath: string,
+  worktreePath: string
+): string {
+  const statusVar = '__dmux_bootstrap_status';
+  return [
+    `${shellQuote(process.execPath)} ${shellQuote(runnerPath)} ${shellQuote(configPath)}`,
+    `${statusVar}=$?`,
+    `if [ -d ${shellQuote(worktreePath)} ]; then cd ${shellQuote(worktreePath)}; fi`,
+    `test $${statusVar} -eq 0 || true`,
+  ].join('; ');
 }
 
 /**
@@ -356,12 +385,14 @@ export async function createPane(
 
   await waitForPaneReady(tmuxService, paneInfo);
 
-  // Set pane title (project-tagged for collision-safe rebinding across projects)
+  // Mark the pane as dmux-owned immediately. Without this, the shell-pane
+  // detector can race the config save and classify a still-bootstrapping
+  // worktree pane as a user-created shell pane.
   try {
-    const paneTitle = projectRoot === sessionProjectRoot
-      ? slug
-      : buildWorktreePaneTitle(slug, projectRoot, paneProjectName);
-    await tmuxService.setPaneTitle(paneInfo, paneTitle);
+    await tmuxService.setPaneTitle(
+      paneInfo,
+      `${DMUX_BOOTSTRAP_PANE_TITLE_PREFIX}${slug}`
+    );
   } catch {
     // Ignore if setting title fails
   }
@@ -398,160 +429,16 @@ export async function createPane(
     || /\.dmux-hooks/i.test(prompt)
   );
 
-  // Create git worktree and cd into it
-  try {
-    if (existingWorktree) {
-      if (!fs.existsSync(path.join(worktreePath, '.git'))) {
-        throw new Error(`Existing worktree not found at ${worktreePath}`);
-      }
-
-      await tmuxService.sendShellCommand(paneInfo, `cd "${worktreePath}"`);
-      await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    } else {
-      // IMPORTANT: Prune stale worktrees first to avoid conflicts
-      // This must run synchronously from dmux, not in the pane
-      try {
-        execSync('git worktree prune', {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          cwd: projectRoot,
-        });
-      } catch {
-        // Ignore prune errors, proceed anyway
-      }
-
-      // Validate and resolve base branch for new worktrees
-      const baseBranch = settings.baseBranch || '';
-      if (baseBranch && !isValidBranchName(baseBranch)) {
-        throw new Error(`Invalid base branch name: ${baseBranch}`);
-      }
-      const resolvedStartPoint = startPointBranch || baseBranch;
-      if (resolvedStartPoint && !isValidBranchName(resolvedStartPoint)) {
-        throw new Error(`Invalid worktree start-point branch name: ${resolvedStartPoint}`);
-      }
-      if (resolvedStartPoint) {
-        try {
-          execSync(`git rev-parse --verify --end-of-options "${resolvedStartPoint}"`, {
-            stdio: 'pipe',
-            cwd: projectRoot,
-          });
-        } catch {
-          if (startPointBranch) {
-            throw new Error(
-              `Worktree start-point branch "${resolvedStartPoint}" does not exist anymore. Reopen the parent worktree or recreate it before branching again.`
-            );
-          }
-
-          throw new Error(
-            `Base branch "${resolvedStartPoint}" does not exist. Update the baseBranch setting to a valid branch name.`
-          );
-        }
-      }
-
-      const maxWorktreeAttempts = 3;
-      const maxWaitTime = 5000; // 5 seconds max
-      const checkInterval = 100; // Check every 100ms
-      let worktreeCreated = fs.existsSync(worktreePath);
-
-      for (let attempt = 1; attempt <= maxWorktreeAttempts && !worktreeCreated; attempt++) {
-        // Check if branch already exists (from a deleted worktree or a previous attempt)
-        let branchExists = false;
-        try {
-          execSync(`git show-ref --verify --quiet "refs/heads/${branchName}"`, {
-            stdio: 'pipe',
-            cwd: projectRoot,
-          });
-          branchExists = true;
-        } catch {
-          // Branch doesn't exist yet
-        }
-
-        // Build worktree command:
-        // - If branch exists, use it (don't create with -b)
-        // - If branch doesn't exist, create it with -b, optionally from a configured base branch
-        const startPoint = resolvedStartPoint ? ` "${resolvedStartPoint}"` : '';
-        const worktreeAddCmd = branchExists
-          ? `git worktree add "${worktreePath}" "${branchName}"`
-          : `git worktree add "${worktreePath}" -b "${branchName}"${startPoint}`;
-        const worktreeCmd = `cd "${projectRoot}" && ${worktreeAddCmd} && cd "${worktreePath}"`;
-
-        // Send the git worktree command (auto-quoted by sendShellCommand)
-        await tmuxService.sendShellCommand(paneInfo, worktreeCmd);
-        await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
-
-        const startTime = Date.now();
-        while (!fs.existsSync(worktreePath) && (Date.now() - startTime) < maxWaitTime) {
-          await new Promise((resolve) => setTimeout(resolve, checkInterval));
-        }
-
-        worktreeCreated = fs.existsSync(worktreePath);
-        if (!worktreeCreated && attempt < maxWorktreeAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
-        }
-      }
-
-      // Verify worktree was created successfully
-      if (!worktreeCreated) {
-        throw new Error(`Worktree directory not created at ${worktreePath} after ${maxWorktreeAttempts} attempts`);
-      }
-
-      // Give a bit more time for git to finish setting up the worktree
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
-    try {
-      writeWorktreeMetadata(worktreePath, {
-        agent,
-        permissionMode: settings.permissionMode,
-        displayName: existingWorktreeMetadata?.displayName,
-        branchName: branchName !== slug ? branchName : undefined,
-        mergeTargetChain,
-      });
-    } catch (metadataError) {
-      LogService.getInstance().warn(
-        `Failed to persist worktree metadata for ${slug}: ${metadataError}`,
-        'paneCreation'
-      );
-    }
-
-    // Initialize .dmux-hooks if this is a hooks editing session
-    if (isHooksEditingSession) {
-      initializeHooksDirectory(worktreePath);
-    }
-  } catch (error) {
-    // Worktree creation failed - kill the pane and abort. Leaving the pane
-    // open at projectRoot is dangerous because the agent would run against
-    // the main checkout instead of an isolated worktree.
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    LogService.getInstance().error(
-      `Worktree creation failed for ${slug}: ${errorMsg}`,
-      'paneCreation',
-      undefined,
-      error instanceof Error ? error : undefined
-    );
-    try {
-      await tmuxService.killPane(paneInfo);
-    } catch (killError) {
-      LogService.getInstance().warn(
-        `Failed to kill pane ${paneInfo} after worktree creation failure: ${killError}`,
-        'paneCreation'
-      );
-    }
-    if (controlPaneId) {
-      try {
-        await tmuxService.selectPane(controlPaneId);
-      } catch {
-        // best-effort focus restore
-      }
-    }
-    throw new Error(`Failed to create worktree for "${slug}": ${errorMsg}`);
+  // Validate branch settings before handing the slow setup work to the pane.
+  const baseBranch = settings.baseBranch || '';
+  if (baseBranch && !isValidBranchName(baseBranch)) {
+    throw new Error(`Invalid base branch name: ${baseBranch}`);
+  }
+  const resolvedStartPoint = startPointBranch || baseBranch || undefined;
+  if (resolvedStartPoint && !isValidBranchName(resolvedStartPoint)) {
+    throw new Error(`Invalid worktree start-point branch name: ${resolvedStartPoint}`);
   }
 
-  // Build the pane object now so the worktree_created hook can receive full
-  // pane context. The hook must succeed before we launch the agent — a
-  // failing hook means the worktree is in an unknown state and running a
-  // prompt against it would be dangerous.
   const newPane: DmuxPane = {
     id: `dmux-${Date.now()}`,
     slug,
@@ -570,136 +457,58 @@ export async function createPane(
     mergeTargetChain,
   };
 
-  // Run worktree_created hook synchronously BEFORE launching the agent.
-  // If the hook fails, tear down the pane and abort so the agent never
-  // runs against a half-configured worktree.
-  const hookResult = await triggerHookSync('worktree_created', projectRoot, newPane);
-  if (!hookResult.success) {
-    const hookError = hookResult.error || 'unknown error';
+  const state = StateManager.getInstance().getState();
+  const tmuxTitle = getPaneTmuxTitle(newPane, sessionProjectRoot);
+  const hookExtraEnv = state.serverPort
+    ? { DMUX_SERVER_PORT: String(state.serverPort) }
+    : undefined;
+  const bootstrapConfig: PaneBootstrapConfig = {
+    version: 1,
+    projectRoot,
+    worktreePath,
+    branchName,
+    slug,
+    prompt,
+    agent,
+    permissionMode: settings.permissionMode,
+    pane: newPane,
+    tmuxTitle,
+    existingWorktree: !!existingWorktree,
+    resolvedStartPoint,
+    isHooksEditingSession,
+    metadata: {
+      agent,
+      permissionMode: settings.permissionMode,
+      displayName: existingWorktreeMetadata?.displayName,
+      branchName: branchName !== slug ? branchName : undefined,
+      mergeTargetChain,
+    },
+    hookExtraEnv,
+  };
+
+  try {
+    const bootstrapConfigPath = writePaneBootstrapConfig(projectRoot, slug, bootstrapConfig);
+    const bootstrapCommand = buildPaneBootstrapCommand(
+      resolvePaneBootstrapRunnerPath(),
+      bootstrapConfigPath,
+      worktreePath
+    );
+    await tmuxService.sendShellCommand(paneInfo, bootstrapCommand);
+    await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     LogService.getInstance().error(
-      `worktree_created hook failed for ${slug}: ${hookError}`,
-      'paneCreation'
+      `Failed to start pane bootstrap for ${slug}: ${errorMsg}`,
+      'paneCreation',
+      undefined,
+      error instanceof Error ? error : undefined
     );
     try {
       await tmuxService.killPane(paneInfo);
-    } catch (killError) {
-      LogService.getInstance().warn(
-        `Failed to kill pane ${paneInfo} after worktree_created hook failure: ${killError}`,
-        'paneCreation'
-      );
+    } catch {
+      // best-effort cleanup
     }
-    if (controlPaneId) {
-      try {
-        await tmuxService.selectPane(controlPaneId);
-      } catch {
-        // best-effort focus restore
-      }
-    }
-    throw new Error(`worktree_created hook failed for "${slug}": ${hookError}`);
-  }
-
-  // Launch agent if specified
-  const hasInitialPrompt = !!(prompt && prompt.trim());
-
-  if (agent) {
-    if (agent === 'gemini') {
-      const geminiWorkspacePath = fs.existsSync(worktreePath)
-        ? worktreePath
-        : projectRoot;
-      ensureGeminiFolderTrusted(geminiWorkspacePath);
-    }
-
-    let codexHookEventFile: string | undefined;
-    if (agent === 'codex') {
-      try {
-        codexHookEventFile = installCodexPaneHooks({
-          worktreePath,
-          dmuxPaneId: newPane.id,
-          tmuxPaneId: paneInfo,
-        }).eventFile;
-      } catch (error) {
-        LogService.getInstance().warn(
-          `Failed to install Codex hooks for ${slug}: ${error instanceof Error ? error.message : String(error)}`,
-          'paneCreation',
-          newPane.id
-        );
-      }
-    }
-
-    const promptTransport = getPromptTransport(agent);
-    const shouldSendPromptViaTmux = hasInitialPrompt && promptTransport === 'send-keys';
-    let baselineCommand: string | undefined;
-    if (shouldSendPromptViaTmux) {
-      try {
-        baselineCommand = await tmuxService.getPaneCurrentCommand(paneInfo);
-      } catch {
-        baselineCommand = undefined;
-      }
-    }
-
-    let launchCommand: string;
-    if (hasInitialPrompt && !shouldSendPromptViaTmux) {
-      let promptFilePath: string | null = null;
-      try {
-        promptFilePath = await writePromptFile(projectRoot, slug, prompt);
-      } catch {
-        // Fall back to inline escaping if prompt file write fails
-      }
-
-      if (promptFilePath) {
-        const promptBootstrap = buildPromptReadAndDeleteSnippet(promptFilePath);
-        launchCommand = `${promptBootstrap}; ${buildInitialPromptCommand(
-          agent,
-          '"$DMUX_PROMPT_CONTENT"',
-          settings.permissionMode
-        )}`;
-      } else {
-        const escapedPrompt = prompt
-          .replace(/\\/g, '\\\\')
-          .replace(/"/g, '\\"')
-          .replace(/`/g, '\\`')
-          .replace(/\$/g, '\\$');
-        launchCommand = buildInitialPromptCommand(
-          agent,
-          `"${escapedPrompt}"`,
-          settings.permissionMode
-        );
-      }
-    } else {
-      launchCommand = buildAgentCommand(agent, settings.permissionMode);
-    }
-
-    if (agent === 'codex') {
-      launchCommand = buildCodexHookedCommand(launchCommand, {
-        dmuxPaneId: newPane.id,
-        tmuxPaneId: paneInfo,
-        eventFile: codexHookEventFile,
-      });
-    }
-
-    await tmuxService.sendShellCommand(paneInfo, launchCommand);
-    await tmuxService.sendTmuxKeys(paneInfo, 'Enter');
-
-    if (shouldSendPromptViaTmux) {
-      await sendPromptViaTmux({
-        paneId: paneInfo,
-        prompt,
-        tmuxService,
-        expectedCommand: getAgentProcessName(agent),
-        baselineCommand,
-        prePromptKeys: getSendKeysPrePrompt(agent),
-        submitKeys: getSendKeysSubmit(agent),
-        postPasteDelayMs: getSendKeysPostPasteDelayMs(agent),
-        readyDelayMs: getSendKeysReadyDelayMs(agent),
-      });
-    }
-
-    if (agent === 'claude') {
-      // Auto-approve trust prompts for Claude (workspace trust, not edit permissions)
-      autoApproveTrustPrompt(paneInfo, prompt).catch(() => {
-        // Ignore errors in background monitoring
-      });
-    }
+    throw new Error(`Failed to start pane bootstrap for "${slug}": ${errorMsg}`);
   }
 
   // Keep focus on the new pane
