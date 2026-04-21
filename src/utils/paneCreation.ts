@@ -83,6 +83,41 @@ async function waitForPaneReady(
   }
 }
 
+function getCurrentWindowPaneIds(tmuxService: TmuxService): string[] {
+  try {
+    return tmuxService.getAllPaneIdsSync();
+  } catch {
+    return [];
+  }
+}
+
+function getVisibleExistingPaneIds(
+  existingPanes: DmuxPane[],
+  currentWindowPaneIds: string[]
+): string[] {
+  return existingPanes
+    .filter((pane) => {
+      if (currentWindowPaneIds.length > 0) {
+        return currentWindowPaneIds.includes(pane.paneId);
+      }
+
+      return !pane.hidden;
+    })
+    .map((pane) => pane.paneId);
+}
+
+function getPaneSplitTarget(
+  existingPanes: DmuxPane[],
+  currentWindowPaneIds: string[],
+  controlPaneId: string | undefined
+): string | undefined {
+  const visibleExistingPaneIds = getVisibleExistingPaneIds(
+    existingPanes,
+    currentWindowPaneIds
+  );
+  return visibleExistingPaneIds[visibleExistingPaneIds.length - 1] || controlPaneId;
+}
+
 /**
  * Core pane creation logic that can be used by both TUI and API
  * Returns the newly created pane and whether agent choice is needed
@@ -198,6 +233,7 @@ export async function createPane(
   const worktreePath = existingWorktree?.worktreePath
     || path.join(projectRoot, '.dmux', 'worktrees', slug);
   const originalPaneId = tmuxService.getCurrentPaneIdSync();
+  let currentWindowPaneIds = getCurrentWindowPaneIds(tmuxService);
 
   // Load config to get control pane info
   const configPath = optionsSessionConfigPath
@@ -263,12 +299,13 @@ export async function createPane(
       // This way we can save the pane to config first, THEN destroy welcome pane
       paneInfo = setupSidebarLayout(controlPaneId, projectRoot);
     } else {
-      // Subsequent panes - always split horizontally, let layout manager organize
-      // Get actual dmux pane IDs (not welcome pane) from existingPanes
-      const dmuxPaneIds = existingPanes.map(p => p.paneId);
-      const targetPane = dmuxPaneIds[dmuxPaneIds.length - 1]; // Split from the most recent dmux pane
-
-      // Always split horizontally - the layout manager will organize panes optimally
+      // Split from a pane in the active dmux window. Hidden panes live in
+      // detached tmux windows, so targeting them would create a hidden pane.
+      const targetPane = getPaneSplitTarget(
+        existingPanes,
+        currentWindowPaneIds,
+        controlPaneId
+      );
       paneInfo = splitPane({ targetPane, cwd: projectRoot });
     }
   } catch (error) {
@@ -303,8 +340,12 @@ export async function createPane(
       if (isFirstContentPane) {
         paneInfo = setupSidebarLayout(controlPaneId, projectRoot);
       } else {
-        const dmuxPaneIds = existingPanes.map(p => p.paneId);
-        const targetPane = dmuxPaneIds[dmuxPaneIds.length - 1];
+        currentWindowPaneIds = getCurrentWindowPaneIds(tmuxService);
+        const targetPane = getPaneSplitTarget(
+          existingPanes,
+          currentWindowPaneIds,
+          controlPaneId
+        );
         paneInfo = splitPane({ targetPane, cwd: projectRoot });
       }
     } else {
@@ -328,7 +369,8 @@ export async function createPane(
   // Apply optimal layout using the layout manager
   if (controlPaneId) {
     const dimensions = getTerminalDimensions();
-    const allContentPaneIds = [...existingPanes.map(p => p.paneId), paneInfo];
+    const visibleContentPaneIds = getVisibleExistingPaneIds(existingPanes, currentWindowPaneIds);
+    const allContentPaneIds = [...visibleContentPaneIds, paneInfo];
 
     await recalculateAndApplyLayout(
       controlPaneId,
@@ -522,6 +564,7 @@ export async function createPane(
     colorTheme: resolveProjectColorTheme(projectRoot, configSidebarProjects),
     worktreePath,
     agent,
+    hidden: false,
     permissionMode: settings.permissionMode,
     autopilot: settings.enableAutopilotByDefault ?? false,
     mergeTargetChain,

@@ -412,6 +412,61 @@ describe('Pane Lifecycle Integration Tests', () => {
       expect(worktreeCall?.[0]).toContain('cd "/target/repo" && git worktree add "/target/repo/.dmux/worktrees/target-slug"');
     });
 
+    it('should split new panes from a visible pane when the newest tracked pane is hidden', async () => {
+      const defaultExecSync = mockExecSync.getMockImplementation();
+      mockExecSync.mockImplementation((command: string, options?: any) => {
+        const cmd = command.toString().trim();
+        if (cmd === 'tmux list-panes -F "#{pane_id}"') {
+          return options?.encoding === 'utf-8'
+            ? '%0\n%1'
+            : Buffer.from('%0\n%1');
+        }
+
+        return defaultExecSync?.(command, options);
+      });
+
+      const { createPane } = await import('../../src/utils/paneCreation.js');
+
+      const result = await createPane(
+        {
+          prompt: 'create visible pane',
+          agent: 'claude',
+          projectName: 'test-project',
+          existingPanes: [
+            {
+              id: 'dmux-visible',
+              slug: 'visible',
+              prompt: 'visible pane',
+              paneId: '%1',
+              hidden: false,
+              projectRoot: '/test',
+              worktreePath: '/test/.dmux/worktrees/visible',
+            },
+            {
+              id: 'dmux-hidden',
+              slug: 'hidden',
+              prompt: 'hidden pane',
+              paneId: '%9',
+              hidden: true,
+              projectRoot: '/other/repo',
+              worktreePath: '/other/repo/.dmux/worktrees/hidden',
+            },
+          ],
+          slugBase: 'visible-new-pane',
+        },
+        ['claude']
+      );
+
+      const splitCall = mockExecSync.mock.calls.find(([cmd]) =>
+        typeof cmd === 'string' && cmd.includes('tmux split-window')
+      );
+      expect(splitCall?.[0]).toContain("-t '%1'");
+
+      if ('pane' in result) {
+        expect(result.pane.hidden).toBe(false);
+      }
+    });
+
     it('should destroy the welcome pane when tracked shell panes make the pane list non-empty', async () => {
       const { createPane } = await import('../../src/utils/paneCreation.js');
 
