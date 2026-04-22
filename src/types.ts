@@ -1,7 +1,6 @@
 import type { AgentName, PermissionMode } from './utils/agentLaunch.js';
 import type { NotificationSoundId } from './utils/notificationSounds.js';
 import type { VcsBackendSetting } from './vcs/types.js';
-import type { VcsBackendSetting } from './vcs/types.js';
 
 export type DmuxThemeName =
   | 'red'

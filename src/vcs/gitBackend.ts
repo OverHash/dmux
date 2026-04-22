@@ -32,7 +32,7 @@ export const gitVcsBackend: VcsBackend = {
         'git rev-parse --path-format=absolute --git-common-dir',
         workingDir
       );
-      if (gitCommonDir && gitCommonDir !== '.git') {
+      if (gitCommonDir && gitCommonDir !== '.git' && path.isAbsolute(gitCommonDir)) {
         return path.dirname(gitCommonDir);
       }
     } catch {
