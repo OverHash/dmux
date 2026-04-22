@@ -5,7 +5,6 @@ import chalk from 'chalk';
 import fs from 'fs/promises';
 import * as fsSync from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { render } from 'ink';
 import React from 'react';
 import { createHash } from 'crypto';
@@ -36,6 +35,8 @@ import {
 import { ensureTmuxRuntimeCompatibility } from './utils/tmuxRuntimeCompatibility.js';
 import { claimProcessShutdown } from './utils/processShutdown.js';
 import { sendTmuxShellCommand } from './utils/tmuxSendKeys.js';
+import { buildDmuxCommand } from './utils/dmuxCommand.js';
+import { sanitizePathForInstalledDmux } from './utils/pathEnvironment.js';
 import {
   addSidebarProject,
   getAutoSidebarProjectColorTheme,
@@ -69,7 +70,6 @@ import {
 } from './utils/paneTitlePrefix.js';
 import type { DmuxConfig, DmuxPane } from './types.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json');
 
@@ -215,6 +215,7 @@ class Dmux {
 
     if (inTmux) {
       ensureTmuxRuntimeCompatibility(sessionNameForCurrentTmux);
+      this.setSessionPathEnvironment(sessionNameForCurrentTmux);
     }
 
     // Running dmux from another project while already inside a dmux session:
@@ -288,6 +289,7 @@ class Dmux {
 
       if (sessionExists) {
         ensureTmuxRuntimeCompatibility(this.sessionName);
+        this.setSessionPathEnvironment(this.sessionName);
         this.applySessionPaneBorderOptions(this.sessionName, 'pipe');
         // Existing session:
         // In dev mode, always ensure watcher loop is running from the intended source.
@@ -311,6 +313,7 @@ class Dmux {
         // Create new session first
         execSync(`tmux new-session -d -s ${this.sessionName}`, { stdio: 'inherit' });
         ensureTmuxRuntimeCompatibility(this.sessionName);
+        this.setSessionPathEnvironment(this.sessionName);
         // Batch all session configuration commands into a single tmux call for faster startup
         // This reduces 5 process spawns to 1, significantly improving startup time
         this.applySessionPaneBorderOptions(this.sessionName, 'inherit');
@@ -321,16 +324,7 @@ class Dmux {
         if (isDev) {
           dmuxCommand = buildDevWatchCommand(devDirectory);
         } else {
-          // Check if we're running from a local installation
-          // __dirname is 'dist' when compiled, so '../dmux' points to the wrapper
-          const localDmuxPath = path.join(__dirname, '..', 'dmux');
-          if (fsSync.existsSync(localDmuxPath)) {
-            // Use absolute path to local dmux (works for both local builds and global installs)
-            dmuxCommand = `"${localDmuxPath}"`;
-          } else {
-            // Fallback to global dmux command
-            dmuxCommand = 'dmux';
-          }
+          dmuxCommand = buildDmuxCommand([], this.projectRoot);
         }
 
         sendTmuxShellCommand(this.sessionName, dmuxCommand, 'inherit');
@@ -1287,6 +1281,15 @@ class Dmux {
 
     execSync(`tmux ${sessionOptions}`, { stdio });
     applyTmuxThemeToSession(sessionName, this.projectRoot);
+  }
+
+  private setSessionPathEnvironment(sessionName: string): void {
+    const cleanPath = sanitizePathForInstalledDmux(process.env.PATH || '', this.projectRoot);
+    if (!cleanPath) return;
+
+    spawnSync('tmux', ['set-environment', '-t', sessionName, 'PATH', cleanPath], {
+      stdio: 'pipe',
+    });
   }
 
   private setupResizeHook(sessionName: string = this.sessionName) {

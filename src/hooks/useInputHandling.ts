@@ -361,7 +361,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
       const tmuxService = TmuxService.getInstance()
       const newPaneId = await tmuxService.splitPane({
         cwd: selectedPane.worktreePath,
-        command: buildFilesOnlyCommand(),
+        command: buildFilesOnlyCommand(projectRoot),
       })
 
       await new Promise((resolve) => setTimeout(resolve, ANIMATION_DELAY))
