@@ -34,6 +34,7 @@ import {
 } from './codexHooks.js';
 import { TmuxService } from '../services/TmuxService.js';
 import { getPaneTmuxTitle } from './paneTitle.js';
+import { getVcsBackend } from '../vcs/registry.js';
 
 type StepState = 'pending' | 'active' | 'done' | 'failed' | 'skipped';
 
@@ -443,65 +444,44 @@ async function enforcePaneTitle(config: PaneBootstrapConfig): Promise<void> {
   }
 }
 
-async function commandSucceeds(command: string, args: string[], cwd: string): Promise<boolean> {
-  const result = await runCommand(command, args, {
-    cwd,
-    allowFailure: true,
-  });
-  return result.code === 0;
-}
-
 async function prepareWorktree(config: PaneBootstrapConfig): Promise<void> {
+  const vcsBackend = config.pane.vcsBackend ?? config.metadata.vcsBackend ?? 'git';
+  const backend = getVcsBackend(vcsBackend);
+
   if (config.existingWorktree) {
-    if (!fs.existsSync(path.join(config.worktreePath, '.git'))) {
-      throw new Error(`Existing worktree not found at ${config.worktreePath}`);
+    if (!backend.isRepository(config.worktreePath)) {
+      throw new Error(`Existing ${vcsBackend} workspace not found at ${config.worktreePath}`);
     }
     return;
   }
 
-  await runCommand('git', ['worktree', 'prune'], {
-    cwd: config.projectRoot,
-    allowFailure: true,
-  });
-
-  if (config.resolvedStartPoint) {
-    const startPointExists = await commandSucceeds(
-      'git',
-      ['rev-parse', '--verify', '--end-of-options', config.resolvedStartPoint],
-      config.projectRoot
-    );
-    if (!startPointExists) {
-      throw new Error(`Worktree start point "${config.resolvedStartPoint}" does not exist`);
-    }
-  }
-
   if (fs.existsSync(config.worktreePath)) {
-    if (fs.existsSync(path.join(config.worktreePath, '.git'))) {
+    if (backend.isRepository(config.worktreePath)) {
       return;
     }
-    throw new Error(`Path already exists and is not a git worktree: ${config.worktreePath}`);
+    throw new Error(`Path already exists and is not a ${vcsBackend} workspace: ${config.worktreePath}`);
   }
 
   fs.mkdirSync(path.dirname(config.worktreePath), { recursive: true });
 
-  const branchExists = await commandSucceeds(
-    'git',
-    ['show-ref', '--verify', '--quiet', `refs/heads/${config.branchName}`],
-    config.projectRoot
-  );
+  const { SettingsManager } = await import('./settingsManager.js');
+  const settings = new SettingsManager(config.projectRoot).getSettings();
+  const targetRef = config.pane.vcsBackend === 'jj'
+    ? config.pane.targetRef
+    : (config.pane.targetRef || config.branchName);
+  const workspaceName = config.pane.vcsBackend === 'jj'
+    ? config.pane.workspaceName
+    : undefined;
 
-  const args = branchExists
-    ? ['worktree', 'add', config.worktreePath, config.branchName]
-    : [
-        'worktree',
-        'add',
-        config.worktreePath,
-        '-b',
-        config.branchName,
-        ...(config.resolvedStartPoint ? [config.resolvedStartPoint] : []),
-      ];
-
-  await runCommand('git', args, { cwd: config.projectRoot });
+  backend.createWorkspace({
+    projectRoot: config.projectRoot,
+    worktreePath: config.worktreePath,
+    slug: config.slug,
+    targetRef,
+    workspaceName,
+    startPointRef: config.resolvedStartPoint,
+    settings,
+  });
 }
 
 async function sendInteractivePrompt(config: PaneBootstrapConfig): Promise<void> {

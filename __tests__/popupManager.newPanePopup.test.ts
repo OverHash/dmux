@@ -38,7 +38,7 @@ describe('PopupManager launchNewPanePopup', () => {
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
       'newPanePopup.js',
-      ['/tmp/project', '1'],
+      ['/tmp/project', '1', 'git'],
       expect.objectContaining({
         title: '  ✨ New Pane — project  ',
       }),
@@ -69,7 +69,7 @@ describe('PopupManager launchNewPanePopup', () => {
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
       'newPanePopup.js',
-      ['/tmp/other-project', '1'],
+      ['/tmp/other-project', '1', 'git'],
       expect.objectContaining({
         title: '  ✨ New Pane — other-project  ',
       }),
@@ -90,7 +90,7 @@ describe('PopupManager launchNewPanePopup', () => {
 
     expect(manager.launchPopup).toHaveBeenCalledWith(
       'newPanePopup.js',
-      ['/tmp/project', '0'],
+      ['/tmp/project', '0', 'git'],
       expect.any(Object),
       undefined,
       '/tmp/project'

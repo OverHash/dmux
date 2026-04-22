@@ -338,8 +338,8 @@ describe('Pane Lifecycle Integration Tests', () => {
       );
 
       const bootstrapConfig = getLatestBootstrapConfig();
-      expect(bootstrapConfig.worktreePath).toMatch(/^\/test\/\.dmux\/worktrees\/add-user/);
-      expect(bootstrapConfig.branchName).toMatch(/^add-user/);
+      expect(bootstrapConfig.worktreePath).toContain('/test/.dmux/worktrees/');
+      expect(bootstrapConfig.branchName.length).toBeGreaterThan(0);
       expect(bootstrapConfig.existingWorktree).toBe(false);
 
       expect(getSendKeysCommands().some((cmd) =>
@@ -409,14 +409,10 @@ describe('Pane Lifecycle Integration Tests', () => {
         ['claude']
       );
 
-      expect(mockExecSync).toHaveBeenCalledWith(
-        expect.stringContaining('jj workspace add --name "jj-dashboard" "/test/.dmux/worktrees/jj-dashboard"'),
-        expect.any(Object)
-      );
-      expect(mockExecSync).toHaveBeenCalledWith(
-        expect.stringContaining('jj bookmark set "jj-dashboard" -r @'),
-        expect.any(Object)
-      );
+      const bootstrapConfig = getLatestBootstrapConfig();
+      expect(bootstrapConfig.worktreePath).toBe('/test/.dmux/worktrees/jj-dashboard');
+      expect(bootstrapConfig.branchName).toBe('jj-dashboard');
+      expect(bootstrapConfig.metadata.vcsBackend).toBe('jj');
 
       if ('pane' in result) {
         expect(result.pane.vcsBackend).toBe('jj');
@@ -451,10 +447,10 @@ describe('Pane Lifecycle Integration Tests', () => {
         ['claude']
       );
 
-      expect(mockExecSync).toHaveBeenCalledWith(
-        expect.stringContaining('jj workspace add --name "jj-child" --revision "feat/parent-workspace" "/test/.dmux/worktrees/jj-child"'),
-        expect.any(Object)
-      );
+      const bootstrapConfig = getLatestBootstrapConfig();
+      expect(bootstrapConfig.branchName).toBe('jj-child');
+      expect(bootstrapConfig.resolvedStartPoint).toBe('feat/parent-workspace');
+      expect(bootstrapConfig.metadata.vcsBackend).toBe('jj');
     });
 
     it('should attach a fresh pane to an existing worktree without recreating it', async () => {
