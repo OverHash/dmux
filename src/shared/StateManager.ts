@@ -3,6 +3,7 @@ import type { DmuxPane, ProjectSettings, LogEntry } from '../types.js';
 import { ConfigWatcher } from '../services/ConfigWatcher.js';
 import { LogService } from '../services/LogService.js';
 import { ToastService, type Toast } from '../services/ToastService.js';
+import { normalizePanes } from '../utils/paneNormalization.js';
 
 export interface DmuxState {
   panes: DmuxPane[];
@@ -95,7 +96,7 @@ export class StateManager extends EventEmitter {
   }
 
   updatePanes(panes: DmuxPane[]): void {
-    this.state.panes = [...panes];
+    this.state.panes = normalizePanes(panes);
     this.notifyListeners();
   }
 
@@ -120,7 +121,7 @@ export class StateManager extends EventEmitter {
     this.configWatcher = new ConfigWatcher(panesFile);
     this.configWatcher.on('change', (config) => {
       // Update state with new panes from file
-      this.state.panes = [...config.panes];
+      this.state.panes = normalizePanes(config.panes);
       this.notifyListeners();
     });
 
@@ -145,7 +146,7 @@ export class StateManager extends EventEmitter {
   }
 
   getPanes(): DmuxPane[] {
-    return [...this.state.panes];
+    return normalizePanes(this.state.panes);
   }
 
   subscribe(callback: (state: DmuxState) => void): () => void {

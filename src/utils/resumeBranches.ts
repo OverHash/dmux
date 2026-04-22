@@ -3,13 +3,14 @@ import { createHash } from 'crypto';
 import * as fs from 'fs';
 import path from 'path';
 import type { DmuxPane } from '../types.js';
+import { detectVcsForPath } from '../vcs/detect.js';
 import type { AgentName } from './agentLaunch.js';
 import { triggerHook } from './hooks.js';
 import { getOrphanedWorktrees, isValidBranchName } from './git.js';
 import { createPane } from './paneCreation.js';
 import { shellQuote } from './promptStore.js';
 import { SettingsManager } from './settingsManager.js';
-import { writeWorktreeMetadata } from './worktreeMetadata.js';
+import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
 
 const REMOTE_FALLBACK = 'origin';
 const RESUME_SCAN_EXCLUDED_DIRS = new Set([
@@ -39,6 +40,89 @@ export interface ResumableBranchCandidate {
 interface ResumableBranchRecord extends ResumableBranchCandidate {
   hasLocalBranch: boolean;
   hasRemoteBranch: boolean;
+}
+
+function getJjWorkspaceLastModified(worktreePath: string): Date {
+  let lastModified = new Date(0);
+  const candidatePaths = [
+    worktreePath,
+    path.join(worktreePath, '.jj'),
+    path.join(worktreePath, '.dmux', 'worktree-metadata.json'),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    try {
+      const stats = fs.statSync(candidatePath);
+      if (stats.mtime > lastModified) {
+        lastModified = stats.mtime;
+      }
+    } catch {
+      // Ignore missing/unreadable paths and keep the best timestamp we have.
+    }
+  }
+
+  return lastModified;
+}
+
+function hasJjUncommittedChanges(worktreePath: string): boolean {
+  try {
+    const output = execSync('jj diff --summary -r @', {
+      cwd: worktreePath,
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    }).trim();
+    return output.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function getResumableJjWorkspaces(
+  projectRoot: string,
+  activePaneSlugs: string[]
+): ResumableBranchCandidate[] {
+  const worktreesDir = path.join(projectRoot, '.dmux', 'worktrees');
+  if (!fs.existsSync(worktreesDir)) {
+    return [];
+  }
+
+  const candidates: ResumableBranchCandidate[] = [];
+
+  for (const entry of fs.readdirSync(worktreesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const slug = entry.name;
+    if (activePaneSlugs.includes(slug)) {
+      continue;
+    }
+
+    const worktreePath = path.join(worktreesDir, slug);
+    const metadata = readWorktreeMetadata(worktreePath);
+    if (metadata?.vcsBackend !== 'jj') {
+      continue;
+    }
+
+    const detected = detectVcsForPath(worktreePath, 'jj');
+    if (!detected || detected.backend !== 'jj') {
+      continue;
+    }
+
+    candidates.push({
+      branchName: metadata.targetRef,
+      slug,
+      path: worktreePath,
+      lastModified: getJjWorkspaceLastModified(worktreePath),
+      hasUncommittedChanges: hasJjUncommittedChanges(worktreePath),
+      hasWorktree: true,
+      hasLocalBranch: false,
+      hasRemoteBranch: false,
+      isRemote: false,
+    });
+  }
+
+  return candidates.sort(compareCandidates);
 }
 
 interface WorkspaceRepoState {
@@ -283,6 +367,11 @@ export function getResumableBranches(
   activePaneSlugs: string[],
   options: ResumableBranchScanOptions = {}
 ): ResumableBranchCandidate[] {
+  const detectedBackend = detectVcsForPath(projectRoot, 'auto')?.backend;
+  if (detectedBackend === 'jj') {
+    return getResumableJjWorkspaces(projectRoot, activePaneSlugs);
+  }
+
   const includeRemoteBranches = options.includeRemoteBranches ?? true;
   const candidates = new Map<string, ResumableBranchRecord>();
 
@@ -961,6 +1050,12 @@ export async function resumeBranchWorkspace(
     sessionProjectRoot,
   } = options;
 
+  if (detectVcsForPath(projectRoot, 'auto')?.backend === 'jj') {
+    throw new Error(
+      `Opening a new jj workspace from ${branchName} is not supported yet. Reopen an existing dmux workspace instead.`
+    );
+  }
+
   const workspaceStates = await getWorkspaceBranchStatesAsync(projectRoot, branchName);
   const slug = getAvailableSlug(branchName, projectRoot, existingPanes);
   const rootWorktreePath = path.join(projectRoot, '.dmux', 'worktrees', slug);
@@ -985,6 +1080,8 @@ export async function resumeBranchWorkspace(
     writeWorktreeMetadata(worktreePath, {
       ...(agent && !state.relativePath ? { agent } : {}),
       permissionMode: state.relativePath ? undefined : settings.permissionMode,
+      vcsBackend: 'git',
+      targetRef: branchName,
       branchName: branchName !== slug ? branchName : undefined,
     });
   }
@@ -996,6 +1093,8 @@ export async function resumeBranchWorkspace(
       existingWorktree: {
         slug,
         worktreePath: rootWorktreePath,
+        vcsBackend: 'git',
+        targetRef: branchName,
         branchName,
       },
       projectName: path.basename(projectRoot),

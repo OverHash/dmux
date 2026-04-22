@@ -155,7 +155,10 @@ describe('createPullRequestAction', () => {
   });
 
   it('opens the PR review popup with the AI-generated summary when confirmed', async () => {
-    const pane = createWorktreePane({ branchName: 'feature/review-queue' });
+    const pane = createWorktreePane({
+      targetRef: 'feature/review-queue',
+      branchName: 'feature/review-queue',
+    });
     const context = createMockContext([pane]);
     const result = await createPullRequest(pane, context);
 
@@ -175,7 +178,10 @@ describe('createPullRequestAction', () => {
   });
 
   it('creates the PR with the reviewed title/body when the user submits', async () => {
-    const pane = createWorktreePane({ branchName: 'feature/review-queue' });
+    const pane = createWorktreePane({
+      targetRef: 'feature/review-queue',
+      branchName: 'feature/review-queue',
+    });
     const context = createMockContext([pane]);
     const result = await createPullRequest(pane, context);
     const reviewResult = await result.onConfirm?.();
@@ -195,7 +201,10 @@ describe('createPullRequestAction', () => {
   });
 
   it('surfaces an existing PR instead of treating it as a failure', async () => {
-    const pane = createWorktreePane({ branchName: 'feature/review-queue' });
+    const pane = createWorktreePane({
+      targetRef: 'feature/review-queue',
+      branchName: 'feature/review-queue',
+    });
     const context = createMockContext([pane]);
     mocked.createGitHubPullRequest.mockReturnValue({
       url: 'https://github.com/acme/repo/pull/123',

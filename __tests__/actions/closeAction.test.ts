@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { closePane } from '../../src/actions/implementations/closeAction.js';
+import type { DmuxPane } from '../../src/types.js';
 import { createMockPane, createShellPane, createWorktreePane } from '../fixtures/mockPanes.js';
 import { createMockContext } from '../fixtures/mockContext.js';
 import { expectChoice, expectSuccess, expectError } from '../helpers/actionAssertions.js';
@@ -152,6 +153,25 @@ describe('closeAction', () => {
 
       expect(killAndClean?.danger).toBe(true);
       expect(killCleanBranch?.danger).toBe(true);
+    });
+
+    it('should describe jj cleanup options in jj terms', async () => {
+      const mockPane = createWorktreePane({
+        vcsBackend: 'jj',
+        targetRef: 'feat/jj-pane',
+        workspaceName: 'jj-pane',
+      } as Partial<DmuxPane>);
+      const mockContext = createMockContext([mockPane]);
+
+      const result = await closePane(mockPane, mockContext);
+
+      const killOnly = result.options!.find(o => o.id === 'kill_only');
+      const killAndClean = result.options!.find(o => o.id === 'kill_and_clean');
+      const killCleanBranch = result.options!.find(o => o.id === 'kill_clean_branch');
+
+      expect(killOnly?.description).toBe('Keep workspace and bookmark');
+      expect(killAndClean?.description).toBe('Forget workspace but keep bookmark');
+      expect(killCleanBranch?.description).toBe('Forget workspace and delete bookmark');
     });
 
     it('should set kill_only as default option', async () => {

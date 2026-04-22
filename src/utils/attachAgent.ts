@@ -8,7 +8,7 @@
 
 import * as fs from 'fs';
 import path from 'path';
-import type { DmuxPane, DmuxConfig } from '../types.js';
+import type { DmuxPane, DmuxConfig, WorkspaceVcsState } from '../types.js';
 import type { AgentName } from './agentLaunch.js';
 import { launchAgentInPane } from './agentLaunch.js';
 import { autoApproveTrustPrompt } from './paneCreation.js';
@@ -177,11 +177,23 @@ export async function attachAgentToWorktree(
   // Keep focus on the new pane
   await tmuxService.selectPane(paneInfo);
 
+  const workspaceVcsState: WorkspaceVcsState = targetPane.vcsBackend === 'jj'
+    ? {
+        vcsBackend: 'jj',
+        targetRef: targetPane.targetRef,
+        workspaceName: targetPane.workspaceName,
+      }
+    : {
+        vcsBackend: 'git',
+        targetRef: targetPane.targetRef,
+        branchName: targetPane.branchName,
+      };
+
   // Build the sibling pane object — shares worktree/branch with target
   const newPane: DmuxPane = {
     id: dmuxPaneId,
     slug,
-    branchName: targetPane.branchName,
+    ...workspaceVcsState,
     prompt: prompt || 'No initial prompt',
     paneId: paneInfo,
     projectRoot,

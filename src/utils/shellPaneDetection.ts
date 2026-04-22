@@ -213,6 +213,8 @@ export async function createShellPane(paneId: string, nextId: number, existingTi
   return {
     id: `dmux-${nextId}`,
     slug,
+    vcsBackend: 'git',
+    targetRef: slug,
     prompt: '', // No prompt for manually created panes
     paneId,
     projectRoot: paneProjectInfo.projectRoot,

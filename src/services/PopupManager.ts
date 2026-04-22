@@ -12,6 +12,7 @@ import { TmuxService } from "./TmuxService.js"
 import {
   DEFAULT_COLOR_THEME_SETTING_KEY,
   SETTING_DEFINITIONS,
+  SettingsManager,
 } from "../utils/settingsManager.js"
 import type {
   DmuxPane,
@@ -37,8 +38,8 @@ import {
 import { resolveDistPath } from "../utils/runtimePaths.js"
 import { getPaneProjectRoot } from "../utils/paneProject.js"
 import { getPaneDisplayName } from "../utils/paneTitle.js"
+import { detectVcsForPath } from '../vcs/detect.js'
 import type { TrackProjectActivity } from "../types/activity.js"
-import { SettingsManager } from "../utils/settingsManager.js"
 import { DEFAULT_DMUX_THEME, DMUX_THEME_NAMES } from "../theme/themePalette.js"
 import {
   AUTO_SIDEBAR_PROJECT_COLOR_THEME_VALUE,
@@ -171,13 +172,14 @@ export class PopupManager {
     return projectRoot || this.config.projectRoot
   }
 
-  private getSettingsManager(projectRoot?: string) {
-    const resolvedProjectRoot = projectRoot || this.config.projectRoot
-    if (!projectRoot || resolvedProjectRoot === this.config.projectRoot) {
-      return this.config.settingsManager
+  private getSettingsManager(projectRoot?: string): SettingsManager {
+    const targetProjectRoot = this.resolveActivityProjectRoot(projectRoot)
+
+    if (path.resolve(targetProjectRoot) === path.resolve(this.config.projectRoot)) {
+      return this.config.settingsManager as SettingsManager
     }
 
-    return new SettingsManager(resolvedProjectRoot)
+    return new SettingsManager(targetProjectRoot)
   }
 
   private getAvailableAgents(projectRoot?: string): AgentName[] {
@@ -363,7 +365,14 @@ export class PopupManager {
       const settings = this.getSettingsManager(effectivePath).getSettings()
       const shouldPromptForGitOptions =
         (settings.promptForGitOptionsOnCreate ?? false) && (options.allowGitOptions ?? true)
-      const popupArgs = [effectivePath, shouldPromptForGitOptions ? "1" : "0"]
+      const preferredBackend = settings.vcsBackend ?? 'auto'
+      let popupVcsBackend: 'git' | 'jj' = 'git'
+      try {
+        popupVcsBackend = detectVcsForPath(effectivePath, preferredBackend)?.backend || 'git'
+      } catch {
+        popupVcsBackend = 'git'
+      }
+      const popupArgs = [effectivePath, shouldPromptForGitOptions ? "1" : "0", popupVcsBackend]
       const projectName = effectivePath ? path.basename(effectivePath) : "dmux"
       const result = await this.launchPopup<unknown>(
         "newPanePopup.js",
@@ -685,12 +694,12 @@ export class PopupManager {
     if (!this.checkPopupSupport()) return null
 
     try {
-      const resolvedProjectRoot = projectRoot || this.config.projectRoot
-      const settingsManager = new SettingsManager(resolvedProjectRoot)
+      const targetProjectRoot = this.resolveActivityProjectRoot(projectRoot)
+      const settingsManager = this.getSettingsManager(targetProjectRoot)
       const resolveSavedProjectTheme = (targetProjectRoot: string) =>
         new SettingsManager(targetProjectRoot).getSettings().colorTheme
       const effectiveProjectTheme = resolveProjectColorTheme(
-        resolvedProjectRoot,
+        targetProjectRoot,
         sidebarProjects
       )
       const colorThemeSettingIndex = SETTING_DEFINITIONS.findIndex(
@@ -727,7 +736,7 @@ export class PopupManager {
       }
       const currentSessionProjectThemeSetting = getSidebarProjectColorThemeSettingValue(
         sidebarProjects,
-        resolvedProjectRoot,
+        targetProjectRoot,
         resolveSavedProjectTheme
       )
       const insertIndex = colorThemeSettingIndex === -1
@@ -739,7 +748,6 @@ export class PopupManager {
         defaultColorThemeSetting,
         projectColorThemeSetting
       )
-
       let settingsPopupWidth = 84
       try {
         // Use tmux client dimensions, not the dmux pane's stdout width.
@@ -774,10 +782,10 @@ export class PopupManager {
           } as Record<string, unknown>,
           globalSettings: settingsManager.getGlobalSettings(),
           projectSettings: settingsManager.getProjectSettings(),
-          projectRoot: resolvedProjectRoot,
+          projectRoot: targetProjectRoot,
           controlPaneId: this.config.controlPaneId,
         },
-        resolvedProjectRoot
+        targetProjectRoot
       )
 
       if (result.success) {
@@ -801,7 +809,7 @@ export class PopupManager {
         }
 
         if (data.action === "enabledAgents") {
-          const enabledAgentsUpdate = await this.launchEnabledAgentsPopup(resolvedProjectRoot)
+          const enabledAgentsUpdate = await this.launchEnabledAgentsPopup(targetProjectRoot)
           if (enabledAgentsUpdate) {
             pendingUpdates.push(enabledAgentsUpdate)
           }
@@ -809,7 +817,7 @@ export class PopupManager {
         }
 
         if (data.action === "enabledNotificationSounds") {
-          const notificationSoundsUpdate = await this.launchNotificationSoundsPopup(resolvedProjectRoot)
+          const notificationSoundsUpdate = await this.launchNotificationSoundsPopup(targetProjectRoot)
           if (notificationSoundsUpdate) {
             pendingUpdates.push(notificationSoundsUpdate)
           }

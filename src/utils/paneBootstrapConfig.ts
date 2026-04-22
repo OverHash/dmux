@@ -1,4 +1,4 @@
-import type { DmuxPane } from '../types.js';
+import type { DmuxPane, WorkspaceVcsState } from '../types.js';
 import type { AgentName, PermissionMode } from './agentLaunch.js';
 
 export const DMUX_BOOTSTRAP_PANE_TITLE_PREFIX = 'dmux-bootstrap:';
@@ -23,6 +23,6 @@ export interface PaneBootstrapConfig {
     displayName?: string;
     branchName?: string;
     mergeTargetChain?: DmuxPane['mergeTargetChain'];
-  };
+  } & WorkspaceVcsState;
   hookExtraEnv?: Record<string, string>;
 }
