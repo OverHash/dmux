@@ -191,7 +191,7 @@ grep "^\- " md/branch-list.md | wc -l
 
 **CRITICAL**: Each branch **MUST** be on its own line starting with `- `. If you see multiple branch names on one line (e.g., "feat/branch1- feat/branch2"), split them into separate lines before proceeding.
 
-**IMPORTANT**: You **MUST** create a MERGED-BRANCHES.md document in the project's root directory in which to record which branches were merged to produce the new integration branch. You **MUST** include a Markdown table displaying which branches were merged in this document and a merge log detailing the merges that were performed. Make sure that you include the specific commit hash the merged branch was at when it was merged. Add this file to git. As you proceed, include notes in this MERGED-BRANCHES.md file detailing any conflict resolutions that were required during the merging process.
+**IMPORTANT**: You **MUST** create a MERGED-BRANCHES.md document in the project's root directory in which to record which branches were merged to produce the new integration branch. You **MUST** include a Markdown table displaying which branches were merged in this document and a merge log detailing the merges that were performed. Make sure that you include the specific commit hash the merged branch was at when it was merged. Add this file to git. As you proceed, include notes in this MERGED-BRANCHES.md file detailing any conflict resolutions that were required during the merging process. At the very end, the final `MERGED-BRANCHES.md` **MUST** also include a section comparing this integration branch against the most recent prior local integration branch, if one exists.
 
 #### MERGED-BRANCHES.md Required Format
 
@@ -235,6 +235,96 @@ The table **MUST** include:
 4. Commit and push MERGED-BRANCHES.md after EACH update
 
 This persistent checklist ensures no branches are skipped and survives session restarts.
+
+#### MERGED-BRANCHES.md Final Comparison Section
+
+After **ALL** merges are complete, the final `MERGED-BRANCHES.md` **MUST** include a section at the end named exactly:
+
+```markdown
+## Comparison to Previous Integration Branch
+```
+
+This section is **MANDATORY** if a prior local integration branch exists, and it **MUST** still be present even if no prior local integration branch exists. If none exists, explicitly say so.
+
+**CRITICAL**: This section is about **branch-level integration differences only**. It is **NOT** a code changelog.
+
+You **MUST** include only:
+
+- Branches that are newly included in the current integration branch
+- Branches that were included in the previous integration branch but are not included now
+- Branches that appear in both integrations but were merged at different commit hashes
+
+You **MUST NOT** include:
+
+- File-level diffs
+- Descriptions of code changes or implementation changes
+- Behavioral summaries of what changed in the app
+- Mentions of specific functions, components, or source files unless they are part of a branch name
+
+**Good examples** for this section:
+
+- "Newly integrated in this branch: `feat/foo`, `fix/bar`"
+- "No longer included vs previous integration: `feat/old-experiment`"
+- "Updated merged commit for `feat/baz`: previous integration used `abc1234`, current integration uses `def5678`"
+
+**FORBIDDEN** examples:
+
+- "The markdown renderer now supports nested blockquotes"
+- "The session dialog layout bug is fixed"
+- "There were changes in `src/components/...`"
+
+Use the previous integration branch only if it already exists locally. You **MUST NOT** fetch or pull to find one.
+
+Recommended process:
+
+```fish
+# Identify the current integration branch
+set CURRENT_BRANCH (git branch --show-current)
+
+# Find the most recent prior local integration branch, excluding the current one
+set PREVIOUS_INTEGRATION (git for-each-ref --sort=-refname --format='%(refname:short)' refs/heads/integration | grep -v "^$CURRENT_BRANCH$" | head -n 1)
+
+# If a previous integration branch exists, compare the two MERGED-BRANCHES.md files
+if test -n "$PREVIOUS_INTEGRATION"
+    git show $PREVIOUS_INTEGRATION:MERGED-BRANCHES.md
+    git diff $PREVIOUS_INTEGRATION -- MERGED-BRANCHES.md
+else
+    echo "No previous local integration branch found"
+end
+```
+
+**CRITICAL**: When you write this section in `MERGED-BRANCHES.md`, summarize only the branch delta between integrations. Do **NOT** summarize the code delta inside those branches.
+
+Use this exact structure:
+
+```markdown
+## Comparison to Previous Integration Branch
+
+Previous integration branch: `integration/YYYY-MM-DD-HH-MM`
+
+### Newly Included Branches
+
+- `feat/example-one`
+- `fix/example-two`
+
+### No Longer Included
+
+- None
+
+### Same Branch, Different Merged Commit
+
+- `feat/example-three`: previous `abc1234`, current `def5678`
+```
+
+If there is no previous local integration branch, use this exact structure instead:
+
+```markdown
+## Comparison to Previous Integration Branch
+
+Previous integration branch: None found locally
+
+No comparison was possible because there is no earlier local integration branch.
+```
 
 **CRITICAL - NEVER BATCH MERGE**: You **MUST NOT** try to process branches in batches or in parallel. While it may seem efficient, batch merging causes serious problems:
 
@@ -527,6 +617,38 @@ grep "^| ☑ |" MERGED-BRANCHES.md | wc -l
 
 **DO NOT proceed to finishing touches until all branches are ☑ checked!**
 
+### Add Final Comparison Section to MERGED-BRANCHES.md
+
+**CRITICAL**: Before finishing, you **MUST** update the final `MERGED-BRANCHES.md` to include the required `## Comparison to Previous Integration Branch` section.
+
+Use only local integration branches for this comparison. You **MUST NOT** fetch or pull.
+
+```fish
+# Identify the current integration branch
+set CURRENT_BRANCH (git branch --show-current)
+
+# Find the most recent prior local integration branch, excluding the current one
+set PREVIOUS_INTEGRATION (git for-each-ref --sort=-refname --format='%(refname:short)' refs/heads/integration | grep -v "^$CURRENT_BRANCH$" | head -n 1)
+
+# Inspect the previous checklist, if one exists
+if test -n "$PREVIOUS_INTEGRATION"
+    git show $PREVIOUS_INTEGRATION:MERGED-BRANCHES.md
+
+    # Compare only the integration tracking document
+    git diff $PREVIOUS_INTEGRATION -- MERGED-BRANCHES.md
+else
+    echo "No previous local integration branch found"
+end
+```
+
+Then update `MERGED-BRANCHES.md` so the comparison section clearly states:
+
+1. Which branches are newly included in the current integration branch
+2. Which branches are no longer included compared with the previous integration branch
+3. Which shared branches were merged at different commit hashes
+
+**CRITICAL**: This summary **MUST NOT** talk about code/content changes in the repository. It is only a summary of what changed about the **set of integrated branches**.
+
 ### Final Verification Commands
 
 Run these commands to verify the integration is complete and correct:
@@ -556,6 +678,10 @@ grep "\- feat/" md/branch-list.md | grep "feat/.*feat/"
 # 5. Verify main branch wasn't touched
 git log origin/main..main --oneline
 # **MUST** show nothing (empty output)
+
+# 6. Verify MERGED-BRANCHES.md includes the final comparison section
+grep "^## Comparison to Previous Integration Branch" MERGED-BRANCHES.md
+# **MUST** output that heading exactly once
 ```
 
 **Final checklist**:
@@ -563,6 +689,7 @@ git log origin/main..main --oneline
 - [ ] **ALL** branches from branch-list.md have been merged: `grep "^| ☐ |" MERGED-BRANCHES.md | wc -l` **MUST** output 0
 - [ ] Integration branch has been pushed to origin
 - [ ] MERGED-BRANCHES.md including Markdown table is complete and committed
+- [ ] MERGED-BRANCHES.md includes `## Comparison to Previous Integration Branch` with branch-level differences only
 - [ ] Tests pass on the integration branch
 - [ ] Build works
 - [ ] Verified: `main` branch still matches `origin/main` (hasn't moved forward)
