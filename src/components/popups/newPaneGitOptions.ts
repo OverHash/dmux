@@ -1,7 +1,9 @@
 import { execSync } from 'child_process';
+import type { SupportedVcsBackend } from '../../vcs/types.js';
 
 export const MAX_VISIBLE_BRANCHES = 10;
 export const BASE_BRANCH_ERROR_MESSAGE = 'Base branch must match an existing local branch (choose from the list).';
+export const BASE_BOOKMARK_ERROR_MESSAGE = 'Base bookmark must match an existing local bookmark (choose from the list).';
 
 export interface BaseBranchEnterResolution {
   accepted: boolean;
@@ -9,16 +11,32 @@ export interface BaseBranchEnterResolution {
   error?: string;
 }
 
-export function loadLocalBranchNames(repoRoot: string): string[] {
+export function getStartPointErrorMessage(vcsBackend: SupportedVcsBackend): string {
+  return vcsBackend === 'jj' ? BASE_BOOKMARK_ERROR_MESSAGE : BASE_BRANCH_ERROR_MESSAGE;
+}
+
+export function loadLocalBranchNames(
+  repoRoot: string,
+  vcsBackend: SupportedVcsBackend = 'git'
+): string[] {
   try {
-    const raw = execSync(
-      "git for-each-ref --sort=-committerdate --format='%(refname:short)' refs/heads",
-      {
-        cwd: repoRoot,
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      }
-    );
+    const raw = vcsBackend === 'jj'
+      ? execSync(
+          "jj bookmark list --all --template 'name ++ \"\\n\"'",
+          {
+            cwd: repoRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          }
+        )
+      : execSync(
+          "git for-each-ref --sort=-committerdate --format='%(refname:short)' refs/heads",
+          {
+            cwd: repoRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          }
+        );
 
     return parseBranchList(raw);
   } catch {
@@ -89,6 +107,7 @@ export function resolveBaseBranchEnter(input: {
   availableBranches: string[];
   filteredBranches: string[];
   selectedIndex: number;
+  vcsBackend?: SupportedVcsBackend;
 }): BaseBranchEnterResolution {
   if (input.filteredBranches.length > 0 && input.selectedIndex < input.filteredBranches.length) {
     return {
@@ -115,6 +134,6 @@ export function resolveBaseBranchEnter(input: {
   return {
     accepted: false,
     nextValue: trimmed,
-    error: BASE_BRANCH_ERROR_MESSAGE,
+    error: getStartPointErrorMessage(input.vcsBackend ?? 'git'),
   };
 }
