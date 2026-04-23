@@ -2,9 +2,9 @@
 
 ## Merge Checklist
 
-| Status | #   | Branch Name         | Remote | Commit Hash | Description |
-| ------ | --- | ------------------- | ------ | ----------- | ----------- |
-| ☐      | 1   | feat/jj-support-v3  | origin | TBD         | PR #2       |
+| Status | #   | Branch Name    | Remote | Commit Hash | Description |
+| ------ | --- | -------------- | ------ | ----------- | ----------- |
+| ☐      | 1   | jj-support-v3  | origin | TBD         | PR #2       |
 
 ## Merge Log
 
