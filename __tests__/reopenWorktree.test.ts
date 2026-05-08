@@ -22,6 +22,7 @@ const recalculateAndApplyLayoutMock = vi.hoisted(() => vi.fn(async () => {}));
 const getInstalledAgentsMock = vi.hoisted(() => vi.fn(async () => ['claude', 'codex']));
 const filterEnabledAgentsMock = vi.hoisted(() => vi.fn((agents: string[]) => agents));
 const destroyWelcomePaneCoordinatedMock = vi.hoisted(() => vi.fn());
+const getCurrentBranchMock = vi.hoisted(() => vi.fn(() => 'feature/reopen-me'));
 const readWorktreeMetadataMock = vi.hoisted(() => vi.fn(() => ({
   agent: 'codex',
   permissionMode: 'bypassPermissions',
@@ -81,7 +82,7 @@ vi.mock('../src/utils/paneTitle.js', () => ({
 }));
 
 vi.mock('../src/utils/git.js', () => ({
-  getCurrentBranch: vi.fn(() => 'feature/reopen-me'),
+  getCurrentBranch: getCurrentBranchMock,
 }));
 
 vi.mock('../src/utils/geminiTrust.js', () => ({
@@ -99,12 +100,15 @@ vi.mock('../src/utils/welcomePaneManager.js', () => ({
 describe('reopenWorktree', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getCurrentBranchMock.mockReturnValue('feature/reopen-me');
     fsMock.readFileSync.mockReturnValue(JSON.stringify({ controlPaneId: '%0' }));
     readWorktreeMetadataMock.mockReturnValue({
       agent: 'codex',
       permissionMode: 'bypassPermissions',
+      vcsBackend: 'git',
+      targetRef: 'feature/reopen-me',
       branchName: 'feature/reopen-me',
-    });
+    } as any);
   });
 
   it('uses stored agent metadata and permission mode for resume', async () => {
@@ -132,6 +136,8 @@ describe('reopenWorktree', () => {
     );
     expect(result.pane.agent).toBe('codex');
     expect(result.pane.permissionMode).toBe('bypassPermissions');
+    expect(result.pane.vcsBackend).toBe('git');
+    expect(result.pane.targetRef).toBe('feature/reopen-me');
   });
 
   it('destroys the welcome pane even when only shell panes already exist', async () => {
@@ -156,5 +162,33 @@ describe('reopenWorktree', () => {
     });
 
     expect(destroyWelcomePaneCoordinatedMock).toHaveBeenCalledWith('/repo');
+  });
+
+  it('reopens jj workspaces from stored metadata without relying on git branch state', async () => {
+    readWorktreeMetadataMock.mockReturnValue({
+      agent: 'codex',
+      permissionMode: 'bypassPermissions',
+      vcsBackend: 'jj',
+      targetRef: 'feat/jj-reopen-me',
+      workspaceName: 'jj-reopen-me',
+    } as any);
+
+    const { reopenWorktree } = await import('../src/utils/reopenWorktree.js');
+
+    const result = await reopenWorktree({
+      slug: 'jj-reopen-me',
+      worktreePath: '/repo/.dmux/worktrees/jj-reopen-me',
+      projectRoot: '/repo',
+      existingPanes: [],
+      sessionProjectRoot: '/repo',
+      sessionConfigPath: '/repo/.dmux/dmux.config.json',
+    });
+
+    expect(result.pane.vcsBackend).toBe('jj');
+    expect(result.pane.targetRef).toBe('feat/jj-reopen-me');
+    if (result.pane.vcsBackend === 'jj') {
+      expect(result.pane.workspaceName).toBe('jj-reopen-me');
+    }
+    expect(getCurrentBranchMock).not.toHaveBeenCalled();
   });
 });

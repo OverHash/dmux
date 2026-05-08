@@ -97,6 +97,9 @@ describe('Merge Action Integration', () => {
   const mockPane: DmuxPane = {
     id: 'test-1',
     slug: 'test-branch',
+    vcsBackend: 'git',
+    targetRef: 'test-branch',
+    branchName: 'test-branch',
     prompt: 'test prompt',
     paneId: '%1',
     worktreePath: '/test/main/.dmux/worktrees/test-branch',

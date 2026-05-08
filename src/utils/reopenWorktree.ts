@@ -19,7 +19,6 @@ import {
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { SettingsManager } from './settingsManager.js';
 import { filterEnabledAgents, getInstalledAgents } from './agentDetection.js';
-import { getCurrentBranch } from './git.js';
 import { readWorktreeMetadata } from './worktreeMetadata.js';
 import {
   buildCodexHookedCommand,
@@ -27,6 +26,7 @@ import {
 } from './codexHooks.js';
 import { resolveProjectColorTheme } from './paneColors.js';
 import type { SidebarProject } from '../types.js';
+import { getVcsBackend } from '../vcs/registry.js';
 
 export interface ReopenWorktreeOptions {
   agent?: AgentName;
@@ -212,15 +212,17 @@ export async function reopenWorktree(
   await tmuxService.selectPane(paneInfo);
 
   // Create the pane object
-  const currentBranch = getCurrentBranch(worktreePath);
+  const workspaceVcsState = getVcsBackend(metadata?.vcsBackend || 'git').resolveWorkspaceState({
+    worktreePath,
+    slug,
+    storedState: metadata || undefined,
+  });
 
   const newPane: DmuxPane = {
     id: dmuxPaneId,
     slug,
     displayName: metadata?.displayName,
-    branchName: (metadata?.branchName || currentBranch) !== slug
-      ? (metadata?.branchName || currentBranch)
-      : undefined,
+    ...workspaceVcsState,
     prompt: '(Reopened session)',
     paneId: paneInfo,
     projectRoot,

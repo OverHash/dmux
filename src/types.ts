@@ -1,5 +1,6 @@
 import type { AgentName, PermissionMode } from './utils/agentLaunch.js';
 import type { NotificationSoundId } from './utils/notificationSounds.js';
+import type { VcsBackendSetting } from './vcs/types.js';
 
 export type DmuxThemeName =
   | 'red'
@@ -39,7 +40,21 @@ export interface SidebarProject {
   colorThemeSource?: 'auto' | 'manual';
 }
 
-export interface DmuxPane {
+export type GitWorkspaceVcsState = {
+  vcsBackend: 'git';
+  targetRef: string; // dmux-managed workspace ref; branch name for git
+  branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
+};
+
+export type JjWorkspaceVcsState = {
+  vcsBackend: 'jj';
+  targetRef: string; // dmux-managed workspace ref; bookmark name for jj
+  workspaceName: string; // jj workspace name tracked by dmux
+};
+
+export type WorkspaceVcsState = GitWorkspaceVcsState | JjWorkspaceVcsState;
+
+interface DmuxPaneBase {
   id: string;
   slug: string;
   displayName?: string; // User-facing pane name (independent from worktree slug/branch)
@@ -80,6 +95,8 @@ export interface DmuxPane {
   // Merge ancestry for sub-worktrees; first entry is the immediate parent target.
   mergeTargetChain?: MergeTargetReference[];
 }
+
+export type DmuxPane = DmuxPaneBase & WorkspaceVcsState;
 
 export interface PanePosition {
   paneId: string;
@@ -130,6 +147,8 @@ export interface DmuxSettings {
   branchPrefix?: string;
   // Whether new pane popup should ask for base/branch overrides
   promptForGitOptionsOnCreate?: boolean;
+  // Which backend to use for workspace lifecycle operations.
+  vcsBackend?: VcsBackendSetting;
   // Preferred minimum content pane width in characters
   minPaneWidth?: number;
   // Preferred maximum content pane width in characters
