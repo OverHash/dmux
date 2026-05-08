@@ -11,3 +11,19 @@ Base release: `v5.7.1` (`bd4bf164389b957c5b45481753ae90ab8674f941`)
 ## Merge Log
 
 - `jj-support-v3` merged cleanly with merge commit `d8d6797d248d7d504c44d80ca7aec7a8b32eaf8b`; `pnpm run typecheck` passed.
+
+## Comparison to Previous Integration Branch
+
+Previous integration branch: `integration/2026-04-23-12-02`
+
+### Newly Included Branches
+
+- None
+
+### No Longer Included
+
+- None
+
+### Same Branch, Different Merged Commit
+
+- `jj-support-v3`: previous `0db5467`, current `3be15c0333be9f85d7779633a8a2bdab5432f5cd`
