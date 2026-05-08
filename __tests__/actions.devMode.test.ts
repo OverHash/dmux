@@ -41,6 +41,23 @@ describe("dev-only action visibility", () => {
     expect(ids.includes(PaneAction.CREATE_CHILD_WORKTREE)).toBe(true)
   })
 
+  it("hides merge for jj panes", () => {
+    const jjPane: DmuxPane = {
+      id: "3",
+      slug: "jj-pane",
+      prompt: "test",
+      paneId: "%3",
+      worktreePath: "/tmp/repo/.dmux/worktrees/jj-pane",
+      vcsBackend: "jj",
+      targetRef: "feat/jj-pane",
+      workspaceName: "jj-pane",
+    }
+
+    const actions = getAvailableActions(jjPane, {}, false)
+    const ids = actions.map((action) => action.id)
+    expect(ids.includes(PaneAction.MERGE)).toBe(false)
+  })
+
   it("keeps add agent as the last visible pane action", () => {
     const actions = getAvailableActions(pane, {}, false)
     const ids = actions.map((action) => action.id)

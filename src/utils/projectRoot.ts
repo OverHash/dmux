@@ -1,11 +1,14 @@
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'fs';
 import path from 'path';
+import { detectVcsForPath } from '../vcs/detect.js';
+import type { VcsBackendSetting, SupportedVcsBackend } from '../vcs/types.js';
 
 export interface ResolvedProjectRoot {
   projectRoot: string;
   projectName: string;
   requestedPath: string;
+  vcsBackend: SupportedVcsBackend;
 }
 
 export type ProjectCreationTargetState =
@@ -45,6 +48,31 @@ function resolveProjectPathInput(
   };
 }
 
+function normalizeVcsBackendSetting(value: unknown): VcsBackendSetting {
+  return value === 'git' || value === 'jj' || value === 'auto'
+    ? value
+    : 'auto';
+}
+
+function readPreferredVcsBackend(settingsPath: string): VcsBackendSetting {
+  try {
+    if (!existsSync(settingsPath)) {
+      return 'auto';
+    }
+
+    const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8')) as {
+      vcsBackend?: unknown;
+    };
+    return normalizeVcsBackendSetting(parsed.vcsBackend);
+  } catch {
+    return 'auto';
+  }
+}
+
+function getUnavailableBackendErrorMessage(scope: 'global' | 'project', backend: VcsBackendSetting, absolutePath: string): string {
+  return `Configured ${scope} vcsBackend "${backend}" is not available for ${absolutePath}`;
+}
+
 export function inspectProjectCreationTarget(
   rawPath: string,
   baseDir: string = process.cwd()
@@ -77,7 +105,7 @@ export function inspectProjectCreationTarget(
 }
 
 /**
- * Resolve any path inside a git repo/worktree to the main repository root.
+ * Resolve any path inside a git or jj workspace to the project root.
  */
 export function resolveProjectRootFromPath(
   rawPath: string,
@@ -92,40 +120,43 @@ export function resolveProjectRootFromPath(
   const stat = statSync(absolutePath);
   const workingDir = stat.isDirectory() ? absolutePath : path.dirname(absolutePath);
 
-  let gitCommonDir: string;
-  try {
-    gitCommonDir = execSync('git rev-parse --path-format=absolute --git-common-dir', {
-      cwd: workingDir,
-      encoding: 'utf-8',
-      stdio: 'pipe',
-    }).trim();
-  } catch {
-    try {
-      const fallbackRoot = execSync('git rev-parse --show-toplevel', {
-        cwd: workingDir,
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      }).trim();
+  const globalPreferredBackend = readPreferredVcsBackend(
+    path.join(process.env.HOME || '', '.dmux.global.json')
+  );
 
-      return {
-        projectRoot: fallbackRoot,
-        projectName: path.basename(fallbackRoot),
-        requestedPath,
-      };
-    } catch {
-      throw new Error(`Not a git repository: ${absolutePath}`);
-    }
+  const initialDetection = detectVcsForPath(workingDir, globalPreferredBackend);
+  if (!initialDetection && globalPreferredBackend !== 'auto') {
+    throw new Error(getUnavailableBackendErrorMessage('global', globalPreferredBackend, absolutePath));
   }
 
-  if (!gitCommonDir) {
-    throw new Error(`Unable to determine git root for: ${absolutePath}`);
+  const detected = initialDetection
+    ? (() => {
+        const projectPreferredBackend = readPreferredVcsBackend(
+          path.join(initialDetection.projectRoot, '.dmux', 'settings.json')
+        );
+        if (projectPreferredBackend === 'auto') {
+          return initialDetection;
+        }
+
+        const projectDetection = detectVcsForPath(workingDir, projectPreferredBackend);
+        if (!projectDetection) {
+          throw new Error(getUnavailableBackendErrorMessage('project', projectPreferredBackend, absolutePath));
+        }
+
+        return projectDetection;
+      })()
+    : initialDetection;
+
+  if (!detected) {
+    throw new Error(`Not a git or jj repository: ${absolutePath}`);
   }
 
-  const projectRoot = path.dirname(gitCommonDir);
+  const projectRoot = detected.projectRoot;
   return {
     projectRoot,
     projectName: path.basename(projectRoot),
     requestedPath,
+    vcsBackend: detected.backend,
   };
 }
 
@@ -173,5 +204,6 @@ export function createEmptyGitProject(
     projectRoot: target.absolutePath,
     projectName: path.basename(target.absolutePath) || 'project',
     requestedPath: target.requestedPath,
+    vcsBackend: 'git',
   };
 }

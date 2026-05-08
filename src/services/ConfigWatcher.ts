@@ -2,6 +2,7 @@ import { watch, type FSWatcher } from 'chokidar';
 import { EventEmitter } from 'events';
 import { readFile } from 'fs/promises';
 import type { DmuxPane } from '../types.js';
+import { normalizePanes } from '../utils/paneNormalization.js';
 import { LogService } from './LogService.js';
 
 export interface ConfigData {
@@ -87,7 +88,10 @@ export class ConfigWatcher extends EventEmitter {
 
         try {
           const config: ConfigData = JSON.parse(newContent);
-          this.emit('change', config);
+          this.emit('change', {
+            ...config,
+            panes: normalizePanes(config.panes),
+          });
         } catch (parseErr) {
           const msg = 'Failed to parse config file';
           console.error(msg, parseErr);

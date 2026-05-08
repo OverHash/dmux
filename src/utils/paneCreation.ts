@@ -2,7 +2,12 @@ import path from 'path';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import type { DmuxPane, DmuxConfig, MergeTargetReference } from '../types.js';
+import type {
+  DmuxPane,
+  DmuxConfig,
+  MergeTargetReference,
+  WorkspaceVcsState,
+} from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
   ensurePaneBorderStatusForCurrentSession,
@@ -30,6 +35,9 @@ import {
   DMUX_BOOTSTRAP_PANE_TITLE_PREFIX,
   type PaneBootstrapConfig,
 } from './paneBootstrapConfig.js';
+import { getTargetRef, getWorkspaceName } from '../vcs/references.js';
+import { detectVcsForPath } from '../vcs/detect.js';
+import { resolveProjectRootFromPath } from './projectRoot.js';
 
 export interface CreatePaneOptions {
   prompt: string;
@@ -38,11 +46,10 @@ export interface CreatePaneOptions {
   slugBase?: string;
   baseBranchOverride?: string;
   branchNameOverride?: string;
-  existingWorktree?: {
+  existingWorktree?: ({
     slug: string;
     worktreePath: string;
-    branchName: string;
-  };
+  } & WorkspaceVcsState);
   startPointBranch?: string;
   mergeTargetChain?: MergeTargetReference[];
   projectName: string;
@@ -175,33 +182,20 @@ export async function createPane(
   // Load settings to check for default agent and autopilot
   const { SettingsManager } = await import('./settingsManager.js');
 
-  // Get project root (handle git worktrees correctly)
+  // Get project root (handle vcs worktrees correctly)
   let projectRoot: string;
+  let detectedProjectBackend: WorkspaceVcsState['vcsBackend'];
   if (optionsProjectRoot) {
     projectRoot = optionsProjectRoot;
+    detectedProjectBackend = 'git';
   } else {
     try {
-      // For git worktrees, we need to get the main repository root, not the worktree root
-      // git rev-parse --git-common-dir gives us the main .git directory
-      const gitCommonDir = execSync('git rev-parse --git-common-dir', {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      }).trim();
-
-      // If it's a worktree, gitCommonDir will be an absolute path to main .git
-      // If it's the main repo, it will be just '.git'
-      if (gitCommonDir === '.git') {
-        // We're in the main repo
-        projectRoot = execSync('git rev-parse --show-toplevel', {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-        }).trim();
-      } else {
-        // We're in a worktree, get the parent directory of the .git directory
-        projectRoot = path.dirname(gitCommonDir);
-      }
+      const resolved = resolveProjectRootFromPath(process.cwd(), process.cwd());
+      projectRoot = resolved.projectRoot;
+      detectedProjectBackend = resolved.vcsBackend;
     } catch {
       projectRoot = process.cwd();
+      detectedProjectBackend = 'git';
     }
   }
 
@@ -243,9 +237,24 @@ export async function createPane(
     DMUX_AGENT: agent || 'unknown',
   });
 
-  // Validate branchPrefix before use
+  const vcsBackend = (() => {
+    if (existingWorktree?.vcsBackend) {
+      return existingWorktree.vcsBackend;
+    }
+
+    const configuredBackend = settings.vcsBackend ?? 'auto';
+    const detectedBackend = detectVcsForPath(projectRoot, configuredBackend)?.backend;
+
+    if (configuredBackend !== 'auto' && !detectedBackend) {
+      throw new Error(`Configured vcsBackend "${configuredBackend}" is not available for ${projectRoot}`);
+    }
+
+    return detectedBackend || detectedProjectBackend || 'git';
+  })();
+
+  // Validate branchPrefix before use.
   const branchPrefix = settings.branchPrefix || '';
-  if (branchPrefix && !isValidBranchName(branchPrefix)) {
+  if (vcsBackend === 'git' && branchPrefix && !isValidBranchName(branchPrefix)) {
     throw new Error(`Invalid branch prefix: ${branchPrefix}`);
   }
 
@@ -259,22 +268,39 @@ export async function createPane(
     throw new Error(`Invalid base branch override: ${overrideBaseBranch}`);
   }
 
-  // Generate slug/worktree + branch names.
-  // Explicit branch name override takes precedence over branchPrefix.
+  // Generate slug/worktree plus the backend-specific target ref.
   const generatedSlug = existingWorktree
     ? existingWorktree.slug
     : (slugBase || await generateSlug(prompt));
   const naming = resolvePaneNaming({
     generatedSlug,
     slugSuffix,
-    branchPrefix,
+    branchPrefix: vcsBackend === 'git' ? branchPrefix : undefined,
     baseBranchSetting: settings.baseBranch,
     baseBranchOverride: overrideBaseBranch,
     branchNameOverride: overrideBranchName,
   });
   const slug = existingWorktree ? existingWorktree.slug : naming.slug;
-  const branchName = existingWorktree ? existingWorktree.branchName : naming.branchName;
+  const targetRef = existingWorktree
+    ? getTargetRef(existingWorktree)
+    : naming.branchName;
+  const branchName = targetRef;
   const effectiveBaseBranch = naming.baseBranch;
+  const workspaceName = vcsBackend === 'jj'
+    ? ((existingWorktree?.vcsBackend === 'jj' ? getWorkspaceName(existingWorktree) : undefined)
+      || slug)
+    : undefined;
+  const workspaceVcsState: WorkspaceVcsState = vcsBackend === 'jj'
+    ? {
+        vcsBackend: 'jj',
+        targetRef,
+        workspaceName: workspaceName || slug,
+      }
+    : {
+        vcsBackend,
+        targetRef,
+        branchName: targetRef !== slug ? targetRef : undefined,
+      };
   const tmuxService = TmuxService.getInstance();
 
   const worktreePath = existingWorktree?.worktreePath
@@ -462,7 +488,7 @@ export async function createPane(
     id: `dmux-${Date.now()}`,
     slug,
     displayName: existingWorktreeMetadata?.displayName,
-    branchName: branchName !== slug ? branchName : undefined,
+    ...workspaceVcsState,
     prompt: prompt || 'No initial prompt',
     paneId: paneInfo,
     projectRoot,
@@ -499,7 +525,7 @@ export async function createPane(
       agent,
       permissionMode: settings.permissionMode,
       displayName: existingWorktreeMetadata?.displayName,
-      branchName: branchName !== slug ? branchName : undefined,
+      ...workspaceVcsState,
       mergeTargetChain,
     },
     hookExtraEnv,
