@@ -1,3 +1,3 @@
 # from origin
 
-- feat/jj-support-v3 (PR #2)
+- jj-support-v3 (PR #2)
